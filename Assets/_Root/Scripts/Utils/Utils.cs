@@ -6,7 +6,8 @@ namespace _Root.Scripts.Utils
     {
         public static Vector3 GetRandomSpawnPoint()
         {
-            return new Vector3(Random.Range(-20,20), 4, Random.Range(-20,20));
+            // y=1 - yerden biraz yukarıda spawn ol (0.5-1 arası ideal)
+            return new Vector3(Random.Range(-20,20), 1f, Random.Range(-20,20));
         }
     }
 }

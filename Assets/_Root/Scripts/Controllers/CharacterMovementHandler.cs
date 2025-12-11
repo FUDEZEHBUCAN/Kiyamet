@@ -1,4 +1,3 @@
-using System;
 using _Root.Scripts.Input;
 using _Root.Scripts.Network;
 using Fusion;
@@ -9,95 +8,90 @@ namespace _Root.Scripts.Controllers
     public class CharacterMovementHandler : NetworkBehaviour
     {
         [SerializeField] private float rotationSpeed = 150f;
-        [SerializeField] private CharacterInputController inputController;
         
-        private NetworkCharacterControllerCustom _networkCharacterController;
-        private float _currentYaw;
+        private NetworkCharacterControllerCustom _cc;
+        private CharacterInputController _inputController;
+        
+        // Networked yaw - tüm client'larda senkronize
+        [Networked] private float NetworkedYaw { get; set; }
 
         private void Awake()
         {
-            _networkCharacterController = GetComponent<NetworkCharacterControllerCustom>();
-            inputController ??= GetComponent<CharacterInputController>();
-            if (_networkCharacterController == null)
-            {
-                Debug.LogError($"NetworkCharacterControllerCustom bulunamadı! GameObject: {gameObject.name}");
-            }
-            if (inputController == null)
-            {
-                Debug.LogError($"CharacterInputController bulunamadı! GameObject: {gameObject.name}");
-            }
+            _cc = GetComponent<NetworkCharacterControllerCustom>();
         }
 
         public override void Spawned()
         {
+            NetworkedYaw = transform.eulerAngles.y;
+            
             if (Object.HasInputAuthority)
             {
-                _currentYaw = transform.eulerAngles.y;
+                _inputController = GetComponent<CharacterInputController>();
+                if (_inputController == null)
+                {
+                    _inputController = gameObject.AddComponent<CharacterInputController>();
+                }
+                Debug.Log($"[CharacterMovementHandler] Local player spawned");
             }
-        }
-
-        // LOCAL rotation - her frame çalışır, smooth
-        private void Update()
-        {
-            if (!Object.HasInputAuthority)
-                return;
-
-            // Mouse input'u doğrudan oku ve uygula
-            if (inputController == null)
-                return;
-
-            float mouseX = UnityEngine.Input.GetAxis("Mouse X") * inputController.MouseSensitivity * rotationSpeed * Time.deltaTime;
-            
-            if (Mathf.Abs(mouseX) > 0.001f)
+            else
             {
-                _currentYaw += mouseX;
-                transform.rotation = Quaternion.Euler(0, _currentYaw, 0);
-                
-                // Network state'e de yaz (diğer oyuncular görsün)
-                _networkCharacterController.SetNetworkRotation(transform.rotation);
+                var remoteInputController = GetComponent<CharacterInputController>();
+                if (remoteInputController != null)
+                {
+                    remoteInputController.enabled = false;
+                }
+                Debug.Log($"[CharacterMovementHandler] Remote player spawned");
             }
         }
 
         public override void FixedUpdateNetwork()
         {
-            if (!Object.HasInputAuthority)
-                return;
-
-            if (GetInput(out NetworkInputData networkInputData))
+            // KRİTİK: Sadece state authority simülasyon yapabilir!
+            // Client tarafında remote player'lar için simülasyon YAPMA
+            if (!Object.HasStateAuthority)
             {
-                Vector3 moveDirection = transform.forward * networkInputData.MovementInput.y +
-                                        transform.right * networkInputData.MovementInput.x;
+                // Client tarafında remote player - sadece network state'i oku
+                // Move() çağrılmayacak, sadece Render()'da interpolasyon yapılacak
+                if (Runner.Tick % 60 == 0) // Her 60 tick'te bir log (spam olmasın)
+                {
+                    Debug.Log($"[CharacterMovementHandler] Skipping sim - HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}, ObjectId: {Object.Id}");
+                }
+                return;
+            }
+
+            if (GetInput(out NetworkInputData input))
+            {
+                // Rotation - state authority networked değeri değiştirir
+                if (Mathf.Abs(input.RotationInput) > 0.001f)
+                {
+                    NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
+                }
                 
-                if (moveDirection.magnitude > 0.1f)
-                {
-                    moveDirection.Normalize();
-                }
+                // Rotation'ı uygula ve network state'e yaz
+                Quaternion newRotation = Quaternion.Euler(0, NetworkedYaw, 0);
+                transform.rotation = newRotation;
+                _cc.SetNetworkRotation(newRotation);
+                
+                // Hareket yönünü hesapla
+                Vector3 moveDir = transform.forward * input.MovementInput.y +
+                                  transform.right * input.MovementInput.x;
+                
+                if (moveDir.sqrMagnitude > 0.01f)
+                    moveDir.Normalize();
                 else
-                {
-                    moveDirection = Vector3.zero;
-                }
+                    moveDir = Vector3.zero;
 
-                // Sadece hareket - rotation artık Update'te yapılıyor
-                _networkCharacterController.Move(moveDirection);
+                _cc.Move(moveDir);
 
-                if (networkInputData.IsJumpPressed)
+                if (input.IsJumpPressed)
                 {
-                    _networkCharacterController.Jump();
+                    _cc.Jump();
                 }
             }
             else
             {
-                _networkCharacterController.Move(Vector3.zero);
-            }
-        }
-
-        // Render fazında local player için rotation'ı koru
-        public override void Render()
-        {
-            if (Object.HasInputAuthority)
-            {
-                // NetworkTRSP rotation'ı ezmiş olabilir, local yaw'ı geri yükle
-                transform.rotation = Quaternion.Euler(0, _currentYaw, 0);
+                // Input yoksa bile gravity uygula
+                _cc.Move(Vector3.zero);
             }
         }
     }

@@ -19,24 +19,37 @@ namespace _Root.Scripts.Network
         }
         public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
         {
+            Debug.Log($"[Spawner] ====== OnPlayerJoined ======");
+            Debug.Log($"[Spawner] Player: {player}");
+            Debug.Log($"[Spawner] IsServer: {runner.IsServer}");
+            Debug.Log($"[Spawner] IsClient: {runner.IsClient}");
+            Debug.Log($"[Spawner] LocalPlayer: {runner.LocalPlayer}");
+            Debug.Log($"[Spawner] SessionName: {runner.SessionInfo.Name}");
+            
+            // KRİTİK: Sadece server (host) spawn etmeli
+            // Client'lar spawn etmemeli - server'dan gelen spawn'ı beklemeliler
             if (runner.IsServer)
             {
-                Debug.Log($"OnPlayerJoined we are server. Player: {player}");
+                Debug.Log($"[Spawner] ✓ SERVER detected - Spawning player {player}...");
 
-                // ÖNEMLİ: player parametresini ver ki InputAuthority doğru set edilsin
-                // NetworkPlayer bir NetworkBehaviour olduğu için generic Spawn<T> kullanılabilir
                 NetworkPlayer spawnedPlayer = runner.Spawn(
                     playerPrefab,
                     Utils.Utils.GetRandomSpawnPoint(),
                     Quaternion.identity,
-                    player
+                    player  // InputAuthority bu player'a verilecek
                 );
 
-                Debug.Log($"Player spawned with InputAuthority: {spawnedPlayer.Object.InputAuthority}");
+                Debug.Log($"[Spawner] ✓ Player {player} spawned successfully!");
+                Debug.Log($"[Spawner]   InputAuthority: {spawnedPlayer.Object.InputAuthority}");
+                Debug.Log($"[Spawner]   HasInputAuthority: {spawnedPlayer.Object.HasInputAuthority}");
+                Debug.Log($"[Spawner]   HasStateAuthority: {spawnedPlayer.Object.HasStateAuthority} ⚠️ (Should be TRUE for server spawn)");
+                Debug.Log($"[Spawner]   NetworkObject ID: {spawnedPlayer.Object.Id}");
+                Debug.Log($"[Spawner]   Position: {spawnedPlayer.transform.position}");
             }
             else 
             {
-                Debug.Log($"OnPlayerJoined - Client side. Player: {player}");
+                Debug.Log($"[Spawner] ✗ CLIENT detected - NOT spawning");
+                Debug.Log($"[Spawner]   Waiting for server to spawn player {player}...");
             }
         }
         

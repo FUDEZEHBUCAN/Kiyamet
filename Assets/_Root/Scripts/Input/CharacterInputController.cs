@@ -1,5 +1,3 @@
-using System;
-using _Root.Scripts.Controllers;
 using _Root.Scripts.Network;
 using UnityEngine;
 
@@ -11,8 +9,8 @@ namespace _Root.Scripts.Input
         public float MouseSensitivity => mouseSensitivity;
 
         private Vector2 _moveInput;
-        private float _rotationInput;
-        private bool _isJumpPressed;
+        private float _accumulatedRotation; // Tick'ler arasında biriktir
+        private bool _jumpPressed;
 
         private void Start()
         {
@@ -22,27 +20,32 @@ namespace _Root.Scripts.Input
 
         private void Update()
         {
-            // Input'u her frame topla (smooth okuma için)
+            // Movement input - son değeri al
             _moveInput.x = UnityEngine.Input.GetAxis("Horizontal");
             _moveInput.y = UnityEngine.Input.GetAxis("Vertical");
             
-            // Mouse X'i her frame topla
-            _rotationInput = UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
+            // Mouse X - tick'ler arasında biriktir (kaybolmasın)
+            _accumulatedRotation += UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
             
-            _isJumpPressed = UnityEngine.Input.GetButtonDown("Jump");
+            // Jump - bir kez basıldıysa true olarak kalsın
+            if (UnityEngine.Input.GetButtonDown("Jump"))
+            {
+                _jumpPressed = true;
+            }
         }
 
         public NetworkInputData GetNetworkInput()
         {
-            var networkInputData = new NetworkInputData();
+            var networkInputData = new NetworkInputData
+            {
+                MovementInput = _moveInput,
+                RotationInput = _accumulatedRotation,
+                IsJumpPressed = _jumpPressed
+            };
 
-            // Her frame toplanan input'u kullan
-            networkInputData.MovementInput = _moveInput;
-            networkInputData.RotationInput = _rotationInput;
-            networkInputData.IsJumpPressed = _isJumpPressed;
-
-            // Jump input'unu sıfırla (tek seferlik event)
-            _isJumpPressed = false;
+            // Input'ları sıfırla - network'e gönderildi
+            _accumulatedRotation = 0f;
+            _jumpPressed = false;
 
             return networkInputData;
         }

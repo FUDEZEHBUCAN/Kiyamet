@@ -20,6 +20,12 @@ namespace _Root.Scripts.Network
             _networkRunner = Instantiate(networkRunnerPrefab);
             _networkRunner.name = "Network Runner";
             
+            // Debug UI ekle (runtime'da network durumunu gösterir)
+            if (gameObject.GetComponent<NetworkDebugUI>() == null)
+            {
+                gameObject.AddComponent<NetworkDebugUI>();
+            }
+            
             // Spawner'ı bul ve callback olarak ekle
             var spawner = FindObjectOfType<Spawner>();
             if (spawner != null)
@@ -32,13 +38,15 @@ namespace _Root.Scripts.Network
                 Debug.LogError("Spawner bulunamadı! OnInput callback'leri çalışmayacak!");
             }
             
+            // Aynı session'ı paylaşmak için session name belirle
+            var sessionName = "TestSession";
             var clientTask = InitializeNetworkRunner(_networkRunner, GameMode.AutoHostOrClient, NetAddress.Any(),
-                SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex), null);
-            Debug.Log("Network Runner başlatılıyor...");
+                SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex), sessionName);
+            Debug.Log($"Network Runner başlatılıyor... (Session: {sessionName})");
         }
         
         protected virtual async Task InitializeNetworkRunner(NetworkRunner runner, GameMode gameMode,
-            NetAddress address, SceneRef scene, Action<NetworkRunner> initialized)
+            NetAddress address, SceneRef scene, string sessionName)
         {
             var sceneManager = runner.GetComponents(typeof(MonoBehaviour))
                 .OfType<INetworkSceneManager>()
@@ -49,19 +57,30 @@ namespace _Root.Scripts.Network
 
             runner.ProvideInput = true;
 
-            var result = await runner.StartGame(new StartGameArgs()
+            var startGameArgs = new StartGameArgs()
             {
                 GameMode = gameMode,
                 Address = address, 
                 Scene = scene, 
                 SceneManager = sceneManager
-            });
+            };
+
+            // Session name belirle (tüm client'lar aynı session'a bağlanmalı)
+            if (!string.IsNullOrEmpty(sessionName))
+            {
+                startGameArgs.SessionName = sessionName;
+            }
+
+            var result = await runner.StartGame(startGameArgs);
 
             if (result.Ok)
-                // ✅ CALLBACK BURADA MANUEL TETİKLENİR
-                initialized?.Invoke(runner);
+            {
+                Debug.Log($"[NetworkRunnerHandler] Connected successfully - IsServer: {runner.IsServer}, IsClient: {runner.IsClient}, Session: {sessionName}");
+            }
             else
+            {
                 Debug.LogError($"StartGame failed: {result.ShutdownReason}");
+            }
         }
     }
 }

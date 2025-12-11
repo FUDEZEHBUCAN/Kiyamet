@@ -18,12 +18,17 @@ namespace _Root.Scripts.Network
 
         public override void Spawned()
         {
+            Debug.Log($"[NetworkPlayer] Spawned - InputAuthority: {Object.InputAuthority}, HasInputAuthority: {Object.HasInputAuthority}, HasStateAuthority: {Object.HasStateAuthority}, ObjectId: {Object.Id}");
+            
             if (Object.HasInputAuthority)
             {
                 Local = this;
-                Debug.Log("spawned local player");
+                Debug.Log($"[NetworkPlayer] ✓ This is LOCAL player (I control it)");
             }
-            else Debug.Log("spawned remote player");
+            else 
+            {
+                Debug.Log($"[NetworkPlayer] ✓ This is REMOTE player (other client controls it)");
+            }
         }
     }
 }

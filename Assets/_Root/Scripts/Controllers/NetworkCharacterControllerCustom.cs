@@ -1,100 +1,88 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Fusion;
 using UnityEngine;
 
 namespace _Root.Scripts.Controllers {
-  [StructLayout(LayoutKind.Explicit)]
-  [NetworkStructWeaved(WORDS + 4)]
-  public unsafe struct NetworkCCData : INetworkStruct {
-    public const int WORDS = NetworkTRSPData.WORDS + 4;
-    public const int SIZE  = WORDS * 4;
-
-    [FieldOffset(0)]
-    public NetworkTRSPData TRSPData;
-
-    [FieldOffset((NetworkTRSPData.WORDS + 0) * Allocator.REPLICATE_WORD_SIZE)]
-    int _grounded;
-
-    [FieldOffset((NetworkTRSPData.WORDS + 1) * Allocator.REPLICATE_WORD_SIZE)]
-    Vector3Compressed _velocityData;
-
-    public bool Grounded {
-      get => _grounded == 1;
-      set => _grounded = (value ? 1 : 0);
-    }
-
-    public Vector3 Velocity {
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      get => _velocityData;
-      [MethodImpl(MethodImplOptions.AggressiveInlining)]
-      set => _velocityData = value;
-    }
-  }
-
+  
   [DisallowMultipleComponent]
   [RequireComponent(typeof(CharacterController))]
-  [NetworkBehaviourWeaved(NetworkCCData.WORDS)]
-  // ReSharper disable once CheckNamespace
-  public sealed unsafe class NetworkCharacterControllerCustom : NetworkTRSP, INetworkTRSPTeleport, IBeforeAllTicks, IAfterAllTicks, IBeforeCopyPreviousState {
-    new ref NetworkCCData Data => ref ReinterpretState<NetworkCCData>();
+  public class NetworkCharacterControllerCustom : NetworkBehaviour {
 
     [Header("Character Controller Settings")]
-    public float gravity = -9.0f;
-    public float jumpImpulse   = 8.0f;
-    public float acceleration  = 10.0f;
-    public float braking       = 10.0f;
-    public float maxSpeed      = 20.0f;
-    public float rotationSpeed = 150.0f;  // Artırıldı
-    public float viewUpDownRotationSpeed = 50.0f;
+    public float gravity = -20.0f;
+    public float jumpImpulse = 8.0f;
+    public float acceleration = 10.0f;
+    public float braking = 10.0f;
+    public float maxSpeed = 6.0f;
 
-    Tick                _initial;
-    CharacterController _controller;
+    // Networked properties - otomatik senkronize
+    [Networked] public Vector3 NetworkPosition { get; set; }
+    [Networked] public Quaternion NetworkRotation { get; set; }
+    [Networked] public Vector3 Velocity { get; set; }
+    [Networked] public NetworkBool Grounded { get; set; }
 
-    public Vector3 Velocity {
-      get => Data.Velocity;
-      set => Data.Velocity = value;
+    private CharacterController _controller;
+    
+    // Interpolasyon için önceki değerler
+    private Vector3 _positionFrom;
+    private Vector3 _positionTo;
+    private Quaternion _rotationFrom;
+    private Quaternion _rotationTo;
+
+    void Awake() {
+      TryGetComponent(out _controller);
     }
 
-    public bool Grounded {
-      get => Data.Grounded;
-      set => Data.Grounded = value;
-    }
-
-    public void Teleport(Vector3? position = null, Quaternion? rotation = null) {
+    public override void Spawned() {
+      TryGetComponent(out _controller);
+      
+      Debug.Log($"[NetworkCC] Spawned - ObjectId: {Object.Id}, HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}, InputAuthority: {Object.InputAuthority}");
+      
+      // CharacterController reset
       _controller.enabled = false;
-      NetworkTRSP.Teleport(this, transform, position, rotation);
       _controller.enabled = true;
+      
+      // Başlangıç değerlerini ayarla
+      NetworkPosition = transform.position;
+      NetworkRotation = transform.rotation;
+      
+      _positionFrom = _positionTo = transform.position;
+      _rotationFrom = _rotationTo = transform.rotation;
     }
-
 
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
-      if (Data.Grounded || ignoreGrounded) {
-        var newVel = Data.Velocity;
-        newVel.y      += overrideImpulse ?? jumpImpulse;
-        Data.Velocity =  newVel;
+      if (Grounded || ignoreGrounded) {
+        var vel = Velocity;
+        vel.y += overrideImpulse ?? jumpImpulse;
+        Velocity = vel;
       }
     }
 
     public void Move(Vector3 direction) {
-      var deltaTime    = Runner.DeltaTime;
-      var previousPos  = transform.position;
-      var moveVelocity = Data.Velocity;
+      // KRİTİK: Sadece state authority simülasyon yapabilir!
+      // Client tarafında remote player'lar için Move() çağrılmamalı
+      if (!Object.HasStateAuthority) {
+        Debug.LogWarning($"[NetworkCC] Move() called but HasStateAuthority = False! ObjectId: {Object.Id}");
+        return;
+      }
+
+      var deltaTime = Runner.DeltaTime;
+      var moveVelocity = Velocity;
 
       direction = direction.normalized;
 
-      if (Data.Grounded && moveVelocity.y < 0) {
+      // Yerdeyken ve aşağı düşüyorsa, y velocity'yi sıfırla
+      if (Grounded && moveVelocity.y < 0) {
         moveVelocity.y = 0f;
       }
 
+      // Gravity uygula
       moveVelocity.y += gravity * deltaTime;
 
-      var horizontalVel = default(Vector3);
-      horizontalVel.x = moveVelocity.x;
-      horizontalVel.z = moveVelocity.z;
+      // Horizontal velocity hesapla
+      var horizontalVel = new Vector3(moveVelocity.x, 0, moveVelocity.z);
 
-      if (direction == default) {
-        horizontalVel = Vector3.Lerp(horizontalVel, default, braking * deltaTime);
+      if (direction == Vector3.zero) {
+        horizontalVel = Vector3.Lerp(horizontalVel, Vector3.zero, braking * deltaTime);
       } else {
         horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, maxSpeed);
       }
@@ -102,69 +90,39 @@ namespace _Root.Scripts.Controllers {
       moveVelocity.x = horizontalVel.x;
       moveVelocity.z = horizontalVel.z;
 
+      // CharacterController ile hareket et
       _controller.Move(moveVelocity * deltaTime);
 
-      Data.Velocity = (transform.position - previousPos) * Runner.TickRate;
-      Data.Grounded = _controller.isGrounded;
+      // Network state'i güncelle (sadece state authority yapabilir)
+      NetworkPosition = transform.position;
+      Velocity = moveVelocity;
+      Grounded = _controller.isGrounded;
     }
     
-    // Network state'e rotation yaz (diğer oyuncular görsün)
     public void SetNetworkRotation(Quaternion rotation) {
-      Data.TRSPData.Rotation = rotation;
+      NetworkRotation = rotation;
     }
-    
-    public override void Spawned() {
-      _initial = default;
-      TryGetComponent(out _controller);
-      // Without disabling and re-enabling the CharacterController here, the first Move call will reset the position to 0,0,0 instead of
-      // keeping the position it was spawned at. Presumably disabling it clears some kind of internally cached "previous position" value
-      _controller.enabled = false;
-      _controller.enabled = true;
-      
-      // Başlangıç rotation'ını network state'e yaz
-      Data.TRSPData.Position = transform.position;
-      Data.TRSPData.Rotation = transform.rotation;
+
+    private float _lastTickTime;
+
+    public override void FixedUpdateNetwork() {
+      // Her tick'te interpolasyon için önceki/şimdiki değerleri kaydet
+      _positionFrom = _positionTo;
+      _rotationFrom = _rotationTo;
+      _positionTo = NetworkPosition;
+      _rotationTo = NetworkRotation;
+      _lastTickTime = Time.time;
     }
 
     public override void Render() {
-      NetworkTRSP.Render(this, transform, false, false, false, ref _initial);
-    }
-
-    void IBeforeAllTicks.BeforeAllTicks(bool resimulation, int tickCount) {
-      CopyToEngine();
-    }
-
-    void IAfterAllTicks.AfterAllTicks(bool resimulation, int tickCount) {
-      CopyToBuffer();
-    }
-
-    void IBeforeCopyPreviousState.BeforeCopyPreviousState() {
-      CopyToBuffer();
-    }
-    
-    void Awake() {
-      TryGetComponent(out _controller);
-    }
-
-    void CopyToBuffer() {
-      // Sadece position'ı buffer'a kopyala
-      // Rotation zaten Move içinde doğrudan Data.TRSPData.Rotation'a yazılıyor
-      Data.TRSPData.Position = transform.position;
-      // Rotation'ı transform'dan OKUMA, çünkü zaten Move'da network state'e yazdık
-      // Bu satırı kaldırarak rotation'ın her tick üzerine yazılmasını engelliyoruz
-      // Data.TRSPData.Rotation = transform.rotation; // KALDIRILDI
-    }
-
-    void CopyToEngine() {
-      // CC must be disabled before resetting the transform state
       _controller.enabled = false;
-
-      // set position and rotation
-      transform.SetPositionAndRotation(Data.TRSPData.Position, Data.TRSPData.Rotation);
-
-      // Re-enable CC
+      
+      // TÜM oyuncular için NetworkPosition ve NetworkRotation kullan
+      // Server state'i authoritative - herkes server'dan gelen değeri kullanmalı
+      transform.position = NetworkPosition;
+      transform.rotation = NetworkRotation;
+      
       _controller.enabled = true;
     }
-
   }
 }
