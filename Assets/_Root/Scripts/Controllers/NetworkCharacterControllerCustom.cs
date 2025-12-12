@@ -1,5 +1,6 @@
 using Fusion;
 using UnityEngine;
+using _Root.Scripts.Data;
 
 namespace _Root.Scripts.Controllers {
   
@@ -7,12 +8,20 @@ namespace _Root.Scripts.Controllers {
   [RequireComponent(typeof(CharacterController))]
   public class NetworkCharacterControllerCustom : NetworkBehaviour {
 
+    [Header("Character Data")]
+    [SerializeField] private CharacterData characterData;
+    
     [Header("Character Controller Settings")]
     public float gravity = -20.0f;
-    public float jumpImpulse = 8.0f;
     public float acceleration = 10.0f;
     public float braking = 10.0f;
-    public float maxSpeed = 6.0f;
+    
+    [Header("Respawn Settings")]
+    [SerializeField] private float respawnYThreshold = -10f;
+    
+    // CharacterData'dan alınan değerler (cache)
+    private float MaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
+    private float JumpImpulse => characterData != null ? characterData.jumpForce : 8.0f;
 
     // Networked properties - otomatik senkronize
     [Networked] public Vector3 NetworkPosition { get; set; }
@@ -35,8 +44,6 @@ namespace _Root.Scripts.Controllers {
     public override void Spawned() {
       TryGetComponent(out _controller);
       
-      Debug.Log($"[NetworkCC] Spawned - ObjectId: {Object.Id}, HasStateAuthority: {Object.HasStateAuthority}, HasInputAuthority: {Object.HasInputAuthority}, InputAuthority: {Object.InputAuthority}");
-      
       // CharacterController reset
       _controller.enabled = false;
       _controller.enabled = true;
@@ -52,7 +59,7 @@ namespace _Root.Scripts.Controllers {
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
       if (Grounded || ignoreGrounded) {
         var vel = Velocity;
-        vel.y += overrideImpulse ?? jumpImpulse;
+        vel.y += overrideImpulse ?? JumpImpulse;
         Velocity = vel;
       }
     }
@@ -84,7 +91,7 @@ namespace _Root.Scripts.Controllers {
       if (direction == Vector3.zero) {
         horizontalVel = Vector3.Lerp(horizontalVel, Vector3.zero, braking * deltaTime);
       } else {
-        horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, maxSpeed);
+        horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, MaxSpeed);
       }
 
       moveVelocity.x = horizontalVel.x;
@@ -103,9 +110,40 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = rotation;
     }
 
+    public void Teleport(Vector3 position, Quaternion rotation) {
+      if (!Object.HasStateAuthority) {
+        return; // Sadece server teleport yapabilir
+      }
+
+      _controller.enabled = false;
+      transform.position = position;
+      transform.rotation = rotation;
+      _controller.enabled = true;
+    }
+
+    public void Respawn() {
+      if (!Object.HasStateAuthority) {
+        return; // Sadece server respawn yapabilir
+      }
+
+      Vector3 spawnPoint = Utils.Utils.GetRandomSpawnPoint();
+      Teleport(spawnPoint, Quaternion.identity);
+      
+      // Velocity ve state'i sıfırla
+      Velocity = Vector3.zero;
+      Grounded = false;
+      NetworkPosition = spawnPoint;
+    }
+
     private float _lastTickTime;
 
     public override void FixedUpdateNetwork() {
+      // Respawn kontrolü - sadece server kontrol eder
+      if (Object.HasStateAuthority && NetworkPosition.y < respawnYThreshold) {
+        Respawn();
+        return;
+      }
+      
       // Her tick'te interpolasyon için önceki/şimdiki değerleri kaydet
       _positionFrom = _positionTo;
       _rotationFrom = _rotationTo;

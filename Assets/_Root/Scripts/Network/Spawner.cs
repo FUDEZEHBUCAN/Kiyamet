@@ -19,37 +19,15 @@ namespace _Root.Scripts.Network
         }
         public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
         {
-            Debug.Log($"[Spawner] ====== OnPlayerJoined ======");
-            Debug.Log($"[Spawner] Player: {player}");
-            Debug.Log($"[Spawner] IsServer: {runner.IsServer}");
-            Debug.Log($"[Spawner] IsClient: {runner.IsClient}");
-            Debug.Log($"[Spawner] LocalPlayer: {runner.LocalPlayer}");
-            Debug.Log($"[Spawner] SessionName: {runner.SessionInfo.Name}");
-            
-            // KRİTİK: Sadece server (host) spawn etmeli
-            // Client'lar spawn etmemeli - server'dan gelen spawn'ı beklemeliler
+            // Sadece server (host) spawn etmeli
             if (runner.IsServer)
             {
-                Debug.Log($"[Spawner] ✓ SERVER detected - Spawning player {player}...");
-
-                NetworkPlayer spawnedPlayer = runner.Spawn(
+                runner.Spawn(
                     playerPrefab,
                     Utils.Utils.GetRandomSpawnPoint(),
                     Quaternion.identity,
-                    player  // InputAuthority bu player'a verilecek
+                    player
                 );
-
-                Debug.Log($"[Spawner] ✓ Player {player} spawned successfully!");
-                Debug.Log($"[Spawner]   InputAuthority: {spawnedPlayer.Object.InputAuthority}");
-                Debug.Log($"[Spawner]   HasInputAuthority: {spawnedPlayer.Object.HasInputAuthority}");
-                Debug.Log($"[Spawner]   HasStateAuthority: {spawnedPlayer.Object.HasStateAuthority} ⚠️ (Should be TRUE for server spawn)");
-                Debug.Log($"[Spawner]   NetworkObject ID: {spawnedPlayer.Object.Id}");
-                Debug.Log($"[Spawner]   Position: {spawnedPlayer.transform.position}");
-            }
-            else 
-            {
-                Debug.Log($"[Spawner] ✗ CLIENT detected - NOT spawning");
-                Debug.Log($"[Spawner]   Waiting for server to spawn player {player}...");
             }
         }
         
@@ -58,31 +36,15 @@ namespace _Root.Scripts.Network
             if (_characterInputController == null && NetworkPlayer.Local != null)
             {
                 _characterInputController = NetworkPlayer.Local.GetComponent<CharacterInputController>();
-                
-                if (_characterInputController == null)
-                {
-                    Debug.LogWarning("CharacterInputController bulunamadı!");
-                }
-                else
-                {
-                    Debug.Log("CharacterInputController bulundu ve kaydedildi.");
-                }
             }
 
             if (_characterInputController != null)
             {
                 var networkInputData = _characterInputController.GetNetworkInput();
                 input.Set(networkInputData);
-                
-                // Debug: Input'un gelip gelmediğini kontrol et (sadece ilk birkaç kez)
-                // if (runner.Tick % 60 == 0) // Her 60 tick'te bir log
-                // {
-                //     Debug.Log($"Input gönderildi - Movement: {networkInputData.MovementInput}");
-                // }
             }
             else
             {
-                // Input controller yoksa boş input gönder
                 input.Set(new NetworkInputData());
             }
         }

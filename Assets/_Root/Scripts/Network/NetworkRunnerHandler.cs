@@ -31,7 +31,6 @@ namespace _Root.Scripts.Network
             if (spawner != null)
             {
                 _networkRunner.AddCallbacks(spawner);
-                Debug.Log("Spawner bulundu ve NetworkRunner'a callback olarak eklendi.");
             }
             else
             {
@@ -42,7 +41,6 @@ namespace _Root.Scripts.Network
             var sessionName = "TestSession";
             var clientTask = InitializeNetworkRunner(_networkRunner, GameMode.AutoHostOrClient, NetAddress.Any(),
                 SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex), sessionName);
-            Debug.Log($"Network Runner başlatılıyor... (Session: {sessionName})");
         }
         
         protected virtual async Task InitializeNetworkRunner(NetworkRunner runner, GameMode gameMode,
@@ -73,11 +71,7 @@ namespace _Root.Scripts.Network
 
             var result = await runner.StartGame(startGameArgs);
 
-            if (result.Ok)
-            {
-                Debug.Log($"[NetworkRunnerHandler] Connected successfully - IsServer: {runner.IsServer}, IsClient: {runner.IsClient}, Session: {sessionName}");
-            }
-            else
+            if (!result.Ok)
             {
                 Debug.LogError($"StartGame failed: {result.ShutdownReason}");
             }
