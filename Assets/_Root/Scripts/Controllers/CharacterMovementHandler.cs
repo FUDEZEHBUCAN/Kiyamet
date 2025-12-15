@@ -53,11 +53,14 @@ namespace _Root.Scripts.Controllers
 
         public override void FixedUpdateNetwork()
         {
+            // Ölü iken tüm inputları engelle
+            bool isAlive = _networkPlayer == null || _networkPlayer.IsAlive;
+            
             // Local player için visual effects (client-side prediction)
             // Bu kısım HasStateAuthority olmasa bile çalışmalı
             if (Object.HasInputAuthority && !Object.HasStateAuthority)
             {
-                if (GetInput(out NetworkInputData localInput))
+                if (isAlive && GetInput(out NetworkInputData localInput))
                 {
                     // Block animasyonu (client-side)
                     if (_animController != null)
@@ -65,8 +68,9 @@ namespace _Root.Scripts.Controllers
                         _animController.SetBlocking(localInput.IsBlockPressed);
                     }
                     
-                    // Block sırasında saldırı yapılamaz
-                    if (!localInput.IsBlockPressed)
+                    // Block veya hit stun sırasında saldırı yapılamaz
+                    bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
+                    if (!localInput.IsBlockPressed && canAttack)
                     {
                         // Ranged attack visual effects
                         if (_weaponController != null && localInput.IsShootPressed)
@@ -90,11 +94,18 @@ namespace _Root.Scripts.Controllers
                 return;
             }
 
+            // Ölü iken sadece gravity uygula, input işleme
+            if (!isAlive)
+            {
+                _cc.Move(Vector3.zero);
+                return;
+            }
+
             if (GetInput(out NetworkInputData input))
             {
                 // Rotation - state authority networked değeri değiştirir
                 if (Mathf.Abs(input.RotationInput) > 0.001f)
-            {
+                {
                     NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
                 }
                 
@@ -129,8 +140,9 @@ namespace _Root.Scripts.Controllers
                     _networkPlayer.SetBlocking(input.IsBlockPressed);
                 }
                 
-                // Block sırasında saldırı yapılamaz
-                if (!input.IsBlockPressed)
+                // Block veya hit stun sırasında saldırı yapılamaz
+                bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
+                if (!input.IsBlockPressed && canAttack)
                 {
                     // Ateş etme kontrolü (server tarafında raycast + damage)
                     if (_weaponController != null && input.IsShootPressed)

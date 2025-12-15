@@ -71,6 +71,17 @@ namespace _Root.Scripts.Enemy
         }
         
         /// <summary>
+        /// Saldırı animasyonunu iptal et (hasar aldığında)
+        /// </summary>
+        public void InterruptAttack()
+        {
+            if (animator != null)
+            {
+                animator.ResetTrigger(ParamAttack);
+            }
+        }
+        
+        /// <summary>
         /// Hasar alma animasyonunu tetikler
         /// </summary>
         public void TriggerHit()

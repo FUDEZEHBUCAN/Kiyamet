@@ -125,6 +125,19 @@ namespace _Root.Scripts.Controllers
         }
         
         /// <summary>
+        /// Saldırı animasyonunu iptal et (hasar aldığında)
+        /// </summary>
+        public void InterruptAttack()
+        {
+            if (animator != null)
+            {
+                // Tüm saldırı trigger'larını resetle
+                animator.ResetTrigger(ParamMeleeAttack);
+                animator.ResetTrigger(ParamShoot);
+            }
+        }
+        
+        /// <summary>
         /// Block durumu (basılı tutulduğu sürece true)
         /// </summary>
         public void SetBlocking(bool isBlocking)
@@ -142,7 +155,7 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null)
             {
-                //animator.SetTrigger(ParamHit);
+                animator.SetTrigger(ParamHit);
             }
         }
         
@@ -166,16 +179,16 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null)
             {
-                // animator.SetBool(ParamIsDead, false);
-                // animator.SetBool(ParamIsMoving, false);
-                // animator.SetBool(ParamIsGrounded, true);
-                // SetSpeedImmediate(0f);
-                //
-                // animator.ResetTrigger(ParamJump);
-                // animator.ResetTrigger(ParamShoot);
-                // animator.ResetTrigger(ParamMeleeAttack);
-                // animator.ResetTrigger(ParamHit);
-                // animator.ResetTrigger(ParamDie);
+                animator.SetBool(ParamIsDead, false);
+                animator.SetBool(ParamIsMoving, false);
+                animator.SetBool(ParamIsGrounded, true);
+                SetSpeedImmediate(0f);
+                
+               //animator.ResetTrigger(ParamJump);
+                //animator.ResetTrigger(ParamShoot);
+                animator.ResetTrigger(ParamMeleeAttack);
+                animator.ResetTrigger(ParamHit);
+                animator.ResetTrigger(ParamDie);
             }
         }
         

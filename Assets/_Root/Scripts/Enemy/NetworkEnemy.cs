@@ -29,6 +29,7 @@ namespace _Root.Scripts.Enemy
         [Header("Melee Attack")]
         [SerializeField] private Transform attackPoint;
         [SerializeField] private float attackRadius = 1f;
+        [SerializeField] private float damageDelay = 0.4f; // Animasyonun ortasında hasar ver
         [SerializeField] private LayerMask playerLayer;
         
         [Header("Visual Effects")]
@@ -40,6 +41,8 @@ namespace _Root.Scripts.Enemy
         [Networked] private EnemyState CurrentState { get; set; }
         [Networked] private Vector3 TargetPosition { get; set; }
         [Networked] private NetworkBool HasTarget { get; set; }
+        [Networked] private TickTimer DamageDelayTimer { get; set; }
+        [Networked] private NetworkBool PendingDamage { get; set; }
         
         // Local variables
         private NetworkPlayer _currentTarget;
@@ -92,6 +95,13 @@ namespace _Root.Scripts.Enemy
             {
                 CurrentState = EnemyState.Dead;
                 return;
+            }
+            
+            // Gecikmeli hasar kontrolü
+            if (PendingDamage && DamageDelayTimer.Expired(Runner))
+            {
+                DealMeleeDamage();
+                PendingDamage = false;
             }
             
             _targetUpdateTimer += Runner.DeltaTime;
@@ -281,8 +291,9 @@ namespace _Root.Scripts.Enemy
                 Instantiate(attackEffectPrefab, effectPos, transform.rotation);
             }
             
-            // Hasar
-            DealMeleeDamage();
+            // Hasar için timer başlat (animasyonun ortasında)
+            DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
+            PendingDamage = true;
         }
         
         // Animation Event için - Animasyon belirli bir frame'de hasar vermek istersen
@@ -319,13 +330,24 @@ namespace _Root.Scripts.Enemy
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
             
-            // Hit animasyonu
-            if (animController != null)
-                animController.TriggerHit();
+            // Saldırıyı iptal et (eğer saldırı başlamışsa)
+            if (PendingDamage)
+            {
+                PendingDamage = false;
+            }
             
             if (CurrentHealth <= 0f)
             {
                 Die();
+            }
+            else
+            {
+                // Saldırı animasyonunu iptal et ve hit animasyonu başlat
+                if (animController != null)
+                {
+                    animController.InterruptAttack();
+                    animController.TriggerHit();
+                }
             }
         }
         
@@ -340,7 +362,11 @@ namespace _Root.Scripts.Enemy
                 agent.ResetPath();
                 agent.enabled = false;
             }
-            
+
+            if (hitCollider != null)
+            {
+                hitCollider.enabled = false;
+            }
             // Ölüm animasyonu
             if (animController != null)
                 animController.TriggerDeath();

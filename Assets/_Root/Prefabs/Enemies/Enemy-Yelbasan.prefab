@@ -77,10 +77,9 @@ GameObject:
   - component: {fileID: 9066500366103700532}
   - component: {fileID: 2203333092212949922}
   - component: {fileID: 7204939417054965942}
-  - component: {fileID: 8442134078323628899}
   - component: {fileID: 5725342940904691850}
   m_Layer: 3
-  m_Name: Enemy-1
+  m_Name: Enemy-Yelbasan
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -173,45 +172,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c26bc7f7b3d9d43429ade8e6f5210dbc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyData: {fileID: 11400000, guid: 4e0627000eced421f9b2fb3d8a30e700, type: 2}
+  enemyData: {fileID: 11400000, guid: 637dd7b03efe54fa5946f25f839992b3, type: 2}
   agent: {fileID: 0}
   animController: {fileID: 0}
   hitCollider: {fileID: 0}
   attackPoint: {fileID: 9145044130149988047}
   attackRadius: 1
+  damageDelay: 0.7
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
   hitEffectPrefab: {fileID: 0}
   attackEffectPrefab: {fileID: 0}
   _CurrentHealth: 0
---- !u!54 &8442134078323628899
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8736200931839780123}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!136 &5725342940904691850
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -287,41 +260,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7587492577639771040, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 9100000, guid: 172b5143435f81845a70f1376a7e37b9, type: 2}
-    - target: {fileID: 7587492577639771040, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}
-      propertyPath: m_ApplyRootMotion
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3812240135683844960, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 3359057864760871982}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}
---- !u!1 &4941908322279731956 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3812240135683844960, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}
-  m_PrefabInstance: {fileID: 8102788659640244628}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &3359057864760871982
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4941908322279731956}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 686b15f478bc145739e0fb495982d73b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animator: {fileID: 0}
-  locomotionSmoothTime: 0.1
 --- !u!4 &5755318587157375054 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4588073559936233946, guid: b4159c10c8257a54ca3013e2ec1fa3a4, type: 3}

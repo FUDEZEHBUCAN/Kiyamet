@@ -77,11 +77,9 @@ GameObject:
   - component: {fileID: 9066500366103700532}
   - component: {fileID: 2203333092212949922}
   - component: {fileID: 7204939417054965942}
-  - component: {fileID: 8442134078323628899}
   - component: {fileID: 5725342940904691850}
-  - component: {fileID: 6225135220357082134}
   m_Layer: 3
-  m_Name: Enemy-2
+  m_Name: Enemy-Kormez
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -180,39 +178,13 @@ MonoBehaviour:
   hitCollider: {fileID: 0}
   attackPoint: {fileID: 9145044130149988047}
   attackRadius: 1
+  damageDelay: 0.7
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
   hitEffectPrefab: {fileID: 0}
   attackEffectPrefab: {fileID: 0}
   _CurrentHealth: 0
---- !u!54 &8442134078323628899
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8736200931839780123}
-  serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
 --- !u!136 &5725342940904691850
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -236,27 +208,6 @@ CapsuleCollider:
   m_Height: 2.02
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
---- !u!95 &6225135220357082134
-Animator:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8736200931839780123}
-  m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 134d505a425480746b20d30d05b7c9f4, type: 3}
-  m_Controller: {fileID: 9100000, guid: a3500f9a15b9f444bad71f9fdff470c0, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &1207757953020253119
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -309,48 +260,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 9114948898736298122, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
-      propertyPath: m_Controller
-      value: 
-      objectReference: {fileID: 9100000, guid: a3500f9a15b9f444bad71f9fdff470c0, type: 2}
-    - target: {fileID: 9114948898736298122, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
-      propertyPath: m_ApplyRootMotion
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2582024674566101066, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 3228714891187207725}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
---- !u!1 &3681658299073334261 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2582024674566101066, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
-  m_PrefabInstance: {fileID: 1207757953020253119}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &3228714891187207725
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3681658299073334261}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 686b15f478bc145739e0fb495982d73b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animator: {fileID: 7979284316845706037}
-  locomotionSmoothTime: 0.1
 --- !u!4 &4061173860363587919 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2927024672320914160, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
-  m_PrefabInstance: {fileID: 1207757953020253119}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &7979284316845706037 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 9114948898736298122, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
   m_PrefabInstance: {fileID: 1207757953020253119}
   m_PrefabAsset: {fileID: 0}

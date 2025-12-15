@@ -12,12 +12,30 @@ namespace _Root.Scripts.Network
         [Header("Character Data")]
         [SerializeField] private CharacterData characterData;
         
+        [Header("Hit Stun")]
+        [Tooltip("Hasar aldıktan sonra saldıramama süresi (saniye)")]
+        [SerializeField] private float hitStunDuration = 0.5f;
+        
+        [Header("Respawn")]
+        [Tooltip("Öldükten sonra respawn süresi (saniye)")]
+        [SerializeField] private float respawnDelay = 5f;
+        
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
+        private MeleeController _meleeController;
+        private NetworkCharacterControllerCustom _characterController;
         
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
         [Networked] public NetworkBool IsBlocking { get; set; }
+        [Networked] private TickTimer HitStunTimer { get; set; }
+        [Networked] private TickTimer RespawnTimer { get; set; }
+        [Networked] private NetworkBool IsDead { get; set; }
+        
+        /// <summary>
+        /// Saldırı yapabilir mi? (Hit stun kontrolü)
+        /// </summary>
+        public bool CanAttack => HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead;
         
         // CharacterData'dan alınan değerler
         public float MaxHealth => characterData != null ? characterData.maxHealth : 100f;
@@ -27,7 +45,7 @@ namespace _Root.Scripts.Network
         
         // Health property
         public float Health => CurrentHealth;
-        public bool IsAlive => CurrentHealth > 0f;
+        public bool IsAlive => CurrentHealth > 0f && !IsDead;
         
         public void PlayerLeft(PlayerRef player)
         {
@@ -39,9 +57,15 @@ namespace _Root.Scripts.Network
 
         public override void Spawned()
         {
-            // AnimController referansı
+            // Referanslar
             if (animController == null)
                 animController = GetComponentInChildren<PlayerAnimationController>();
+            
+            if (_meleeController == null)
+                _meleeController = GetComponent<MeleeController>();
+            
+            if (_characterController == null)
+                _characterController = GetComponent<NetworkCharacterControllerCustom>();
             
             // Health'i başlat (sadece ilk spawn'da)
             if (CurrentHealth <= 0f)
@@ -59,6 +83,15 @@ namespace _Root.Scripts.Network
                 animController.ResetAnimator();
         }
         
+        public override void FixedUpdateNetwork()
+        {
+            // Respawn timer kontrolü (sadece server)
+            if (Object.HasStateAuthority && IsDead && RespawnTimer.Expired(Runner))
+            {
+                PerformRespawn();
+            }
+        }
+        
         public void TakeDamage(float damage)
         {
             if (!Object.HasStateAuthority)
@@ -73,14 +106,26 @@ namespace _Root.Scripts.Network
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
             
-            // Hit animasyonu
-            if (animController != null && CurrentHealth > 0f)
-                animController.TriggerHit();
+            // Hit stun başlat
+            HitStunTimer = TickTimer.CreateFromSeconds(Runner, hitStunDuration);
+            
+            // Saldırıyı iptal et (eğer saldırı animasyonu başlamışsa)
+            if (_meleeController != null)
+                _meleeController.InterruptAttack();
             
             if (CurrentHealth <= 0f)
             {
                 OnDeath();
+                return;
             }
+            // Animasyonları iptal et ve hit animasyonu başlat
+            if (animController != null && CurrentHealth > 0f)
+            {
+                animController.InterruptAttack();
+                animController.TriggerHit();
+            }
+            
+            
         }
         
         /// <summary>
@@ -108,15 +153,24 @@ namespace _Root.Scripts.Network
         
         private void OnDeath()
         {
+            IsDead = true;
+            
             // Death animasyonu
             if (animController != null)
                 animController.TriggerDeath();
             
-            // Respawn
-            var characterController = GetComponent<NetworkCharacterControllerCustom>();
-            if (characterController != null)
+            // Respawn timer başlat
+            RespawnTimer = TickTimer.CreateFromSeconds(Runner, respawnDelay);
+        }
+        
+        private void PerformRespawn()
+        {
+            IsDead = false;
+            RespawnTimer = TickTimer.None;
+            
+            if (_characterController != null)
             {
-                characterController.Respawn();
+                _characterController.Respawn();
                 CurrentHealth = MaxHealth;
                 
                 // Animator reset

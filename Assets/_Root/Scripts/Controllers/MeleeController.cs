@@ -14,6 +14,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float meleeRange = 2f;
         [SerializeField] private float meleeRadius = 1f;
         [SerializeField] private float meleeCooldown = 0.8f;
+        [SerializeField] private float damageDelay = 0.3f; // Animasyonun ortasında hasar ver
         [SerializeField] private Transform meleePoint; // Saldırı noktası
         [SerializeField] private LayerMask hitLayers = -1;
         
@@ -25,11 +26,26 @@ namespace _Root.Scripts.Controllers
         
         // Networked
         [Networked] private TickTimer MeleeCooldownTimer { get; set; }
+        [Networked] private TickTimer DamageDelayTimer { get; set; }
+        [Networked] public NetworkBool PendingDamage { get; set; }
         [Networked] private int LastMeleeAttackTick { get; set; }
         
         // Local
         private NetworkPlayer _networkPlayer;
         private int _lastVisualMeleeTick;
+        
+        /// <summary>
+        /// Saldırıyı iptal et (hasar aldığında çağrılır)
+        /// </summary>
+        public void InterruptAttack()
+        {
+            if (PendingDamage)
+            {
+                PendingDamage = false;
+                // Cooldown'ı da sıfırla ki tekrar saldırabilsin
+                MeleeCooldownTimer = TickTimer.None;
+            }
+        }
         
         private void Awake()
         {
@@ -69,12 +85,15 @@ namespace _Root.Scripts.Controllers
                 }
             }
             
-            // Server authority - gerçek hasar
+            // Server authority - hasar gecikmeli olarak verilecek
             if (Object.HasStateAuthority)
             {
                 if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
                 {
-                    PerformMeleeAttack();
+                    // Hasar için timer başlat (animasyonun ortasında)
+                    DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
+                    PendingDamage = true;
+                    
                     MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
                     LastMeleeAttackTick = Runner.Tick;
                 }
@@ -83,6 +102,16 @@ namespace _Root.Scripts.Controllers
         
         public override void FixedUpdateNetwork()
         {
+            // Server: Gecikmeli hasar kontrolü
+            if (Object.HasStateAuthority && PendingDamage)
+            {
+                if (DamageDelayTimer.Expired(Runner))
+                {
+                    PerformMeleeAttack();
+                    PendingDamage = false;
+                }
+            }
+            
             // Remote player için visual effects
             if (!Object.HasInputAuthority && !Object.HasStateAuthority)
             {
