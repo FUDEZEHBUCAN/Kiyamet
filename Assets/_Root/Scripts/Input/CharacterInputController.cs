@@ -12,6 +12,8 @@ namespace _Root.Scripts.Input
         private float _accumulatedRotation; // Tick'ler arasında biriktir
         private bool _jumpPressed;
         private bool _shootPressed;
+        private bool _meleePressed;
+        private bool _blockPressed;
         private Camera _playerCamera;
 
         private void Start()
@@ -41,8 +43,17 @@ namespace _Root.Scripts.Input
                 _jumpPressed = true;
             }
             
-            // Shoot - Mouse sol tık veya Fire1 input (basılı tutulduğu sürece true)
-            _shootPressed = UnityEngine.Input.GetButton("Fire1") || UnityEngine.Input.GetMouseButton(0);
+            // Melee Attack - Sol tık (tek basış)
+            if (UnityEngine.Input.GetMouseButtonDown(0))
+            {
+                _meleePressed = true;
+            }
+            
+            // Block - Sağ tık (basılı tutulduğu sürece)
+            _blockPressed = UnityEngine.Input.GetMouseButton(1);
+            
+            // Shoot - Q tuşu (opsiyonel, ranged attack için)
+            _shootPressed = UnityEngine.Input.GetKey(KeyCode.Q);
         }
 
         public NetworkInputData GetNetworkInput()
@@ -53,7 +64,7 @@ namespace _Root.Scripts.Input
             {
                 // Ekranın ortasından (crosshair) ray at
                 Ray ray = _playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-                
+
                 // Raycast ile hedef noktayı bul
                 if (Physics.Raycast(ray, out RaycastHit hit, 500f))
                 {
@@ -72,13 +83,16 @@ namespace _Root.Scripts.Input
                 RotationInput = _accumulatedRotation,
                 IsJumpPressed = _jumpPressed,
                 IsShootPressed = _shootPressed,
+                IsMeleePressed = _meleePressed,
+                IsBlockPressed = _blockPressed,
                 AimPoint = aimPoint
             };
 
             // Input'ları sıfırla - network'e gönderildi
             _accumulatedRotation = 0f;
             _jumpPressed = false;
-            // _shootPressed sıfırlanmaz - her frame güncelleniyor, sürekli durumu gösterir
+            _meleePressed = false;
+            // _shootPressed ve _blockPressed sıfırlanmaz - sürekli durumu gösterir
 
             return networkInputData;
         }

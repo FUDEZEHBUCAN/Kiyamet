@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Network;
+using _Root.Scripts.Enemy;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer; // Explicit alias
 
 namespace _Root.Scripts.Controllers
@@ -19,6 +20,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private GameObject hitEffectPrefab; // Vuruş efekti (opsiyonel)
         
         private NetworkPlayer _networkPlayer;
+        private PlayerAnimationController _animController;
         private Camera _playerCamera;
         private float _lastFireTime;
         private float _lastClientFireTime; // Client-side prediction için
@@ -38,6 +40,7 @@ namespace _Root.Scripts.Controllers
         private void Awake()
         {
             _networkPlayer = GetComponent<NetworkPlayer>();
+            _animController = GetComponentInChildren<PlayerAnimationController>();
         }
 
         public override void Spawned()
@@ -159,6 +162,12 @@ namespace _Root.Scripts.Controllers
             {
                 muzzleFlash.Play();
             }
+            
+            // Shoot animasyonu
+            if (_animController != null)
+            {
+                _animController.TriggerShoot();
+            }
         }
 
         private void PerformShoot(Vector3 aimPoint)
@@ -194,15 +203,48 @@ namespace _Root.Scripts.Controllers
                 rayDirection = transform.forward;
             }
             
-            // Raycast at
-            RaycastHit hit;
-            if (Physics.Raycast(rayOrigin, rayDirection, out hit, maxRange, hitLayers))
+            // RaycastAll - tüm çarpışmaları al (enemy içinden geçme sorununu çözer)
+            RaycastHit[] hits = Physics.RaycastAll(rayOrigin, rayDirection, maxRange, hitLayers);
+            
+            if (hits.Length > 0)
             {
-                OnHit(hit, true); // Server hit - visual effect göster
+                // Mesafeye göre sırala (en yakından en uzağa)
+                System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
                 
-                // Remote client'lar için hit bilgileri kaydet
-                LastHitPosition = hit.point;
-                LastHitNormal = hit.normal;
+                // İlk hasara duyarlı objeyi veya ilk çarpışmayı bul
+                RaycastHit? damageableHit = null;
+                RaycastHit firstHit = hits[0];
+                
+                foreach (var hit in hits)
+                {
+                    // Kendimize çarpmayı atla
+                    if (hit.collider.transform.IsChildOf(transform))
+                        continue;
+                    
+                    // Enemy veya Player mı kontrol et
+                    var enemy = hit.collider.GetComponentInParent<NetworkEnemy>();
+                    var player = hit.collider.GetComponentInParent<NetworkPlayer>();
+                    
+                    if (enemy != null || player != null)
+                    {
+                        damageableHit = hit;
+                        break; // İlk hasara duyarlı objeyi bulduk
+                    }
+                    
+                    // İlk geçerli hit'i kaydet (zemin vs.)
+                    if (!damageableHit.HasValue)
+                    {
+                        firstHit = hit;
+                    }
+                }
+                
+                // Hasara duyarlı obje bulduysa ona vur, yoksa ilk çarpışmaya
+                RaycastHit finalHit = damageableHit ?? firstHit;
+                
+                OnHit(finalHit, true);
+                
+                LastHitPosition = finalHit.point;
+                LastHitNormal = finalHit.normal;
                 HasHitLastShot = true;
             }
             else
@@ -232,6 +274,10 @@ namespace _Root.Scripts.Controllers
             if (!Object.HasStateAuthority)
                 return;
             
+            // DEBUG: Ne vurduk?
+            Debug.Log($"[WeaponController] Hit object: {hit.collider.name}, Layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)}");
+            
+            // Player kontrolü
             var hitPlayer = hit.collider.GetComponentInParent<NetworkPlayer>();
             if (hitPlayer != null)
             {
@@ -239,7 +285,21 @@ namespace _Root.Scripts.Controllers
                 if (hitPlayer.Object.InputAuthority != Object.InputAuthority)
                 {
                     hitPlayer.TakeDamage(BulletDamage);
+                    Debug.Log($"[WeaponController] → Damaged PLAYER");
                 }
+                return;
+            }
+            
+            // Enemy kontrolü
+            var hitEnemy = hit.collider.GetComponentInParent<NetworkEnemy>();
+            if (hitEnemy != null)
+            {
+                hitEnemy.TakeDamage(BulletDamage, hit.point, hit.normal);
+                Debug.Log($"[WeaponController] → Damaged ENEMY: {hitEnemy.name}, Health: {hitEnemy.CurrentHealth}");
+            }
+            else
+            {
+                Debug.Log($"[WeaponController] → Hit {hit.collider.name} but NO NetworkEnemy found in parent!");
             }
         }
 

@@ -3,14 +3,14 @@ using UnityEngine;
 using _Root.Scripts.Data;
 
 namespace _Root.Scripts.Controllers {
-  
+
   [DisallowMultipleComponent]
   [RequireComponent(typeof(CharacterController))]
   public class NetworkCharacterControllerCustom : NetworkBehaviour {
 
     [Header("Character Data")]
     [SerializeField] private CharacterData characterData;
-    
+
     [Header("Character Controller Settings")]
     public float gravity = -20.0f;
     public float acceleration = 10.0f;
@@ -109,7 +109,7 @@ namespace _Root.Scripts.Controllers {
     public void SetNetworkRotation(Quaternion rotation) {
       NetworkRotation = rotation;
     }
-
+    
     public void Teleport(Vector3 position, Quaternion rotation) {
       if (!Object.HasStateAuthority) {
         return; // Sadece server teleport yapabilir
@@ -154,7 +154,7 @@ namespace _Root.Scripts.Controllers {
 
     public override void Render() {
       _controller.enabled = false;
-      
+
       // TÜM oyuncular için NetworkPosition ve NetworkRotation kullan
       // Server state'i authoritative - herkes server'dan gelen değeri kullanmalı
       transform.position = NetworkPosition;

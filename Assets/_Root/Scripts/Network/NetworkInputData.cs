@@ -9,6 +9,8 @@ namespace _Root.Scripts.Network
         public float RotationInput;
         public NetworkBool IsJumpPressed;
         public NetworkBool IsShootPressed;
-        public Vector3 AimPoint; // Crosshair'in dünyada gösterdiği nokta
+        public NetworkBool IsMeleePressed;
+        public NetworkBool IsBlockPressed;
+        public Vector3 AimPoint;
     }
 }

@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
+using _Root.Scripts.Controllers;
 
 namespace _Root.Scripts.Network
 {
@@ -11,8 +12,12 @@ namespace _Root.Scripts.Network
         [Header("Character Data")]
         [SerializeField] private CharacterData characterData;
         
-        // Networked health - tüm client'larda senkronize
+        [Header("References")]
+        [SerializeField] private PlayerAnimationController animController;
+        
+        // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
+        [Networked] public NetworkBool IsBlocking { get; set; }
         
         // CharacterData'dan alınan değerler
         public float MaxHealth => characterData != null ? characterData.maxHealth : 100f;
@@ -34,6 +39,10 @@ namespace _Root.Scripts.Network
 
         public override void Spawned()
         {
+            // AnimController referansı
+            if (animController == null)
+                animController = GetComponentInChildren<PlayerAnimationController>();
+            
             // Health'i başlat (sadece ilk spawn'da)
             if (CurrentHealth <= 0f)
             {
@@ -44,6 +53,10 @@ namespace _Root.Scripts.Network
             {
                 Local = this;
             }
+            
+            // Animator reset (respawn sonrası)
+            if (animController != null)
+                animController.ResetAnimator();
         }
         
         public void TakeDamage(float damage)
@@ -51,12 +64,38 @@ namespace _Root.Scripts.Network
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
             
+            // Block kontrolü - blokluyorsa hasar alma
+            if (IsBlocking)
+            {
+                // Opsiyonel: Block efekti veya sesi
+                return;
+            }
+            
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
+            
+            // Hit animasyonu
+            if (animController != null && CurrentHealth > 0f)
+                animController.TriggerHit();
             
             if (CurrentHealth <= 0f)
             {
                 OnDeath();
             }
+        }
+        
+        /// <summary>
+        /// Block durumunu ayarla (CharacterMovementHandler'dan çağrılır)
+        /// </summary>
+        public void SetBlocking(bool blocking)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+            
+            IsBlocking = blocking;
+            
+            // Animasyon
+            if (animController != null)
+                animController.SetBlocking(blocking);
         }
         
         public void Heal(float amount)
@@ -65,18 +104,24 @@ namespace _Root.Scripts.Network
                 return; // Sadece server heal yapabilir
             
             CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + amount);
-        }
+            }
         
         private void OnDeath()
         {
-            // Death logic (respawn, death animation, vs.)
+            // Death animasyonu
+            if (animController != null)
+                animController.TriggerDeath();
             
-            // Şimdilik sadece respawn
-            var characterController = GetComponent<_Root.Scripts.Controllers.NetworkCharacterControllerCustom>();
+            // Respawn
+            var characterController = GetComponent<NetworkCharacterControllerCustom>();
             if (characterController != null)
             {
                 characterController.Respawn();
-                CurrentHealth = MaxHealth; // Respawn sonrası full health
+                CurrentHealth = MaxHealth;
+                
+                // Animator reset
+                if (animController != null)
+                    animController.ResetAnimator();
             }
         }
     }

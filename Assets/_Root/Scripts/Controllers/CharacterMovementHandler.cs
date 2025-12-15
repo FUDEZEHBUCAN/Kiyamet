@@ -2,6 +2,7 @@ using _Root.Scripts.Input;
 using _Root.Scripts.Network;
 using Fusion;
 using UnityEngine;
+using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Controllers
 {
@@ -12,6 +13,9 @@ namespace _Root.Scripts.Controllers
         private NetworkCharacterControllerCustom _cc;
         private CharacterInputController _inputController;
         private WeaponController _weaponController;
+        private MeleeController _meleeController;
+        private PlayerAnimationController _animController;
+        private NetworkPlayer _networkPlayer;
         
         // Networked yaw - tüm client'larda senkronize
         [Networked] private float NetworkedYaw { get; set; }
@@ -20,6 +24,9 @@ namespace _Root.Scripts.Controllers
         {
             _cc = GetComponent<NetworkCharacterControllerCustom>();
             _weaponController = GetComponent<WeaponController>();
+            _meleeController = GetComponent<MeleeController>();
+            _animController = GetComponentInChildren<PlayerAnimationController>();
+            _networkPlayer = GetComponent<NetworkPlayer>();
         }
 
         public override void Spawned()
@@ -46,16 +53,32 @@ namespace _Root.Scripts.Controllers
 
         public override void FixedUpdateNetwork()
         {
-            // Local player için ateş visual effects (client-side prediction)
+            // Local player için visual effects (client-side prediction)
             // Bu kısım HasStateAuthority olmasa bile çalışmalı
             if (Object.HasInputAuthority && !Object.HasStateAuthority)
             {
                 if (GetInput(out NetworkInputData localInput))
                 {
-                    // Sadece visual effects - raycast/damage server'da yapılacak
-                    if (_weaponController != null && localInput.IsShootPressed)
+                    // Block animasyonu (client-side)
+                    if (_animController != null)
                     {
-                        _weaponController.HandleShoot(localInput);
+                        _animController.SetBlocking(localInput.IsBlockPressed);
+                    }
+                    
+                    // Block sırasında saldırı yapılamaz
+                    if (!localInput.IsBlockPressed)
+                    {
+                        // Ranged attack visual effects
+                        if (_weaponController != null && localInput.IsShootPressed)
+                        {
+                            _weaponController.HandleShoot(localInput);
+                        }
+                        
+                        // Melee attack visual effects
+                        if (_meleeController != null && localInput.IsMeleePressed)
+                        {
+                            _meleeController.TryMeleeAttack();
+                        }
                     }
                 }
             }
@@ -71,7 +94,7 @@ namespace _Root.Scripts.Controllers
             {
                 // Rotation - state authority networked değeri değiştirir
                 if (Mathf.Abs(input.RotationInput) > 0.001f)
-                {
+            {
                     NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
                 }
                 
@@ -94,18 +117,61 @@ namespace _Root.Scripts.Controllers
                 if (input.IsJumpPressed)
                 {
                     _cc.Jump();
+                    
+                    // Jump animasyonu
+                    if (_animController != null)
+                        _animController.TriggerJump();
                 }
                 
-                // Ateş etme kontrolü (server tarafında raycast + damage)
-                if (_weaponController != null && input.IsShootPressed)
+                // Block durumu (server-side)
+                if (_networkPlayer != null)
                 {
-                    _weaponController.HandleShoot(input);
+                    _networkPlayer.SetBlocking(input.IsBlockPressed);
+                }
+                
+                // Block sırasında saldırı yapılamaz
+                if (!input.IsBlockPressed)
+                {
+                    // Ateş etme kontrolü (server tarafında raycast + damage)
+                    if (_weaponController != null && input.IsShootPressed)
+                    {
+                        _weaponController.HandleShoot(input);
+                    }
+                    
+                    // Melee saldırı kontrolü
+                    if (_meleeController != null && input.IsMeleePressed)
+                    {
+                        _meleeController.TryMeleeAttack();
+                    }
                 }
             }
             else
             {
                 // Input yoksa bile gravity uygula
                 _cc.Move(Vector3.zero);
+            }
+        }
+        
+        public override void Render()
+        {
+            // Animasyon güncellemesi (tüm client'larda)
+            if (_animController != null)
+            {
+                // Sadece yatay hız (X ve Z) - gravity'yi dahil etme
+                Vector3 horizontalVelocity = new Vector3(_cc.Velocity.x, 0f, _cc.Velocity.z);
+                float speed = horizontalVelocity.magnitude;
+                
+                // Çok küçük değerleri sıfır kabul et
+                if (speed < 0.1f)
+                    speed = 0f;
+                
+                _animController.SetSpeed(speed);
+                
+                // Yerde mi
+                _animController.SetGrounded(_cc.Grounded);
+                
+                // Dikey hız (jump/fall)
+                _animController.SetVerticalVelocity(_cc.Velocity.y);
             }
         }
     }
