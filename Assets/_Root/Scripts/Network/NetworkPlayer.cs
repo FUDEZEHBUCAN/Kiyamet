@@ -2,6 +2,7 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Controllers;
+using _Root.Scripts.Enums;
 
 namespace _Root.Scripts.Network
 {
@@ -96,7 +97,7 @@ namespace _Root.Scripts.Network
             }
         }
         
-        public void TakeDamage(float damage)
+        public void TakeDamage(float damage, bool isHeavyAttack = false)
         {
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
@@ -107,6 +108,11 @@ namespace _Root.Scripts.Network
                 // Block sesi
                 if (audioController != null)
                     audioController.PlayBlock();
+                
+                // Camera shake (sadece local player için)
+                if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+                    TpsCameraController.Instance.ShakeCamera(CameraShakeType.DamageBlocked);
+                    
                 return;
             }
             
@@ -128,6 +134,13 @@ namespace _Root.Scripts.Network
             // Hasar alma sesi
             if (audioController != null)
                 audioController.PlayTakeDamage();
+            
+            // Camera shake (sadece local player için)
+            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+            {
+                var shakeType = isHeavyAttack ? CameraShakeType.HeavyAttackTaken : CameraShakeType.DamageTaken;
+                TpsCameraController.Instance.ShakeCamera(shakeType);
+            }
             
             // Animasyonları iptal et ve hit animasyonu başlat
             if (animController != null)

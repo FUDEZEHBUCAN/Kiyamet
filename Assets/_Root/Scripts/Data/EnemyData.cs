@@ -5,6 +5,10 @@ namespace _Root.Scripts.Data
     [CreateAssetMenu(fileName = "EnemyData", menuName = "Game/Enemy Data")]
     public class EnemyData : ScriptableObject
     {
+        [Header("Enemy Type")]
+        [Tooltip("Elite enemyler daha güçlüdür ve heavy attack yapar")]
+        [SerializeField] private bool isElite = false;
+        
         [Header("Health")]
         [SerializeField] private float maxHealth = 100f;
         
@@ -20,6 +24,7 @@ namespace _Root.Scripts.Data
         [SerializeField] private float attackCooldown = 1.5f;
         
         // Properties
+        public bool IsElite => isElite;
         public float MaxHealth => maxHealth;
         public float MovementSpeed => movementSpeed;
         public float RotationSpeed => rotationSpeed;

@@ -352,13 +352,14 @@ namespace _Root.Scripts.Enemy
             Collider[] hitColliders = Physics.OverlapSphere(attackPos, attackRadius, playerLayer);
             
             bool didHit = false;
+            bool isElite = enemyData != null && enemyData.IsElite;
             
             foreach (var col in hitColliders)
             {
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive)
                 {
-                    player.TakeDamage(enemyData.AttackDamage);
+                    player.TakeDamage(enemyData.AttackDamage, isElite);
                     didHit = true;
                 }
             }

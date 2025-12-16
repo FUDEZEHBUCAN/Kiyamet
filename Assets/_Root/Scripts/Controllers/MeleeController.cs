@@ -2,6 +2,7 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Network;
 using _Root.Scripts.Enemy;
+using _Root.Scripts.Enums;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Controllers
@@ -153,6 +154,12 @@ namespace _Root.Scripts.Controllers
             {
                 audioController.PlayMeleeSwing();
             }
+            
+            // Camera shake (sadece local player için)
+            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+            {
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackSwing);
+            }
         }
         
         private void SpawnHitEffect()
@@ -219,7 +226,7 @@ namespace _Root.Scripts.Controllers
                 }
             }
             
-            // Sadece hasar verildiyse efekt ve ses
+            // Sadece hasar verildiyse efekt, ses ve camera shake
             if (didHit)
             {
                 SpawnHitEffect();
@@ -229,6 +236,12 @@ namespace _Root.Scripts.Controllers
                 if (audioController != null)
                 {
                     audioController.PlayMeleeHit();
+                }
+                
+                // Camera shake (sadece local player için)
+                if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+                {
+                    TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
                 }
             }
         }
