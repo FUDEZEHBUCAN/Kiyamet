@@ -2,6 +2,7 @@ using System;
 using _Root.Scripts.Enums;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.UI;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 namespace _Root.Scripts.Controllers
 {
@@ -31,10 +32,16 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float damageTakenShakeStrength = 1.5f;
         [SerializeField] private float blockedShakeStrength = 0.8f;
         [SerializeField] private float heavyAttackShakeStrength = 3f;
+        
+        [Header("Damage Vignette")]
+        [SerializeField] private float vignetteFadeInDuration = 0.15f;
+        [SerializeField] private float vignetteFadeOutDuration = 0.3f;
 
         private float _yaw;   // Yatay açı (sağa-sola)
         private float _pitch; // Dikey açı (yukarı-aşağı)
         private Transform _cameraTransform;
+        private Image _damageVignetteImage;
+        private Tweener _vignetteTween;
 
         private void Awake()
         {
@@ -56,12 +63,107 @@ namespace _Root.Scripts.Controllers
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
+            
+            // Damage Vignette Image'ı bul
+            FindDamageVignetteImage();
+        }
+        
+        private void FindDamageVignetteImage()
+        {
+            // Local player'ı bul
+            if (NetworkPlayer.Local == null)
+                return;
+            
+            // Player prefab'ının içinde Canvas'ı bul
+            Canvas canvas = NetworkPlayer.Local.GetComponentInChildren<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogWarning("[TpsCameraController] Player prefab'ında Canvas bulunamadı!");
+                return;
+            }
+            
+            // Canvas içinde "Damage Vignette Image" adında Image'ı bul
+            Image[] images = canvas.GetComponentsInChildren<Image>();
+            foreach (var img in images)
+            {
+                if (img.name.Contains("Damage Vignette") || img.name.Contains("DamageVignette"))
+                {
+                    _damageVignetteImage = img;
+                    // Başlangıçta alpha = 0
+                    Color color = img.color;
+                    color.a = 0f;
+                    img.color = color;
+                    return;
+                }
+            }
+            
+            Debug.LogWarning("[TpsCameraController] 'Damage Vignette Image' bulunamadı! Canvas içinde bu isimde bir Image olmalı.");
         }
         
         private void OnDestroy()
         {
             if (Instance == this)
                 Instance = null;
+            
+            // Tween'leri temizle
+            if (_vignetteTween != null && _vignetteTween.IsActive())
+            {
+                _vignetteTween.Kill();
+            }
+        }
+        
+        /// <summary>
+        /// Hasar aldığında vignette efektini tetikler (alpha 0'dan 1'e, sonra 0'a)
+        /// </summary>
+        public void TriggerDamageVignette()
+        {
+            if (_damageVignetteImage == null)
+            {
+                // Tekrar dene
+                FindDamageVignetteImage();
+                if (_damageVignetteImage == null)
+                    return;
+            }
+            
+            // Önceki animasyonu durdur
+            if (_vignetteTween != null && _vignetteTween.IsActive())
+            {
+                _vignetteTween.Kill();
+            }
+            
+            // 0'dan 1'e fade in, sonra 0'a fade out
+            _vignetteTween = DOTween.To(
+                () => _damageVignetteImage.color.a, // Getter: mevcut alpha'yı oku
+                x => {
+                    if (_damageVignetteImage != null)
+                    {
+                        Color color = _damageVignetteImage.color;
+                        color.a = x;
+                        _damageVignetteImage.color = color;
+                    }
+                },
+                .5f, // 0'dan 1'e
+                vignetteFadeInDuration
+            )
+            .SetEase(Ease.OutQuad)
+            .OnComplete(() =>
+            {
+                // Fade out (1'den 0'a)
+                _vignetteTween = DOTween.To(
+                    () => _damageVignetteImage.color.a, // Getter: mevcut alpha'yı oku
+                    x => {
+                        if (_damageVignetteImage != null)
+                        {
+                            Color color = _damageVignetteImage.color;
+                            color.a = x;
+                            _damageVignetteImage.color = color;
+                        }
+                    },
+                    0f,
+                    vignetteFadeOutDuration
+                )
+                .SetEase(Ease.InQuad);
+            });
         }
 
         public void ShakeCamera(CameraShakeType shakeType)

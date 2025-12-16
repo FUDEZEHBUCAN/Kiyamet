@@ -135,11 +135,12 @@ namespace _Root.Scripts.Network
             if (audioController != null)
                 audioController.PlayTakeDamage();
             
-            // Camera shake (sadece local player için)
+            // Camera shake ve vignette (sadece local player için)
             if (Object.HasInputAuthority && TpsCameraController.Instance != null)
             {
                 var shakeType = isHeavyAttack ? CameraShakeType.HeavyAttackTaken : CameraShakeType.DamageTaken;
                 TpsCameraController.Instance.ShakeCamera(shakeType);
+                TpsCameraController.Instance.TriggerDamageVignette();
             }
             
             // Animasyonları iptal et ve hit animasyonu başlat
