@@ -31,12 +31,6 @@ namespace _Root.Scripts.Controllers {
 
     private CharacterController _controller;
     
-    // Interpolasyon için önceki değerler
-    private Vector3 _positionFrom;
-    private Vector3 _positionTo;
-    private Quaternion _rotationFrom;
-    private Quaternion _rotationTo;
-
     void Awake() {
       TryGetComponent(out _controller);
     }
@@ -51,9 +45,6 @@ namespace _Root.Scripts.Controllers {
       // Başlangıç değerlerini ayarla
       NetworkPosition = transform.position;
       NetworkRotation = transform.rotation;
-      
-      _positionFrom = _positionTo = transform.position;
-      _rotationFrom = _rotationTo = transform.rotation;
     }
 
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
@@ -135,21 +126,12 @@ namespace _Root.Scripts.Controllers {
       NetworkPosition = spawnPoint;
     }
 
-    private float _lastTickTime;
-
     public override void FixedUpdateNetwork() {
       // Respawn kontrolü - sadece server kontrol eder
       if (Object.HasStateAuthority && NetworkPosition.y < respawnYThreshold) {
         Respawn();
         return;
       }
-      
-      // Her tick'te interpolasyon için önceki/şimdiki değerleri kaydet
-      _positionFrom = _positionTo;
-      _rotationFrom = _rotationTo;
-      _positionTo = NetworkPosition;
-      _rotationTo = NetworkRotation;
-      _lastTickTime = Time.time;
     }
 
     public override void Render() {

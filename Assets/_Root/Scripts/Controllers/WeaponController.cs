@@ -129,12 +129,8 @@ namespace _Root.Scripts.Controllers
                 // Yeni bir ateş tespit edildiyse
                 if (LastShootTick > _lastVisualShootTick && LastShootTick > 0)
                 {
-                    // Muzzle flash sadece başkalarının karakteri için 
-                    // (kendi karakterimiz için zaten HandleShoot'ta gösteriliyor)
-                    if (!Object.HasInputAuthority)
-                    {
-                        PlayShootVisuals();
-                    }
+                    // Visual effects tüm clientlar için (kendi karakterimiz dahil - server'da zaten gösterilmiş olabilir)
+                    PlayShootVisuals();
                     
                     // Hit effect HERKESİN görmesi için (kendi karakterimiz dahil)
                     if (HasHitLastShot && hitEffectPrefab != null)

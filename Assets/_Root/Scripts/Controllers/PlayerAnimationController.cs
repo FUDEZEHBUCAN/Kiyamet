@@ -107,7 +107,7 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void TriggerShoot()
         {
-            if (animator != null)
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
                 animator.SetTrigger(ParamShoot);
             }
@@ -118,7 +118,7 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void TriggerMeleeAttack()
         {
-            if (animator != null)
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
                 animator.SetTrigger(ParamMeleeAttack);
             }
@@ -153,7 +153,7 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void TriggerHit()
         {
-            if (animator != null)
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
                 animator.SetTrigger(ParamHit);
             }
@@ -164,7 +164,7 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void TriggerDeath()
         {
-            if (animator != null)
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
                 animator.SetBool(ParamIsDead, true);
                 animator.SetTrigger(ParamDie);
@@ -195,5 +195,16 @@ namespace _Root.Scripts.Controllers
         #endregion
         
         public bool IsAnimatorValid => animator != null;
+        
+        /// <summary>
+        /// Animator'ın enabled olduğundan emin ol
+        /// </summary>
+        public void EnsureAnimatorEnabled()
+        {
+            if (animator != null)
+            {
+                animator.enabled = true;
+            }
+        }
     }
 }

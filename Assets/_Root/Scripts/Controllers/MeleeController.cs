@@ -84,15 +84,6 @@ namespace _Root.Scripts.Controllers
             if (_networkPlayer != null && !_networkPlayer.IsAlive)
                 return;
             
-            // Local player için client-side prediction (animasyon + efekt)
-            if (Object.HasInputAuthority)
-            {
-                if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
-                {
-                    PlayMeleeVisuals();
-                }
-            }
-            
             // Server authority - hasar gecikmeli olarak verilecek
             if (Object.HasStateAuthority)
             {
@@ -119,18 +110,19 @@ namespace _Root.Scripts.Controllers
                     PendingDamage = false;
                 }
             }
-            
-            // Remote player için animasyon
-            if (!Object.HasInputAuthority && !Object.HasStateAuthority)
+        }
+        
+        public override void Render()
+        {
+            // Tüm clientlar için animasyon senkronizasyonu (Render'da - NetworkPlayer/NetworkEnemy pattern'i ile uyumlu)
+            // Host oyuncu da dahil (state authority olsa bile animasyonu Render'da görmeli)
+            if (LastMeleeAttackTick > _lastVisualMeleeTick && LastMeleeAttackTick > 0)
             {
-                if (LastMeleeAttackTick > _lastVisualMeleeTick && LastMeleeAttackTick > 0)
-                {
-                    PlayMeleeVisuals();
-                    _lastVisualMeleeTick = LastMeleeAttackTick;
-                }
+                PlayMeleeVisuals();
+                _lastVisualMeleeTick = LastMeleeAttackTick;
             }
             
-            // Tüm clientlar için vuruş efekti (hasar anında)
+            // Tüm clientlar için vuruş efekti (hasar anında) - sadece remote clientlar için
             if (!Object.HasStateAuthority)
             {
                 if (LastHitEffectTick > _lastVisualHitEffectTick && LastHitEffectTick > 0)

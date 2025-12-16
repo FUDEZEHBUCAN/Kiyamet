@@ -19,6 +19,10 @@ namespace _Root.Scripts.Controllers
         
         // Networked yaw - tüm client'larda senkronize
         [Networked] private float NetworkedYaw { get; set; }
+        
+        // Velocity hesaplama için (remote client'larda)
+        private Vector3 _lastPosition;
+        private Vector3 _lastFrameVelocity;
 
         private void Awake()
         {
@@ -32,6 +36,8 @@ namespace _Root.Scripts.Controllers
         public override void Spawned()
         {
             NetworkedYaw = transform.eulerAngles.y;
+            _lastPosition = transform.position;
+            _lastFrameVelocity = Vector3.zero;
             
             if (Object.HasInputAuthority)
             {
@@ -53,8 +59,8 @@ namespace _Root.Scripts.Controllers
 
         public override void FixedUpdateNetwork()
         {
-            // Ölü iken tüm inputları engelle
-            bool isAlive = _networkPlayer == null || _networkPlayer.IsAlive;
+            // Ölü iken tüm inputları engelle (sadece bu oyuncunun durumunu kontrol et)
+            bool isAlive = _networkPlayer != null && _networkPlayer.IsAlive;
             
             // Local player için visual effects (client-side prediction)
             // Bu kısım HasStateAuthority olmasa bile çalışmalı
@@ -169,8 +175,35 @@ namespace _Root.Scripts.Controllers
             // Animasyon güncellemesi (tüm client'larda)
             if (_animController != null)
             {
+                Vector3 velocity;
+                
+                // Server veya input authority'de Velocity kullan
+                if (Object.HasStateAuthority || Object.HasInputAuthority)
+                {
+                    velocity = _cc.Velocity;
+                }
+                else
+                {
+                    // Remote client'larda transform.position'dan velocity hesapla
+                    Vector3 currentPosition = transform.position;
+                    float deltaTime = Time.deltaTime; // Render() her frame çağrılır, Time.deltaTime kullan
+                    
+                    if (deltaTime > 0f && _lastPosition != Vector3.zero)
+                    {
+                        Vector3 positionDelta = currentPosition - _lastPosition;
+                        velocity = positionDelta / deltaTime;
+                    }
+                    else
+                    {
+                        velocity = _lastFrameVelocity;
+                    }
+                    
+                    _lastFrameVelocity = velocity;
+                    _lastPosition = currentPosition;
+                }
+                
                 // Sadece yatay hız (X ve Z) - gravity'yi dahil etme
-                Vector3 horizontalVelocity = new Vector3(_cc.Velocity.x, 0f, _cc.Velocity.z);
+                Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
                 float speed = horizontalVelocity.magnitude;
                 
                 // Çok küçük değerleri sıfır kabul et
@@ -179,11 +212,11 @@ namespace _Root.Scripts.Controllers
                 
                 _animController.SetSpeed(speed);
                 
-                // Yerde mi
+                // Yerde mi (server'dan gelen değeri kullan)
                 _animController.SetGrounded(_cc.Grounded);
                 
                 // Dikey hız (jump/fall)
-                _animController.SetVerticalVelocity(_cc.Velocity.y);
+                _animController.SetVerticalVelocity(velocity.y);
             }
         }
     }

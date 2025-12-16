@@ -33,6 +33,13 @@ namespace _Root.Scripts.Network
         [Networked] private TickTimer HitStunTimer { get; set; }
         [Networked] private TickTimer RespawnTimer { get; set; }
         [Networked] private NetworkBool IsDead { get; set; }
+        [Networked] private int LastHitTick { get; set; } // Hit animasyonu için
+        [Networked] private int LastDeathTick { get; set; } // Death animasyonu için
+        
+        // Local variables
+        private int _lastVisualHitTick;
+        private int _lastVisualDeathTick;
+        private bool _wasDead;
         
         /// <summary>
         /// Saldırı yapabilir mi? (Hit stun kontrolü)
@@ -72,6 +79,12 @@ namespace _Root.Scripts.Network
             if (_characterController == null)
                 _characterController = GetComponent<NetworkCharacterControllerCustom>();
             
+            // Animator'ın enabled olduğundan emin ol (remote client'larda)
+            if (animController != null)
+            {
+                animController.EnsureAnimatorEnabled();
+            }
+            
             // Health'i başlat (sadece ilk spawn'da)
             if (CurrentHealth <= 0f)
             {
@@ -82,6 +95,9 @@ namespace _Root.Scripts.Network
             {
                 Local = this;
             }
+            
+            // Local state initialize
+            _wasDead = IsDead;
             
             // Animator reset (respawn sonrası)
             if (animController != null)
@@ -94,6 +110,51 @@ namespace _Root.Scripts.Network
             if (Object.HasStateAuthority && IsDead && RespawnTimer.Expired(Runner))
             {
                 PerformRespawn();
+            }
+            
+        }
+        
+        public override void Render()
+        {
+            // Remote clientlar için animasyon senkronizasyonu (Render'da - her frame kontrol edilir)
+            if (!Object.HasStateAuthority)
+            {
+                // Death -> Alive geçişi (respawn sonrası reset)
+                if (_wasDead && !IsDead)
+                {
+                    if (animController != null)
+                    {
+                        animController.ResetAnimator();
+                    }
+                    _wasDead = false;
+                }
+                
+                // Alive -> Death geçişi
+                if (!_wasDead && IsDead)
+                {
+                    _wasDead = true;
+                }
+                
+                // Hit animasyonu
+                if (LastHitTick > _lastVisualHitTick && LastHitTick > 0)
+                {
+                    if (animController != null && IsAlive)
+                    {
+                        animController.InterruptAttack();
+                        animController.TriggerHit();
+                    }
+                    _lastVisualHitTick = LastHitTick;
+                }
+                
+                // Death animasyonu
+                if (LastDeathTick > _lastVisualDeathTick && LastDeathTick > 0)
+                {
+                    if (animController != null)
+                    {
+                        animController.TriggerDeath();
+                    }
+                    _lastVisualDeathTick = LastDeathTick;
+                }
             }
         }
         
@@ -143,12 +204,15 @@ namespace _Root.Scripts.Network
                 TpsCameraController.Instance.TriggerDamageVignette();
             }
             
-            // Animasyonları iptal et ve hit animasyonu başlat
+            // Animasyonları iptal et ve hit animasyonu başlat (server)
             if (animController != null)
             {
                 animController.InterruptAttack();
                 animController.TriggerHit();
             }
+            
+            // Remote clientlar için tick güncelle
+            LastHitTick = Runner.Tick;
         }
         
         /// <summary>
@@ -182,9 +246,12 @@ namespace _Root.Scripts.Network
             if (audioController != null)
                 audioController.PlayDeath();
             
-            // Death animasyonu
+            // Death animasyonu (server)
             if (animController != null)
                 animController.TriggerDeath();
+            
+            // Remote clientlar için tick güncelle
+            LastDeathTick = Runner.Tick;
             
             // Respawn timer başlat
             RespawnTimer = TickTimer.CreateFromSeconds(Runner, respawnDelay);

@@ -56,6 +56,9 @@ namespace _Root.Scripts.Enemy
         private int _lastVisualAttackAnimTick;
         private int _lastVisualAttackEffectTick;
         private int _lastVisualHitTick;
+        private Vector3 _lastPosition; // Animasyon için hız hesaplama
+        private bool _deathAnimTriggered; // Death animasyonu için flag
+        private EnemyState _lastState; // State değişikliğini takip et
         private const float TARGET_UPDATE_INTERVAL = 0.1f;
         
         // Properties
@@ -75,6 +78,11 @@ namespace _Root.Scripts.Enemy
         {
             CurrentHealth = enemyData.MaxHealth;
             CurrentState = EnemyState.Idle;
+            
+            // Animasyon için pozisyon ve state initialize et
+            _lastPosition = transform.position;
+            _lastState = CurrentState;
+            _deathAnimTriggered = false;
             
             if (Object.HasStateAuthority)
             {
@@ -96,30 +104,9 @@ namespace _Root.Scripts.Enemy
 
         public override void FixedUpdateNetwork()
         {
-            // Remote client için animasyon ve efekt senkronizasyonu
+            // Remote client için FixedUpdateNetwork'te işlem yok - tüm efektler Render()'da
             if (!Object.HasStateAuthority)
             {
-                // Saldırı animasyonu
-                if (LastAttackAnimTick > _lastVisualAttackAnimTick && LastAttackAnimTick > 0)
-                {
-                    if (animController != null)
-                        animController.TriggerAttack();
-                    _lastVisualAttackAnimTick = LastAttackAnimTick;
-                }
-                
-                // Enemy saldırı efekti (hasar anında)
-                if (LastAttackEffectTick > _lastVisualAttackEffectTick && LastAttackEffectTick > 0)
-                {
-                    SpawnAttackEffect();
-                    _lastVisualAttackEffectTick = LastAttackEffectTick;
-                }
-                
-                // Enemy hasar alma efekti
-                if (LastHitTick > _lastVisualHitTick && LastHitTick > 0)
-                {
-                    SpawnHitEffect(LastHitPosition, LastHitNormal);
-                    _lastVisualHitTick = LastHitTick;
-                }
                 return;
             }
             
@@ -159,10 +146,90 @@ namespace _Root.Scripts.Enemy
         
         public override void Render()
         {
+            // Remote client için animasyon ve efekt senkronizasyonu (Render'da - her frame kontrol)
+            if (!Object.HasStateAuthority)
+            {
+                // Saldırı animasyonu
+                if (LastAttackAnimTick > _lastVisualAttackAnimTick && LastAttackAnimTick > 0)
+                {
+                    if (animController != null)
+                        animController.TriggerAttack();
+                    _lastVisualAttackAnimTick = LastAttackAnimTick;
+                }
+                
+                // Enemy saldırı efekti (hasar anında)
+                if (LastAttackEffectTick > _lastVisualAttackEffectTick && LastAttackEffectTick > 0)
+                {
+                    SpawnAttackEffect();
+                    _lastVisualAttackEffectTick = LastAttackEffectTick;
+                }
+                
+                // Enemy hasar alma efekti ve animasyonu
+                if (LastHitTick > _lastVisualHitTick && LastHitTick > 0)
+                {
+                    // Hit efekti
+                    SpawnHitEffect(LastHitPosition, LastHitNormal);
+                    
+                    // Hit animasyonu (sadece ölmediyse)
+                    if (IsAlive && animController != null)
+                    {
+                        animController.InterruptAttack();
+                        animController.TriggerHit();
+                    }
+                    
+                    _lastVisualHitTick = LastHitTick;
+                }
+            }
+            
+            // State değişikliğini kontrol et (death animasyonu için)
+            if (CurrentState != _lastState)
+            {
+                if (CurrentState == EnemyState.Dead && !_deathAnimTriggered)
+                {
+                    if (animController != null)
+                    {
+                        animController.TriggerDeath();
+                        _deathAnimTriggered = true;
+                    }
+                }
+                _lastState = CurrentState;
+            }
+            
+            // Ölü ise animasyon güncellemesini atla
+            if (CurrentState == EnemyState.Dead)
+            {
+                if (animController != null)
+                {
+                    animController.SetSpeed(0f);
+                }
+                return;
+            }
+            
             // Animasyon hız güncellemesi (tüm client'larda)
+            float speed = 0f;
+            
+            if (agent != null && agent.enabled)
+            {
+                // Server tarafında agent velocity kullan
+                speed = agent.velocity.magnitude;
+            }
+            else
+            {
+                // Remote client'larda transform.position'dan hız hesapla
+                Vector3 currentPosition = transform.position;
+                float deltaTime = Time.deltaTime; // Render() her frame çağrılır, Time.deltaTime kullan
+                
+                if (deltaTime > 0f && _lastPosition != Vector3.zero)
+                {
+                    Vector3 positionDelta = currentPosition - _lastPosition;
+                    speed = positionDelta.magnitude / deltaTime;
+                }
+                
+                _lastPosition = currentPosition;
+            }
+            
             if (animController != null)
             {
-                float speed = agent.enabled ? agent.velocity.magnitude : 0f;
                 animController.SetSpeed(speed);
             }
         }
