@@ -22,6 +22,7 @@ namespace _Root.Scripts.Network
         
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
+        [SerializeField] private PlayerAudioController audioController;
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
         
@@ -60,6 +61,9 @@ namespace _Root.Scripts.Network
             // Referanslar
             if (animController == null)
                 animController = GetComponentInChildren<PlayerAnimationController>();
+            
+            if (audioController == null)
+                audioController = GetComponentInChildren<PlayerAudioController>();
             
             if (_meleeController == null)
                 _meleeController = GetComponent<MeleeController>();
@@ -100,7 +104,9 @@ namespace _Root.Scripts.Network
             // Block kontrolü - blokluyorsa hasar alma
             if (IsBlocking)
             {
-                // Opsiyonel: Block efekti veya sesi
+                // Block sesi
+                if (audioController != null)
+                    audioController.PlayBlock();
                 return;
             }
             
@@ -118,14 +124,17 @@ namespace _Root.Scripts.Network
                 OnDeath();
                 return;
             }
+            
+            // Hasar alma sesi
+            if (audioController != null)
+                audioController.PlayTakeDamage();
+            
             // Animasyonları iptal et ve hit animasyonu başlat
-            if (animController != null && CurrentHealth > 0f)
+            if (animController != null)
             {
                 animController.InterruptAttack();
                 animController.TriggerHit();
             }
-            
-            
         }
         
         /// <summary>
@@ -154,6 +163,10 @@ namespace _Root.Scripts.Network
         private void OnDeath()
         {
             IsDead = true;
+            
+            // Death sesi
+            if (audioController != null)
+                audioController.PlayDeath();
             
             // Death animasyonu
             if (animController != null)

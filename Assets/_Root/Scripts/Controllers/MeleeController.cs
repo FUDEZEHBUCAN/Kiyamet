@@ -20,19 +20,23 @@ namespace _Root.Scripts.Controllers
         
         [Header("Visual Effects")]
         [SerializeField] private GameObject meleeEffectPrefab;
+        [SerializeField] private Transform effectSpawnPoint; // Silahın ucunda efekt spawn noktası
         
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
+        [SerializeField] private PlayerAudioController audioController;
         
         // Networked
         [Networked] private TickTimer MeleeCooldownTimer { get; set; }
         [Networked] private TickTimer DamageDelayTimer { get; set; }
         [Networked] public NetworkBool PendingDamage { get; set; }
         [Networked] private int LastMeleeAttackTick { get; set; }
+        [Networked] private int LastHitEffectTick { get; set; } // Vuruş efekti için
         
         // Local
         private NetworkPlayer _networkPlayer;
         private int _lastVisualMeleeTick;
+        private int _lastVisualHitEffectTick;
         
         /// <summary>
         /// Saldırıyı iptal et (hasar aldığında çağrılır)
@@ -53,6 +57,9 @@ namespace _Root.Scripts.Controllers
             
             if (animController == null)
                 animController = GetComponentInChildren<PlayerAnimationController>();
+            
+            if (audioController == null)
+                audioController = GetComponentInChildren<PlayerAudioController>();
         }
         
         public override void Spawned()
@@ -112,13 +119,23 @@ namespace _Root.Scripts.Controllers
                 }
             }
             
-            // Remote player için visual effects
+            // Remote player için animasyon
             if (!Object.HasInputAuthority && !Object.HasStateAuthority)
             {
                 if (LastMeleeAttackTick > _lastVisualMeleeTick && LastMeleeAttackTick > 0)
                 {
                     PlayMeleeVisuals();
                     _lastVisualMeleeTick = LastMeleeAttackTick;
+                }
+            }
+            
+            // Tüm clientlar için vuruş efekti (hasar anında)
+            if (!Object.HasStateAuthority)
+            {
+                if (LastHitEffectTick > _lastVisualHitEffectTick && LastHitEffectTick > 0)
+                {
+                    SpawnHitEffect();
+                    _lastVisualHitEffectTick = LastHitEffectTick;
                 }
             }
         }
@@ -131,11 +148,38 @@ namespace _Root.Scripts.Controllers
                 animController.TriggerMeleeAttack();
             }
             
-            // Efekt
+            // Swing sesi (saldırı başlangıcında)
+            if (audioController != null)
+            {
+                audioController.PlayMeleeSwing();
+            }
+        }
+        
+        private void SpawnHitEffect()
+        {
             if (meleeEffectPrefab != null)
             {
-                Vector3 effectPos = meleePoint != null ? meleePoint.position : transform.position + transform.forward;
-                GameObject effect = Instantiate(meleeEffectPrefab, effectPos, transform.rotation);
+                // Öncelik: effectSpawnPoint > meleePoint > varsayılan
+                Vector3 effectPos;
+                Quaternion effectRot;
+                
+                if (effectSpawnPoint != null)
+                {
+                    effectPos = effectSpawnPoint.position;
+                    effectRot = effectSpawnPoint.rotation;
+                }
+                else if (meleePoint != null)
+                {
+                    effectPos = meleePoint.position;
+                    effectRot = transform.rotation;
+                }
+                else
+                {
+                    effectPos = transform.position + transform.forward;
+                    effectRot = transform.rotation;
+                }
+                
+                GameObject effect = Instantiate(meleeEffectPrefab, effectPos, effectRot);
                 Destroy(effect, 1f);
             }
         }
@@ -149,6 +193,8 @@ namespace _Root.Scripts.Controllers
             // OverlapSphere ile hedefleri bul
             Collider[] hitColliders = Physics.OverlapSphere(attackPos, meleeRadius, hitLayers);
             
+            bool didHit = false;
+            
             foreach (var col in hitColliders)
             {
                 // Kendimize vurmayı atla
@@ -160,6 +206,7 @@ namespace _Root.Scripts.Controllers
                 if (enemy != null && enemy.IsAlive)
                 {
                     enemy.TakeDamage(meleeDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
+                    didHit = true;
                     continue;
                 }
                 
@@ -168,6 +215,20 @@ namespace _Root.Scripts.Controllers
                 if (player != null && player.IsAlive && player != _networkPlayer)
                 {
                     player.TakeDamage(meleeDamage);
+                    didHit = true;
+                }
+            }
+            
+            // Sadece hasar verildiyse efekt ve ses
+            if (didHit)
+            {
+                SpawnHitEffect();
+                LastHitEffectTick = Runner.Tick;
+                
+                // Hit sesi
+                if (audioController != null)
+                {
+                    audioController.PlayMeleeHit();
                 }
             }
         }

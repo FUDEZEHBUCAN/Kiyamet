@@ -43,11 +43,19 @@ namespace _Root.Scripts.Enemy
         [Networked] private NetworkBool HasTarget { get; set; }
         [Networked] private TickTimer DamageDelayTimer { get; set; }
         [Networked] private NetworkBool PendingDamage { get; set; }
+        [Networked] private int LastAttackAnimTick { get; set; } // Animasyon için
+        [Networked] private int LastAttackEffectTick { get; set; } // Vuruş efekti için
+        [Networked] private int LastHitTick { get; set; } // Hasar alma efekti için
+        [Networked] private Vector3 LastHitPosition { get; set; }
+        [Networked] private Vector3 LastHitNormal { get; set; }
         
         // Local variables
         private NetworkPlayer _currentTarget;
         private float _lastAttackTime;
         private float _targetUpdateTimer;
+        private int _lastVisualAttackAnimTick;
+        private int _lastVisualAttackEffectTick;
+        private int _lastVisualHitTick;
         private const float TARGET_UPDATE_INTERVAL = 0.1f;
         
         // Properties
@@ -88,8 +96,32 @@ namespace _Root.Scripts.Enemy
 
         public override void FixedUpdateNetwork()
         {
+            // Remote client için animasyon ve efekt senkronizasyonu
             if (!Object.HasStateAuthority)
+            {
+                // Saldırı animasyonu
+                if (LastAttackAnimTick > _lastVisualAttackAnimTick && LastAttackAnimTick > 0)
+                {
+                    if (animController != null)
+                        animController.TriggerAttack();
+                    _lastVisualAttackAnimTick = LastAttackAnimTick;
+                }
+                
+                // Enemy saldırı efekti (hasar anında)
+                if (LastAttackEffectTick > _lastVisualAttackEffectTick && LastAttackEffectTick > 0)
+                {
+                    SpawnAttackEffect();
+                    _lastVisualAttackEffectTick = LastAttackEffectTick;
+                }
+                
+                // Enemy hasar alma efekti
+                if (LastHitTick > _lastVisualHitTick && LastHitTick > 0)
+                {
+                    SpawnHitEffect(LastHitPosition, LastHitNormal);
+                    _lastVisualHitTick = LastHitTick;
+                }
                 return;
+            }
             
             if (!IsAlive)
             {
@@ -280,20 +312,26 @@ namespace _Root.Scripts.Enemy
         {
             _lastAttackTime = Runner.SimulationTime;
             
-            // Animasyon
+            // Animasyon (hemen başlasın)
             if (animController != null)
                 animController.TriggerAttack();
             
-            // Efekt
+            // Animasyon tick güncelle (remote clientlar görsün)
+            LastAttackAnimTick = Runner.Tick;
+            
+            // Hasar için timer başlat (animasyonun ortasında efekt + hasar)
+            DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
+            PendingDamage = true;
+        }
+        
+        private void SpawnAttackEffect()
+        {
             if (attackEffectPrefab != null)
             {
                 Vector3 effectPos = attackPoint != null ? attackPoint.position : transform.position + transform.forward;
-                Instantiate(attackEffectPrefab, effectPos, transform.rotation);
+                GameObject effect = Instantiate(attackEffectPrefab, effectPos, transform.rotation);
+                Destroy(effect, 1f);
             }
-            
-            // Hasar için timer başlat (animasyonun ortasında)
-            DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
-            PendingDamage = true;
         }
         
         // Animation Event için - Animasyon belirli bir frame'de hasar vermek istersen
@@ -313,13 +351,23 @@ namespace _Root.Scripts.Enemy
             
             Collider[] hitColliders = Physics.OverlapSphere(attackPos, attackRadius, playerLayer);
             
+            bool didHit = false;
+            
             foreach (var col in hitColliders)
             {
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive)
                 {
                     player.TakeDamage(enemyData.AttackDamage);
+                    didHit = true;
                 }
+            }
+            
+            // Sadece hasar verildiyse efekt spawn et
+            if (didHit)
+            {
+                SpawnAttackEffect();
+                LastAttackEffectTick = Runner.Tick;
             }
         }
         
@@ -336,6 +384,17 @@ namespace _Root.Scripts.Enemy
                 PendingDamage = false;
             }
             
+            // Hit effect spawn (server için)
+            if (hitPoint != default)
+            {
+                SpawnHitEffect(hitPoint, hitNormal);
+                
+                // Remote clientlar için networked data güncelle
+                LastHitPosition = hitPoint;
+                LastHitNormal = hitNormal;
+                LastHitTick = Runner.Tick;
+            }
+            
             if (CurrentHealth <= 0f)
             {
                 Die();
@@ -348,6 +407,18 @@ namespace _Root.Scripts.Enemy
                     animController.InterruptAttack();
                     animController.TriggerHit();
                 }
+            }
+        }
+        
+        private void SpawnHitEffect(Vector3 position, Vector3 normal)
+        {
+            if (hitEffectPrefab != null)
+            {
+                Quaternion rotation = normal != Vector3.zero 
+                    ? Quaternion.LookRotation(normal) 
+                    : Quaternion.identity;
+                GameObject effect = Instantiate(hitEffectPrefab, position, rotation);
+                Destroy(effect, 1f);
             }
         }
         
