@@ -10,9 +10,25 @@ namespace _Root.Scripts.Network
 {
     public class Spawner : MonoBehaviour,INetworkRunnerCallbacks
     {
+        public static Spawner Instance { get; private set; }
+        
+        [Header("Player Spawning")]
         public NetworkPlayer playerPrefab;
+        [Tooltip("Player spawn point'leri - boş bırakılırsa random spawn kullanılır")]
+        public Transform[] playerSpawnPoints; // Public yapıldı - Utils'den erişim için
 
         private CharacterInputController _characterInputController;
+        private int _nextSpawnIndex = 0;
+        
+        private void Awake()
+        {
+            // Instance'i ayarla, ama Destroy() çağırma çünkü NetworkRunnerHandler Spawner'ı kullanıyor
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+            // NOT: Instance zaten varsa bile Destroy() çağırma, çünkü NetworkRunnerHandler FindObjectOfType ile arıyor
+        }
         private void OnConnectedToServer()
         {
             
@@ -22,10 +38,28 @@ namespace _Root.Scripts.Network
             // Sadece server (host) spawn etmeli
             if (runner.IsServer)
             {
+                Vector3 spawnPosition;
+                Quaternion spawnRotation = Quaternion.identity;
+                
+                // Spawn point'ler varsa onları kullan, yoksa random spawn
+                if (playerSpawnPoints != null && playerSpawnPoints.Length > 0)
+                {
+                    // Round-robin: Her oyuncu için sıradaki spawn point'i kullan
+                    var spawnPoint = playerSpawnPoints[_nextSpawnIndex % playerSpawnPoints.Length];
+                    spawnPosition = spawnPoint.position;
+                    spawnRotation = spawnPoint.rotation;
+                    _nextSpawnIndex++;
+                }
+                else
+                {
+                    // Fallback: Random spawn (eski sistem)
+                    spawnPosition = Utils.Utils.GetRandomSpawnPoint();
+                }
+                
                 runner.Spawn(
                     playerPrefab,
-                    Utils.Utils.GetRandomSpawnPoint(),
-                    Quaternion.identity,
+                    spawnPosition,
+                    spawnRotation,
                     player
                 );
             }

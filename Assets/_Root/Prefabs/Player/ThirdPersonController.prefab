@@ -237,8 +237,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meleeDamage: 25
-  meleeRange: 2
-  meleeRadius: 1
+  meleeRange: 2.79
+  meleeRadius: 1.25
   meleeCooldown: 0.8
   damageDelay: 0.43
   meleePoint: {fileID: 0}
@@ -367,7 +367,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 929c88839e8b4161808e22a8c07cdb04, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mouseSensitivity: 4
+  mouseSensitivity: 2
 --- !u!82 &1382108485005427590
 AudioSource:
   m_ObjectHideFlags: 0
@@ -379,7 +379,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 0.5
   m_Pitch: 1
   Loop: 0

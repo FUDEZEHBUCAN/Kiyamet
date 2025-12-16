@@ -98,7 +98,7 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null)
             {
-                animator.SetTrigger(ParamJump);
+                //animator.SetTrigger(ParamJump);
             }
         }
         

@@ -92,7 +92,9 @@ namespace _Root.Scripts.Controllers {
       _controller.Move(moveVelocity * deltaTime);
 
       // Network state'i güncelle (sadece state authority yapabilir)
+      // Transform.position direkt güncelleniyor, NetworkPosition'ı da güncelle
       NetworkPosition = transform.position;
+      NetworkRotation = transform.rotation; // Rotation'ı da güncelle (CharacterMovementHandler'dan set ediliyor ama burada da güncelleyelim)
       Velocity = moveVelocity;
       Grounded = _controller.isGrounded;
     }
@@ -117,13 +119,15 @@ namespace _Root.Scripts.Controllers {
         return; // Sadece server respawn yapabilir
       }
 
-      Vector3 spawnPoint = Utils.Utils.GetRandomSpawnPoint();
-      Teleport(spawnPoint, Quaternion.identity);
+      Vector3 spawnPosition = Utils.Utils.GetRandomSpawnPoint();
+      Quaternion spawnRotation = Utils.Utils.GetRandomSpawnRotation();
+      Teleport(spawnPosition, spawnRotation);
       
       // Velocity ve state'i sıfırla
       Velocity = Vector3.zero;
       Grounded = false;
-      NetworkPosition = spawnPoint;
+      NetworkPosition = spawnPosition;
+      NetworkRotation = spawnRotation;
     }
 
     public override void FixedUpdateNetwork() {
@@ -137,8 +141,7 @@ namespace _Root.Scripts.Controllers {
     public override void Render() {
       _controller.enabled = false;
 
-      // TÜM oyuncular için NetworkPosition ve NetworkRotation kullan
-      // Server state'i authoritative - herkes server'dan gelen değeri kullanmalı
+      // Tüm oyuncular için network position kullan
       transform.position = NetworkPosition;
       transform.rotation = NetworkRotation;
       

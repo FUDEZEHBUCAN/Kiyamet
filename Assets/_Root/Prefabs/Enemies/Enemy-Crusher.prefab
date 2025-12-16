@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 9020757746007271974}
   - component: {fileID: 3139365606035343704}
   - component: {fileID: 5424480101873713277}
+  - component: {fileID: 4827428504988942557}
   m_Layer: 3
   m_Name: Enemy-Crusher
   m_TagString: Untagged
@@ -142,6 +143,7 @@ MonoBehaviour:
   enemyData: {fileID: 11400000, guid: a78dc4a9a85bd473180ab081f18fd9e3, type: 2}
   agent: {fileID: 0}
   animController: {fileID: 0}
+  audioController: {fileID: 0}
   hitCollider: {fileID: 0}
   attackPoint: {fileID: 8620729713906614057}
   attackRadius: 4
@@ -175,6 +177,26 @@ CapsuleCollider:
   m_Height: 2.02
   m_Direction: 1
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &4827428504988942557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8680670946018894971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 406cc34aa9025485cafeaf1a1759fe8f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attackSwingSounds: []
+  attackHitSounds:
+  - {fileID: 8300000, guid: 908752cf12d712f4593b90f28f412f21, type: 3}
+  takeDamageSounds: []
+  deathSounds:
+  - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
+  audioSource: {fileID: 0}
+  volume: 0.7
 --- !u!1 &8983713113995190522
 GameObject:
   m_ObjectHideFlags: 0

@@ -33,7 +33,7 @@ namespace _Root.Scripts.Enemy
         /// Hareket hızını günceller (Idle/Run blend için)
         /// </summary>
         public void SetSpeed(float speed)
-        {
+            {
             // Smooth geçiş
             _currentSpeed = Mathf.SmoothDamp(_currentSpeed, speed, ref _speedVelocity, locomotionSmoothTime);
             

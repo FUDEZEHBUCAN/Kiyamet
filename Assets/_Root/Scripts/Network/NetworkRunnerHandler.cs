@@ -39,12 +39,15 @@ namespace _Root.Scripts.Network
             
             // Aynı session'ı paylaşmak için session name belirle
             var sessionName = "TestSession";
-            var clientTask = InitializeNetworkRunner(_networkRunner, GameMode.AutoHostOrClient, NetAddress.Any(),
+            // Async task'ı await et ve hataları yakala
+            _ = InitializeNetworkRunnerAsync(_networkRunner, GameMode.AutoHostOrClient, NetAddress.Any(),
                 SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex), sessionName);
         }
         
-        protected virtual async Task InitializeNetworkRunner(NetworkRunner runner, GameMode gameMode,
+        protected virtual async Task InitializeNetworkRunnerAsync(NetworkRunner runner, GameMode gameMode,
             NetAddress address, SceneRef scene, string sessionName)
+        {
+            try
         {
             var sceneManager = runner.GetComponents(typeof(MonoBehaviour))
                 .OfType<INetworkSceneManager>()
@@ -55,25 +58,35 @@ namespace _Root.Scripts.Network
 
             runner.ProvideInput = true;
 
-            var startGameArgs = new StartGameArgs()
+                var startGameArgs = new StartGameArgs()
             {
                 GameMode = gameMode,
                 Address = address, 
                 Scene = scene, 
                 SceneManager = sceneManager
-            };
+                };
 
-            // Session name belirle (tüm client'lar aynı session'a bağlanmalı)
-            if (!string.IsNullOrEmpty(sessionName))
-            {
-                startGameArgs.SessionName = sessionName;
+                // Session name belirle (tüm client'lar aynı session'a bağlanmalı)
+                if (!string.IsNullOrEmpty(sessionName))
+                {
+                    startGameArgs.SessionName = sessionName;
+                }
+
+                Debug.Log($"[NetworkRunnerHandler] Starting network runner with GameMode: {gameMode}, SessionName: {sessionName}");
+                var result = await runner.StartGame(startGameArgs);
+
+                if (!result.Ok)
+                {
+                    Debug.LogError($"[NetworkRunnerHandler] StartGame failed: {result.ShutdownReason}");
+                }
+                else
+                {
+                    Debug.Log($"[NetworkRunnerHandler] Network runner started successfully. IsServer: {runner.IsServer}, IsClient: {runner.IsClient}");
+                }
             }
-
-            var result = await runner.StartGame(startGameArgs);
-
-            if (!result.Ok)
+            catch (Exception ex)
             {
-                Debug.LogError($"StartGame failed: {result.ShutdownReason}");
+                Debug.LogError($"[NetworkRunnerHandler] Exception during network initialization: {ex.Message}\n{ex.StackTrace}");
             }
         }
     }

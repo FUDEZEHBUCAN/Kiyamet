@@ -1,6 +1,8 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections.Generic;
+using _Root.Scripts.Data;
 
 namespace _Root.Scripts.Enemy
 {
@@ -17,34 +19,78 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private bool useWaveSystem = false;
         [SerializeField] private int enemiesPerWave = 5;
         [SerializeField] private float timeBetweenWaves = 30f;
+        [Tooltip("Oyun başladıktan kaç saniye sonra ilk enemy'ler spawn olacak")]
+        [SerializeField] private float initialSpawnDelay = 5f;
+        [Tooltip("Her wave'de kaç elite enemy spawn edilecek (wave numarasına göre artabilir)")]
+        [SerializeField] private int baseEliteCountPerWave = 1;
+        [Tooltip("Elite sayısı her kaç wave'de bir artacak")]
+        [SerializeField] private int eliteCountIncreaseInterval = 2;
         
         // Networked state
         [Networked] private int CurrentWave { get; set; }
         [Networked] private int EnemiesAlive { get; set; }
         [Networked] private TickTimer SpawnTimer { get; set; }
         [Networked] private TickTimer WaveTimer { get; set; }
+        [Networked] private TickTimer InitialDelayTimer { get; set; }
         
         // Local tracking
         private List<NetworkEnemy> _spawnedEnemies = new List<NetworkEnemy>();
+        private List<NetworkEnemy> _elitePrefabs = new List<NetworkEnemy>();
+        private List<NetworkEnemy> _normalPrefabs = new List<NetworkEnemy>();
         
         public override void Spawned()
         {
             if (!Object.HasStateAuthority)
                 return;
             
+            // Elite ve normal prefab'leri ayır
+            CategorizeEnemyPrefabs();
+            
             CurrentWave = 0;
             EnemiesAlive = 0;
             
-            if (autoSpawn)
+            // İlk spawn için delay timer başlat
+            if (autoSpawn && initialSpawnDelay > 0f)
             {
-                if (useWaveSystem)
+                InitialDelayTimer = TickTimer.CreateFromSeconds(Runner, initialSpawnDelay);
+            }
+        }
+        
+        private void CategorizeEnemyPrefabs()
+        {
+            _elitePrefabs.Clear();
+            _normalPrefabs.Clear();
+            
+            if (enemyPrefabs == null || enemyPrefabs.Length == 0)
+                return;
+            
+            foreach (var prefab in enemyPrefabs)
+            {
+                if (prefab == null)
+                    continue;
+                
+                // Reflection kullanarak enemyData field'ına eriş (NetworkEnemy içinde private SerializeField enemyData var)
+                var enemyType = typeof(NetworkEnemy);
+                var enemyDataField = enemyType.GetField("enemyData", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                
+                if (enemyDataField != null)
                 {
-                    StartNextWave();
+                    // Prefab bir GameObject, NetworkEnemy component'ini al
+                    var networkEnemyComponent = prefab.GetComponent<NetworkEnemy>();
+                    if (networkEnemyComponent != null)
+                    {
+                        var data = enemyDataField.GetValue(networkEnemyComponent) as EnemyData;
+                        if (data != null && data.IsElite)
+                        {
+                            _elitePrefabs.Add(prefab);
+                            continue;
+                        }
+                    }
                 }
-                else
-                {
-                    SpawnTimer = TickTimer.CreateFromSeconds(Runner, spawnInterval);
-                }
+                
+                // Elite değilse veya data bulunamazsa normal olarak ekle
+                _normalPrefabs.Add(prefab);
             }
         }
 
@@ -59,13 +105,39 @@ namespace _Root.Scripts.Enemy
             if (!autoSpawn)
                 return;
             
-            if (useWaveSystem)
+            // İlk spawn delay kontrolü
+            if (InitialDelayTimer.IsRunning && !InitialDelayTimer.Expired(Runner))
             {
-                UpdateWaveSystem();
+                return; // Delay süresi bitene kadar bekle
             }
-            else
+            
+            // Delay bittiyse ve henüz spawn başlamadıysa başlat
+            if (InitialDelayTimer.IsRunning && InitialDelayTimer.Expired(Runner))
             {
-                UpdateContinuousSpawn();
+                InitialDelayTimer = TickTimer.None;
+                
+                if (useWaveSystem)
+                {
+                    StartNextWave();
+                }
+                else
+                {
+                    SpawnTimer = TickTimer.CreateFromSeconds(Runner, spawnInterval);
+                }
+                return;
+            }
+            
+            // Delay yoksa normal spawn akışı
+            if (InitialDelayTimer.ExpiredOrNotRunning(Runner))
+            {
+                if (useWaveSystem)
+                {
+                    UpdateWaveSystem();
+                }
+                else
+                {
+                    UpdateContinuousSpawn();
+                }
             }
         }
         
@@ -101,9 +173,36 @@ namespace _Root.Scripts.Enemy
             int enemiesToSpawn = enemiesPerWave + (CurrentWave - 1) * 2;
             enemiesToSpawn = Mathf.Min(enemiesToSpawn, maxEnemies);
             
-            for (int i = 0; i < enemiesToSpawn; i++)
+            // Elite sayısını hesapla (wave artışına göre)
+            int eliteCount = baseEliteCountPerWave + ((CurrentWave - 1) / eliteCountIncreaseInterval);
+            eliteCount = Mathf.Min(eliteCount, enemiesToSpawn); // Toplam enemy sayısını aşmasın
+            eliteCount = Mathf.Min(eliteCount, _elitePrefabs.Count > 0 ? _elitePrefabs.Count : 0); // Elite prefab sayısını aşmasın
+            
+            // Önce elite enemy'leri spawn et
+            for (int i = 0; i < eliteCount && _elitePrefabs.Count > 0; i++)
             {
-                SpawnRandomEnemy();
+                var elitePrefab = _elitePrefabs[Random.Range(0, _elitePrefabs.Count)];
+                var spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+                SpawnEnemy(elitePrefab, spawnPoint.position, spawnPoint.rotation);
+            }
+            
+            // Kalan slotları normal enemy'lerle doldur
+            int normalEnemiesToSpawn = enemiesToSpawn - eliteCount;
+            for (int i = 0; i < normalEnemiesToSpawn && _normalPrefabs.Count > 0; i++)
+            {
+                var normalPrefab = _normalPrefabs[Random.Range(0, _normalPrefabs.Count)];
+                var spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
+                SpawnEnemy(normalPrefab, spawnPoint.position, spawnPoint.rotation);
+            }
+            
+            // Eğer normal veya elite prefab yoksa, normal spawn sistemini kullan (fallback)
+            if (_normalPrefabs.Count == 0 && _elitePrefabs.Count == 0 && enemyPrefabs.Length > 0)
+            {
+                int remainingToSpawn = enemiesToSpawn - (eliteCount + normalEnemiesToSpawn);
+                for (int i = 0; i < remainingToSpawn; i++)
+                {
+                    SpawnRandomEnemy();
+                }
             }
             
             // Sonraki wave için timer
@@ -145,6 +244,27 @@ namespace _Root.Scripts.Enemy
             
             if (EnemiesAlive >= maxEnemies)
                 return;
+            
+            // Spawn position'ı NavMesh üzerine çek (terrain için daha geniş arama)
+            NavMeshHit hit;
+            float maxDistance = 15f; // Terrain için daha geniş arama mesafesi
+            
+            if (NavMesh.SamplePosition(position, out hit, maxDistance, NavMesh.AllAreas))
+            {
+                position = hit.position; // NavMesh üzerinde geçerli pozisyon
+            }
+            else
+            {
+                // Daha geniş arama yap
+                if (NavMesh.SamplePosition(position, out hit, maxDistance * 2f, NavMesh.AllAreas))
+                {
+                    position = hit.position;
+                }
+                else
+                {
+                    Debug.LogWarning($"[EnemySpawner] Could not find valid NavMesh position near {position}. Enemy may not spawn correctly.");
+                }
+            }
             
             var enemy = Runner.Spawn(prefab, position, rotation);
             
