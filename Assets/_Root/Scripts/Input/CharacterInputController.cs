@@ -14,6 +14,7 @@ namespace _Root.Scripts.Input
         private bool _shootPressed;
         private bool _meleePressed;
         private bool _blockPressed;
+        private bool _dashPressed;
         private Camera _playerCamera;
 
         private void Start()
@@ -54,6 +55,12 @@ namespace _Root.Scripts.Input
             
             // Shoot - Q tuşu (opsiyonel, ranged attack için)
             _shootPressed = UnityEngine.Input.GetKey(KeyCode.Q);
+            
+            // Dash - E tuşu (tek basış)
+            if (UnityEngine.Input.GetKeyDown(KeyCode.E))
+            {
+                _dashPressed = true;
+            }
         }
 
         public NetworkInputData GetNetworkInput()
@@ -85,6 +92,7 @@ namespace _Root.Scripts.Input
                 IsShootPressed = _shootPressed,
                 IsMeleePressed = _meleePressed,
                 IsBlockPressed = _blockPressed,
+                IsDashPressed = _dashPressed,
                 AimPoint = aimPoint
             };
 
@@ -92,6 +100,7 @@ namespace _Root.Scripts.Input
             _accumulatedRotation = 0f;
             _jumpPressed = false;
             _meleePressed = false;
+            _dashPressed = false;
             // _shootPressed ve _blockPressed sıfırlanmaz - sürekli durumu gösterir
 
             return networkInputData;

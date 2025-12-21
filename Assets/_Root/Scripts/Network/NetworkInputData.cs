@@ -11,6 +11,7 @@ namespace _Root.Scripts.Network
         public NetworkBool IsShootPressed;
         public NetworkBool IsMeleePressed;
         public NetworkBool IsBlockPressed;
+        public NetworkBool IsDashPressed;
         public Vector3 AimPoint;
     }
 }

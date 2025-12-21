@@ -32,6 +32,7 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private float attackRadius = 1f;
         [SerializeField] private float damageDelay = 0.4f; // Animasyonun ortasında hasar ver
         [SerializeField] private LayerMask playerLayer;
+        [SerializeField] private LayerMask obstacleLayer = -1; // Duvarlar için layer mask
         
         [Header("Visual Effects")]
         [SerializeField] private GameObject hitEffectPrefab;
@@ -49,6 +50,9 @@ namespace _Root.Scripts.Enemy
         [Networked] private int LastHitTick { get; set; } // Hasar alma efekti için
         [Networked] private Vector3 LastHitPosition { get; set; }
         [Networked] private Vector3 LastHitNormal { get; set; }
+        [Networked] private NetworkBool IsKnockedBack { get; set; }
+        [Networked] private Vector3 KnockbackVelocity { get; set; }
+        [Networked] private TickTimer KnockbackTimer { get; set; }
         
         // Local variables
         private NetworkPlayer _currentTarget;
@@ -203,6 +207,140 @@ namespace _Root.Scripts.Enemy
             {
                 CurrentState = EnemyState.Dead;
                 return;
+            }
+            
+            // Knockback kontrolü
+            if (IsKnockedBack && KnockbackTimer.IsRunning)
+            {
+                if (KnockbackTimer.Expired(Runner))
+                {
+                    // Knockback bitti - enemy'yi yere indir
+                    IsKnockedBack = false;
+                    KnockbackTimer = TickTimer.None;
+                    
+                    // Agent'ı tekrar enable et (eğer hala yaşıyorsa)
+                    if (IsAlive && agent != null)
+                    {
+                        // Enemy'yi en yakın NavMesh pozisyonuna warp et (Y pozisyonunu düzelt)
+                        NavMeshHit hit;
+                        Vector3 groundCheckPos = new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z);
+                        if (NavMesh.SamplePosition(groundCheckPos, out hit, 10f, NavMesh.AllAreas))
+                        {
+                            transform.position = hit.position;
+                            agent.enabled = true;
+                            agent.Warp(hit.position);
+                        }
+                        else
+                        {
+                            // NavMesh bulunamazsa direkt enable et (agent kendi halledecektir)
+                            agent.enabled = true;
+                        }
+                    }
+                }
+                else
+                {
+                    // Knockback sırasında hareket et - ama duvarlardan kaçın
+                    
+                    // Gravity'yi her zaman uygula (düşme için)
+                    KnockbackVelocity += Vector3.up * Physics.gravity.y * Runner.DeltaTime;
+                    
+                    // Y eksenini maksimum sınırla (çok yükseğe çıkmayı önle ama görünür olsun)
+                    float maxYVelocity = 12f;
+                    if (KnockbackVelocity.y > maxYVelocity)
+                    {
+                        KnockbackVelocity = new Vector3(KnockbackVelocity.x, maxYVelocity, KnockbackVelocity.z);
+                    }
+                    
+                    Vector3 knockbackMovement = KnockbackVelocity * Runner.DeltaTime;
+                    Vector3 newPosition = transform.position + knockbackMovement;
+                    
+                    // Yerdeyken Y pozisyonunu kontrol et (zemin altına düşmesini önle)
+                    NavMeshHit groundCheck;
+                    if (NavMesh.SamplePosition(new Vector3(newPosition.x, newPosition.y + 0.5f, newPosition.z), out groundCheck, 2f, NavMesh.AllAreas))
+                    {
+                        // Zemin bulundu - eğer enemy zeminin altındaysa veya çok yakınsa, zemin üzerine yerleştir
+                        if (newPosition.y < groundCheck.position.y + 0.1f && KnockbackVelocity.y <= 0)
+                        {
+                            newPosition.y = groundCheck.position.y;
+                            KnockbackVelocity = new Vector3(KnockbackVelocity.x, 0, KnockbackVelocity.z); // Y velocity'yi sıfırla
+                        }
+                    }
+                    
+                    // Sadece yatay (XZ) düzlemde duvar kontrolü yap
+                    Vector3 horizontalDirection = new Vector3(knockbackMovement.x, 0, knockbackMovement.z).normalized;
+                    float horizontalDistance = new Vector3(knockbackMovement.x, 0, knockbackMovement.z).magnitude;
+                    float checkRadius = 0.5f; // Enemy'nin yarıçapı
+                    
+                    // CapsuleCast ile duvar kontrolü (sadece yatay düzlemde)
+                    RaycastHit wallHit;
+                    Vector3 point1 = transform.position + Vector3.up * 0.5f;
+                    Vector3 point2 = transform.position + Vector3.up * 2f;
+                    
+                    if (horizontalDistance > 0.01f && Physics.CapsuleCast(point1, point2, checkRadius, horizontalDirection, out wallHit, horizontalDistance, obstacleLayer))
+                    {
+                        // Duvar tespit edildi - sadece yatay hareketi durdur, Y ekseni devam etsin
+                        KnockbackVelocity = new Vector3(0, KnockbackVelocity.y, 0);
+                        knockbackMovement = KnockbackVelocity * Runner.DeltaTime;
+                        newPosition = transform.position + knockbackMovement;
+                    }
+                    
+                    // NavMesh kontrolü (yatay düzlemde, Y pozisyonunu koruyarak)
+                    Vector3 horizontalPosition = new Vector3(newPosition.x, newPosition.y, newPosition.z);
+                    NavMeshHit navHit;
+                    
+                    // Y pozisyonunu koruyarak NavMesh kontrolü yap
+                    Vector3 checkPos = new Vector3(newPosition.x, newPosition.y + 1f, newPosition.z);
+                    if (NavMesh.SamplePosition(checkPos, out navHit, 3f, NavMesh.AllAreas))
+                    {
+                        // NavMesh bulundu - XZ'yi NavMesh'e, Y'yi koru
+                        transform.position = new Vector3(navHit.position.x, newPosition.y, navHit.position.z);
+                    }
+                    else
+                    {
+                        // Geçerli NavMesh pozisyonu yok - mevcut pozisyondan kontrol et
+                        NavMeshHit fallbackHit;
+                        Vector3 currentCheckPos = new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z);
+                        if (NavMesh.SamplePosition(currentCheckPos, out fallbackHit, 5f, NavMesh.AllAreas))
+                        {
+                            // Mevcut pozisyondan geçerli bir pozisyon bulundu
+                            // Y hareketini koru, XZ'yi düzelt
+                            transform.position = new Vector3(fallbackHit.position.x, newPosition.y, fallbackHit.position.z);
+                        }
+                        else
+                        {
+                            // Hiç geçerli NavMesh pozisyonu yok - sadece Y hareketini uygula (yatay hareketi durdur)
+                            if (knockbackMovement.y > 0 || newPosition.y > transform.position.y)
+                            {
+                                // Havadayken Y hareketini uygula, XZ'yi koru
+                                transform.position = new Vector3(transform.position.x, newPosition.y, transform.position.z);
+                                // Yatay velocity'yi sıfırla
+                                KnockbackVelocity = new Vector3(0, KnockbackVelocity.y, 0);
+                            }
+                            else
+                            {
+                                // Yerde ve geçersiz pozisyonda - en yakın geçerli pozisyona warp et
+                                NavMeshHit finalHit;
+                                if (NavMesh.SamplePosition(new Vector3(transform.position.x, transform.position.y, transform.position.z), out finalHit, 10f, NavMesh.AllAreas))
+                                {
+                                    transform.position = finalHit.position;
+                                    IsKnockedBack = false;
+                                    KnockbackTimer = TickTimer.None;
+                                    if (agent != null && IsAlive)
+                                    {
+                                        agent.enabled = true;
+                                        agent.Warp(finalHit.position);
+                                    }
+                                }
+                                else
+                                {
+                                    // Hiçbir geçerli pozisyon yok - Y hareketini uygula
+                                    transform.position = newPosition;
+                                }
+                            }
+                        }
+                    }
+                }
+                return; // Knockback sırasında AI mantığını çalıştırma
             }
             
             // Gecikmeli hasar kontrolü
@@ -679,6 +817,34 @@ namespace _Root.Scripts.Enemy
                     : Quaternion.identity;
                 GameObject effect = Instantiate(hitEffectPrefab, position, rotation);
                 Destroy(effect, 1f);
+            }
+        }
+        
+        /// <summary>
+        /// Knockback uygula (dash veya başka bir kaynaktan)
+        /// </summary>
+        public void ApplyKnockback(Vector3 knockbackForce)
+        {
+            if (!Object.HasStateAuthority || !IsAlive)
+                return;
+            
+            // Y bileşenini maksimum sınırla (çok fazla havaya zıplamasını önle ama görünür olsun)
+            float maxUpwardForce = 4f; // Maksimum yukarı kuvvet
+            if (knockbackForce.y > maxUpwardForce)
+            {
+                knockbackForce.y = maxUpwardForce;
+            }
+            
+            // Knockback başlat
+            IsKnockedBack = true;
+            KnockbackVelocity = knockbackForce;
+            KnockbackTimer = TickTimer.CreateFromSeconds(Runner, 0.35f); // 0.35 saniye knockback
+            
+            // Agent'ı disable et (knockback sırasında)
+            if (agent.enabled)
+            {
+                agent.enabled = false;
+                agent.ResetPath();
             }
         }
         

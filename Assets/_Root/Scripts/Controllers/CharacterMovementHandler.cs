@@ -140,6 +140,12 @@ namespace _Root.Scripts.Controllers
                         _animController.TriggerJump();
                 }
                 
+                // Dash kontrolü
+                if (input.IsDashPressed)
+                {
+                    _cc.Dash();
+                }
+                
                 // Block durumu (server-side)
                 if (_networkPlayer != null)
                 {

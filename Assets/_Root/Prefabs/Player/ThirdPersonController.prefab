@@ -336,6 +336,14 @@ MonoBehaviour:
   gravity: -20
   acceleration: 50
   braking: 10
+  dashSpeed: 30
+  dashDuration: 0.5
+  dashCooldown: 2
+  dashKnockbackForce: 30
+  dashRange: 5
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 8
   respawnYThreshold: -10
   _NetworkPosition: {x: 0, y: 0, z: 0}
   _NetworkRotation: {x: 0, y: 0, z: 0, w: 0}
