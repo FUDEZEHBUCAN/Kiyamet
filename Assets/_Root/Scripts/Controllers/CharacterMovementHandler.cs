@@ -14,6 +14,7 @@ namespace _Root.Scripts.Controllers
         private CharacterInputController _inputController;
         private WeaponController _weaponController;
         private MeleeController _meleeController;
+        private InteractionController _interactionController;
         private PlayerAnimationController _animController;
         private NetworkPlayer _networkPlayer;
         
@@ -29,6 +30,7 @@ namespace _Root.Scripts.Controllers
             _cc = GetComponent<NetworkCharacterControllerCustom>();
             _weaponController = GetComponent<WeaponController>();
             _meleeController = GetComponent<MeleeController>();
+            _interactionController = GetComponent<InteractionController>();
             _animController = GetComponentInChildren<PlayerAnimationController>();
             _networkPlayer = GetComponent<NetworkPlayer>();
         }
@@ -140,20 +142,54 @@ namespace _Root.Scripts.Controllers
                         _animController.TriggerJump();
                 }
                 
-                // Dash kontrolü
-                if (input.IsDashPressed)
+                // Dash kontrolü (ittirirken dash yapılamaz)
+                if (input.IsDashPressed && (_networkPlayer == null || !_networkPlayer.IsPushing))
                 {
                     _cc.Dash();
                 }
                 
-                // Block durumu (server-side)
-                if (_networkPlayer != null)
+                // Interact kontrolü
+                if (input.IsInteractPressed && _interactionController != null)
                 {
-                    _networkPlayer.SetBlocking(input.IsBlockPressed);
+                    if (_interactionController.IsInteracting)
+                    {
+                        // Etkileşimi bitir
+                        _interactionController.EndInteraction();
+                        if (_networkPlayer != null)
+                        {
+                            _networkPlayer.IsPushing = false;
+                        }
+                    }
+                    else
+                    {
+                        // Etkileşime başla
+                        var interactable = _interactionController.FindInteractable();
+                        if (interactable != null)
+                        {
+                            _interactionController.StartInteraction(interactable);
+                            if (_networkPlayer != null)
+                            {
+                                _networkPlayer.IsPushing = true;
+                            }
+                        }
+                    }
                 }
                 
-                // Block veya hit stun sırasında saldırı yapılamaz
-                bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
+                // Block durumu (server-side) - ittirirken block yapılamaz
+                if (_networkPlayer != null)
+                {
+                    bool canBlock = !_networkPlayer.IsPushing;
+                    _networkPlayer.SetBlocking(input.IsBlockPressed && canBlock);
+                }
+                
+                // Pushing animasyonu güncelle
+                if (_animController != null && _networkPlayer != null)
+                {
+                    _animController.SetPushing(_networkPlayer.IsPushing);
+                }
+                
+                // Block, hit stun veya ittirme sırasında saldırı yapılamaz
+                bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack && !_networkPlayer.IsPushing;
                 if (!input.IsBlockPressed && canAttack)
                 {
                     // Ateş etme kontrolü (server tarafında raycast + damage)

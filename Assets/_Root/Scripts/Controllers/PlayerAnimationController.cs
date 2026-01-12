@@ -17,9 +17,11 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamIsGrounded = Animator.StringToHash("IsGrounded");
         private static readonly int ParamVerticalVelocity = Animator.StringToHash("VerticalVelocity");
         private static readonly int ParamIsBlocking = Animator.StringToHash("IsBlocking");
+        private static readonly int ParamIsPushing = Animator.StringToHash("IsPushing");
         private static readonly int ParamJump = Animator.StringToHash("Jump");
         private static readonly int ParamShoot = Animator.StringToHash("Shoot");
         private static readonly int ParamMeleeAttack = Animator.StringToHash("MeleeAttack");
+        private static readonly int ParamDash = Animator.StringToHash("Dash");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
@@ -125,6 +127,17 @@ namespace _Root.Scripts.Controllers
         }
         
         /// <summary>
+        /// Dash animasyonu
+        /// </summary>
+        public void TriggerDash()
+        {
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
+            {
+                animator.SetTrigger(ParamDash);
+            }
+        }
+        
+        /// <summary>
         /// Saldırı animasyonunu iptal et (hasar aldığında)
         /// </summary>
         public void InterruptAttack()
@@ -145,6 +158,17 @@ namespace _Root.Scripts.Controllers
             if (animator != null)
             {
                 animator.SetBool(ParamIsBlocking, isBlocking);
+            }
+        }
+        
+        /// <summary>
+        /// İttirme durumu (kaya ittirirken true)
+        /// </summary>
+        public void SetPushing(bool isPushing)
+        {
+            if (animator != null)
+            {
+                animator.SetBool(ParamIsPushing, isPushing);
             }
         }
         

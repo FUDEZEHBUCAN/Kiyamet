@@ -2,6 +2,8 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Enemy;
+using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
+using PlayerAnimationController = _Root.Scripts.Controllers.PlayerAnimationController;
 
 namespace _Root.Scripts.Controllers {
 
@@ -29,8 +31,25 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float respawnYThreshold = -10f;
     
     // CharacterData'dan alınan değerler (cache)
-    private float MaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
+    private float BaseMaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
     private float JumpImpulse => characterData != null ? characterData.jumpForce : 8.0f;
+    
+    // İttirme sırasında hız azaltma çarpanı
+    [Header("Push Settings")]
+    [SerializeField] private float pushSpeedMultiplier = 0.5f; // İttirirken hızın yarısı
+    
+    // Aktif maksimum hız (ittirme durumuna göre değişir)
+    private float MaxSpeed
+    {
+        get
+        {
+            if (_networkPlayer != null && _networkPlayer.IsPushing)
+            {
+                return BaseMaxSpeed * pushSpeedMultiplier;
+            }
+            return BaseMaxSpeed;
+        }
+    }
 
     // Networked properties - otomatik senkronize
     [Networked] public Vector3 NetworkPosition { get; set; }
@@ -45,9 +64,13 @@ namespace _Root.Scripts.Controllers {
     [Networked] private Vector3 DashDirection { get; set; }
 
     private CharacterController _controller;
+    private NetworkPlayer _networkPlayer;
+    private PlayerAnimationController _animController;
     
     void Awake() {
       TryGetComponent(out _controller);
+      TryGetComponent(out _networkPlayer);
+      _animController = GetComponentInChildren<PlayerAnimationController>();
     }
 
     public override void Spawned() {
@@ -88,11 +111,28 @@ namespace _Root.Scripts.Controllers {
         return;
       }
       
+      // Mana kontrolü
+      if (_networkPlayer != null) {
+        float manaCost = _networkPlayer.ManaCost;
+        if (!_networkPlayer.HasEnoughMana(manaCost)) {
+          return; // Yetersiz mana
+        }
+        
+        // Mana harca
+        _networkPlayer.ConsumeMana(manaCost);
+      }
+      
       // Dash başlat
       IsDashing = true;
       DashDirection = transform.forward; // Baktığı yöne
       DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
       DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
+      
+      // Dash animasyonu tetikle
+      if (_animController != null)
+      {
+        _animController.TriggerDash();
+      }
     }
     
     /// <summary>

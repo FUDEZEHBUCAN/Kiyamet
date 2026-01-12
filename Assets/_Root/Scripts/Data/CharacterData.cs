@@ -24,5 +24,15 @@ namespace _Root.Scripts.Data
         
         [Tooltip("Mermi başına hasar (eğer farklıysa)")]
         public float bulletDamage = 10f;
+        
+        [Header("Mana Settings")]
+        [Tooltip("Karakterin maksimum mana değeri")]
+        public float playerMana = 100f;
+        
+        [Tooltip("Dash skill'inin mana maliyeti")]
+        public float manaCost = 30f;
+        
+        [Tooltip("Her öldürülen enemy için kazanılan mana")]
+        public float manaRegen = 20f;
     }
 }

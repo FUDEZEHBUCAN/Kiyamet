@@ -1,5 +1,7 @@
 using Fusion;
 using UnityEngine;
+using UnityEngine.UI;
+using DG.Tweening;
 using _Root.Scripts.Data;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
@@ -24,12 +26,20 @@ namespace _Root.Scripts.Network
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
         [SerializeField] private PlayerAudioController audioController;
+        [SerializeField] private Image healthBarImage;
+        [SerializeField] private Image manaBarImage;
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
         
+        // Health Bar UI
+        private Tween _healthBarTween;
+        private Tween _manaBarTween;
+        
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
+        [Networked] public float CurrentMana { get; set; }
         [Networked] public NetworkBool IsBlocking { get; set; }
+        [Networked] public NetworkBool IsPushing { get; set; }
         [Networked] private TickTimer HitStunTimer { get; set; }
         [Networked] private TickTimer RespawnTimer { get; set; }
         [Networked] private NetworkBool IsDead { get; set; }
@@ -40,6 +50,8 @@ namespace _Root.Scripts.Network
         private int _lastVisualHitTick;
         private int _lastVisualDeathTick;
         private bool _wasDead;
+        private float _lastHealth; // Health bar güncellemesi için
+        private float _lastMana; // Mana bar güncellemesi için
         
         /// <summary>
         /// Saldırı yapabilir mi? (Hit stun kontrolü)
@@ -51,10 +63,17 @@ namespace _Root.Scripts.Network
         public float Damage => characterData != null ? characterData.damage : 10f;
         public float FireRate => characterData != null ? characterData.fireRate : 1f;
         public float BulletDamage => characterData != null ? characterData.bulletDamage : 10f;
+        public float MaxMana => characterData != null ? characterData.playerMana : 100f;
+        public float ManaCost => characterData != null ? characterData.manaCost : 30f;
+        public float ManaRegen => characterData != null ? characterData.manaRegen : 20f;
         
         // Health property
         public float Health => CurrentHealth;
         public bool IsAlive => CurrentHealth > 0f && !IsDead;
+        
+        // Mana property
+        public float Mana => CurrentMana;
+        public bool HasEnoughMana(float cost) => CurrentMana >= cost;
         
         public void PlayerLeft(PlayerRef player)
         {
@@ -91,6 +110,12 @@ namespace _Root.Scripts.Network
                 CurrentHealth = MaxHealth;
             }
             
+            // Mana'yı başlat (sadece ilk spawn'da)
+            if (CurrentMana <= 0f)
+            {
+                CurrentMana = MaxMana;
+            }
+            
             if (Object.HasInputAuthority)
             {
                 Local = this;
@@ -98,10 +123,120 @@ namespace _Root.Scripts.Network
             
             // Local state initialize
             _wasDead = IsDead;
+            _lastHealth = CurrentHealth;
+            _lastMana = CurrentMana;
+            
+            // Health bar'ı bul (Inspector'da atanmamışsa otomatik bul)
+            if (healthBarImage == null)
+            {
+                FindHealthBarImage();
+            }
+            
+            // Mana bar'ı bul (Inspector'da atanmamışsa otomatik bul)
+            if (manaBarImage == null)
+            {
+                FindManaBarImage();
+            }
+            
+            // Başlangıç health bar değerini ayarla
+            UpdateHealthBar(CurrentHealth / MaxHealth);
+            
+            // Başlangıç mana bar değerini ayarla
+            UpdateManaBar(CurrentMana / MaxMana);
             
             // Animator reset (respawn sonrası)
             if (animController != null)
                 animController.ResetAnimator();
+        }
+        
+        /// <summary>
+        /// Canvas içinde Health Bar Image'ını bul (fallback - Inspector'da atanmamışsa)
+        /// </summary>
+        private void FindHealthBarImage()
+        {
+            Canvas canvas = GetComponentInChildren<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogWarning("[NetworkPlayer] Player prefab'ında Canvas bulunamadı!");
+                return;
+            }
+            
+            // Canvas içinde "Health Bar" adında Image'ı bul
+            Image[] images = canvas.GetComponentsInChildren<Image>();
+            foreach (var img in images)
+            {
+                if (img.name.Contains("Health Bar") || img.name.Contains("HealthBar"))
+                {
+                    healthBarImage = img;
+                    return;
+                }
+            }
+            
+            Debug.LogWarning("[NetworkPlayer] 'Health Bar' Image bulunamadı! Inspector'da healthBarImage alanına atayın veya Canvas içinde bu isimde bir Image olmalı.");
+        }
+        
+        /// <summary>
+        /// Canvas içinde Mana Bar Image'ını bul (fallback - Inspector'da atanmamışsa)
+        /// </summary>
+        private void FindManaBarImage()
+        {
+            Canvas canvas = GetComponentInChildren<Canvas>();
+            if (canvas == null)
+            {
+                Debug.LogWarning("[NetworkPlayer] Player prefab'ında Canvas bulunamadı!");
+                return;
+            }
+            
+            // Canvas içinde "Mana Bar" adında Image'ı bul
+            Image[] images = canvas.GetComponentsInChildren<Image>();
+            foreach (var img in images)
+            {
+                if (img.name.Contains("Mana Bar") || img.name.Contains("ManaBar"))
+                {
+                    manaBarImage = img;
+                    return;
+                }
+            }
+            
+            Debug.LogWarning("[NetworkPlayer] 'Mana Bar' Image bulunamadı! Inspector'da manaBarImage alanına atayın veya Canvas içinde bu isimde bir Image olmalı.");
+        }
+        
+        /// <summary>
+        /// Health bar'ın fill amount'unu DoTween ile güncelle
+        /// </summary>
+        private void UpdateHealthBar(float targetFillAmount)
+        {
+            if (healthBarImage == null)
+                return;
+            
+            // Önceki tween'i iptal et
+            if (_healthBarTween != null && _healthBarTween.IsActive())
+            {
+                _healthBarTween.Kill();
+            }
+            
+            // DoTween ile fill amount'u animasyonlu olarak güncelle
+            _healthBarTween = healthBarImage.DOFillAmount(targetFillAmount, 0.3f)
+                .SetEase(Ease.OutQuad);
+        }
+        
+        /// <summary>
+        /// Mana bar'ın fill amount'unu DoTween ile güncelle
+        /// </summary>
+        private void UpdateManaBar(float targetFillAmount)
+        {
+            if (manaBarImage == null)
+                return;
+            
+            // Önceki tween'i iptal et
+            if (_manaBarTween != null && _manaBarTween.IsActive())
+            {
+                _manaBarTween.Kill();
+            }
+            
+            // DoTween ile fill amount'u animasyonlu olarak güncelle
+            _manaBarTween = manaBarImage.DOFillAmount(targetFillAmount, 0.3f)
+                .SetEase(Ease.OutQuad);
         }
         
         public override void FixedUpdateNetwork()
@@ -116,6 +251,22 @@ namespace _Root.Scripts.Network
         
         public override void Render()
         {
+            // Health bar güncellemesi (tüm client'larda)
+            if (CurrentHealth != _lastHealth)
+            {
+                float healthPercent = MaxHealth > 0 ? CurrentHealth / MaxHealth : 0f;
+                UpdateHealthBar(healthPercent);
+                _lastHealth = CurrentHealth;
+            }
+            
+            // Mana bar güncellemesi (tüm client'larda)
+            if (CurrentMana != _lastMana)
+            {
+                float manaPercent = MaxMana > 0 ? CurrentMana / MaxMana : 0f;
+                UpdateManaBar(manaPercent);
+                _lastMana = CurrentMana;
+            }
+            
             // Remote clientlar için animasyon senkronizasyonu (Render'da - her frame kontrol edilir)
             if (!Object.HasStateAuthority)
             {
@@ -236,7 +387,35 @@ namespace _Root.Scripts.Network
                 return; // Sadece server heal yapabilir
             
             CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + amount);
+        }
+        
+        /// <summary>
+        /// Mana harca (dash skill için)
+        /// </summary>
+        public bool ConsumeMana(float amount)
+        {
+            if (!Object.HasStateAuthority)
+                return false; // Sadece server mana harcayabilir
+            
+            if (CurrentMana >= amount)
+            {
+                CurrentMana = Mathf.Max(0f, CurrentMana - amount);
+                return true;
             }
+            
+            return false; // Yetersiz mana
+        }
+        
+        /// <summary>
+        /// Mana kazan (enemy öldürüldüğünde)
+        /// </summary>
+        public void GainMana(float amount)
+        {
+            if (!Object.HasStateAuthority)
+                return; // Sadece server mana kazandırabilir
+            
+            CurrentMana = Mathf.Min(MaxMana, CurrentMana + amount);
+        }
         
         private void OnDeath()
         {
@@ -266,10 +445,33 @@ namespace _Root.Scripts.Network
             {
                 _characterController.Respawn();
                 CurrentHealth = MaxHealth;
+                CurrentMana = MaxMana;
+                _lastHealth = CurrentHealth;
+                _lastMana = CurrentMana;
+                
+                // Health bar'ı tam doldur
+                UpdateHealthBar(1f);
+                
+                // Mana bar'ı tam doldur
+                UpdateManaBar(1f);
                 
                 // Animator reset
                 if (animController != null)
                     animController.ResetAnimator();
+            }
+        }
+        
+        private void OnDestroy()
+        {
+            // Tween'leri temizle
+            if (_healthBarTween != null && _healthBarTween.IsActive())
+            {
+                _healthBarTween.Kill();
+            }
+            
+            if (_manaBarTween != null && _manaBarTween.IsActive())
+            {
+                _manaBarTween.Kill();
             }
         }
     }

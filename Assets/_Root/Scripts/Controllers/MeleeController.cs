@@ -204,7 +204,15 @@ namespace _Root.Scripts.Controllers
                 var enemy = col.GetComponentInParent<NetworkEnemy>();
                 if (enemy != null && enemy.IsAlive)
                 {
+                    bool wasAlive = enemy.IsAlive;
                     enemy.TakeDamage(meleeDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
+                    
+                    // Enemy öldürüldüyse mana kazan
+                    if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
+                    {
+                        _networkPlayer.GainMana(_networkPlayer.ManaRegen);
+                    }
+                    
                     didHit = true;
                     continue;
                 }

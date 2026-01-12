@@ -290,7 +290,15 @@ namespace _Root.Scripts.Controllers
             var hitEnemy = hit.collider.GetComponentInParent<NetworkEnemy>();
             if (hitEnemy != null)
             {
+                bool wasAlive = hitEnemy.IsAlive;
                 hitEnemy.TakeDamage(BulletDamage, hit.point, hit.normal);
+                
+                // Enemy öldürüldüyse mana kazan
+                if (wasAlive && !hitEnemy.IsAlive && _networkPlayer != null)
+                {
+                    _networkPlayer.GainMana(_networkPlayer.ManaRegen);
+                }
+                
                 Debug.Log($"[WeaponController] → Damaged ENEMY: {hitEnemy.name}, Health: {hitEnemy.CurrentHealth}");
             }
             else
