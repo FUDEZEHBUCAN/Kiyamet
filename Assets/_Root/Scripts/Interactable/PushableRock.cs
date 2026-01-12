@@ -8,7 +8,6 @@ namespace _Root.Scripts.Interactable
     {
         [Header("Rock Settings")]
         [SerializeField] private float pushForce = 500f; // Kaya ittirme kuvveti
-        [SerializeField] private float rotationSpeed = 2f; // Kayanın dönme hızı
         [SerializeField] private float maxInteractionDistance = 4f; // Maksimum etkileşim mesafesi (bu mesafeden uzaklaşırsa etkileşim biter)
         
         [Header("Event Settings")]
@@ -27,7 +26,7 @@ namespace _Root.Scripts.Interactable
         {
             _rigidbody = GetComponent<Rigidbody>();
             _rigidbody.isKinematic = false;
-            _rigidbody.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ; // Sadece Y ekseni etrafında dönebilir
+            // FreezeRotation None olarak kalacak - tüm eksenlerde dönebilir
         }
         
         public void OnInteractStart(Transform interactor)
@@ -65,14 +64,7 @@ namespace _Root.Scripts.Interactable
             Vector3 force = pushDirection * pushForce * Runner.DeltaTime;
             _rigidbody.AddForce(force, ForceMode.Force);
             
-            // Kaya player'a doğru dönsün
-            Vector3 lookDirection = (interactor.position - transform.position);
-            lookDirection.y = 0f;
-            if (lookDirection.magnitude > 0.1f)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Runner.DeltaTime);
-            }
+            // Rotasyon doğal fizik motoruna bırakıldı - manuel rotasyon yok
             
             // Hedef konuma ulaşıldı mı kontrol et
             if (targetPosition != null)

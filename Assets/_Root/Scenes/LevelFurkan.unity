@@ -2591,7 +2591,7 @@ Transform:
   m_GameObject: {fileID: 187628041}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.4484967, z: -0, w: 0.8937845}
-  m_LocalPosition: {x: 61.25, y: 12.297, z: 47.75}
+  m_LocalPosition: {x: -70.32201, y: 13.72, z: 616.522}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6870,7 +6870,7 @@ Transform:
   m_GameObject: {fileID: 585520188}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.4484967, z: -0, w: 0.8937845}
-  m_LocalPosition: {x: 64.122, y: 12.297, z: 51.783}
+  m_LocalPosition: {x: -67.450005, y: 13.72, z: 620.555}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9478,7 +9478,7 @@ Transform:
   m_GameObject: {fileID: 797498260}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.4484967, z: -0, w: 0.8937845}
-  m_LocalPosition: {x: 59.163, y: 12.297, z: 43.349}
+  m_LocalPosition: {x: -72.40901, y: 13.72, z: 612.121}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11484,7 +11484,7 @@ Transform:
   m_GameObject: {fileID: 925219966}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.4484967, z: -0, w: 0.8937845}
-  m_LocalPosition: {x: 56.742, y: 12.297, z: 42.528}
+  m_LocalPosition: {x: -74.83, y: 13.72, z: 611.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -16413,8 +16413,8 @@ Transform:
   m_GameObject: {fileID: 1248343572}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -41.823, y: 14.34, z: 275.419}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalPosition: {x: -39.55639, y: 16.712, z: 635.20026}
+  m_LocalScale: {x: 4, y: 4, z: 4}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -16450,9 +16450,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5eec03dccef849ea8a2dc03643d1278, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pushForce: 1000
-  rotationSpeed: 2
-  maxInteractionDistance: 2
+  pushForce: 800
+  maxInteractionDistance: 5
   targetPosition: {fileID: 0}
   targetDistanceThreshold: 1
 --- !u!54 &1248343579
@@ -16463,8 +16462,8 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1248343572}
   serializedVersion: 4
-  m_Mass: 1
-  m_Drag: 0
+  m_Mass: 1.25
+  m_Drag: 0.06
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
