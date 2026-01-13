@@ -75,6 +75,9 @@ namespace _Root.Scripts.Network
         public float Mana => CurrentMana;
         public bool HasEnoughMana(float cost) => CurrentMana >= cost;
         
+        // Audio Controller property (NetworkCharacterControllerCustom'dan erişim için)
+        public PlayerAudioController AudioController => audioController;
+        
         public void PlayerLeft(PlayerRef player)
         {
             if (player == Object.InputAuthority)

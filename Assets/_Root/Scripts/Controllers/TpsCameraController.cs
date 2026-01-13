@@ -32,6 +32,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float damageTakenShakeStrength = 1.5f;
         [SerializeField] private float blockedShakeStrength = 0.8f;
         [SerializeField] private float heavyAttackShakeStrength = 3f;
+        [SerializeField] private float doorBreakShakeStrength = 2f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -171,8 +172,9 @@ namespace _Root.Scripts.Controllers
             if (_cameraTransform == null)
                 return;
             
-            // Önceki shake'i durdur
+            // Önceki shake'i durdur ve rotasyonu sıfırla
             _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity; // Orijinal rotasyona dön
             
             switch (shakeType)
             {
@@ -189,7 +191,12 @@ namespace _Root.Scripts.Controllers
                     _cameraTransform.DOPunchRotation(
                         new Vector3(hitShakeStrength, hitShakeStrength * 0.5f, hitShakeStrength), 
                         0.12f, 8, 1f
-                    );
+                    )
+                    .OnComplete(() => {
+                        // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
                     break;
                     
                 case CameraShakeType.DamageTaken:
@@ -198,7 +205,12 @@ namespace _Root.Scripts.Controllers
                         0.25f, 
                         new Vector3(damageTakenShakeStrength, damageTakenShakeStrength * 0.5f, damageTakenShakeStrength),
                         10, 90f, true
-                    );
+                    )
+                    .OnComplete(() => {
+                        // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
                     break;
                     
                 case CameraShakeType.DamageBlocked:
@@ -206,15 +218,40 @@ namespace _Root.Scripts.Controllers
                     _cameraTransform.DOPunchRotation(
                         new Vector3(0f, blockedShakeStrength, blockedShakeStrength * 0.3f), 
                         0.1f, 10, 0.8f
-                    );
+                    )
+                    .OnComplete(() => {
+                        // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
                     break;
                 case CameraShakeType.HeavyAttackTaken:
                     _cameraTransform.DOShakeRotation(
                         0.3f, 
                         new Vector3(heavyAttackShakeStrength, heavyAttackShakeStrength * 0.5f, heavyAttackShakeStrength),
                         10, 90f, true
-                    );
+                    )
+                    .OnComplete(() => {
+                        // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
                     break;
+                    
+                case CameraShakeType.DoorBreak:
+                    // Kapı kırılma sarsıntısı (güçlü ve uzun)
+                    _cameraTransform.DOShakeRotation(
+                        0.4f, 
+                        new Vector3(doorBreakShakeStrength, doorBreakShakeStrength * 0.5f, doorBreakShakeStrength),
+                        12, 90f, true
+                    )
+                    .OnComplete(() => {
+                        // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
+                    break;
+                    
                 default:
                     break;
             }

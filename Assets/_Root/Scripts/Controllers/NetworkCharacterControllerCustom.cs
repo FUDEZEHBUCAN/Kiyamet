@@ -2,8 +2,10 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Enemy;
+using _Root.Scripts.Enums;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 using PlayerAnimationController = _Root.Scripts.Controllers.PlayerAnimationController;
+using TpsCameraController = _Root.Scripts.Controllers.TpsCameraController;
 
 namespace _Root.Scripts.Controllers {
 
@@ -133,6 +135,12 @@ namespace _Root.Scripts.Controllers {
       {
         _animController.TriggerDash();
       }
+      
+      // Dash ses efekti çal
+      if (_networkPlayer != null && _networkPlayer.AudioController != null)
+      {
+        _networkPlayer.AudioController.PlayDash();
+      }
     }
     
     /// <summary>
@@ -142,6 +150,8 @@ namespace _Root.Scripts.Controllers {
       if (!Object.HasStateAuthority) {
         return;
       }
+      
+      bool hitEnemy = false; // Enemy'ye vuruldu mu?
       
       // Dash yolunda enemy'leri tespit et - overlap sphere ile player'ın etrafındaki enemy'leri kontrol et
       float detectionRadius = 1.5f; // Dash sırasında tespit yarıçapı
@@ -173,7 +183,24 @@ namespace _Root.Scripts.Controllers {
           knockbackDirection.y = 0.3f; // Dengeli havaya savrulma
           knockbackDirection = knockbackDirection.normalized; // Normalize et ki kuvvet tutarlı olsun
           enemy.ApplyKnockback(knockbackDirection * dashKnockbackForce);
+          hitEnemy = true; // Enemy'ye vuruldu
           }
+        }
+      }
+      
+      // Enemy'ye vurulduysa isabet sesi ve kamera shake
+      if (hitEnemy)
+      {
+        // Ses efekti çal
+        if (_networkPlayer != null && _networkPlayer.AudioController != null)
+        {
+          _networkPlayer.AudioController.PlayDashHit();
+        }
+        
+        // Kamera shake (sadece local player için)
+        if (_networkPlayer != null && _networkPlayer.Object != null && _networkPlayer.Object.HasInputAuthority && TpsCameraController.Instance != null)
+        {
+          TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
         }
       }
     }

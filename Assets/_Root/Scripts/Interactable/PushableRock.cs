@@ -10,6 +10,9 @@ namespace _Root.Scripts.Interactable
         [SerializeField] private float pushForce = 500f; // Kaya ittirme kuvveti
         [SerializeField] private float maxInteractionDistance = 4f; // Maksimum etkileşim mesafesi (bu mesafeden uzaklaşırsa etkileşim biter)
         
+        [Header("Trigger Settings")]
+        [SerializeField] private float triggerForce = 300f; // Trigger'da uygulanacak sabit force
+        
         [Header("Event Settings")]
         [SerializeField] private Transform targetPosition; // Kaya buraya getirildiğinde event tetiklenecek
         [SerializeField] private float targetDistanceThreshold = 1f; // Hedef mesafesi
@@ -17,7 +20,12 @@ namespace _Root.Scripts.Interactable
         private Rigidbody _rigidbody;
         private Transform _currentInteractor;
         private bool _isBeingPushed;
+        private bool _hasInteracted; // En az bir kere etkileşime geçti mi
         private Vector3 _initialInteractionPosition; // Etkileşim başladığında player'ın pozisyonu
+        
+        // Trigger için
+        private Transform _activeTrigger; // Aktif trigger objesi
+        private bool _isInTrigger; // Trigger içinde mi
         
         // Event için
         public System.Action OnRockPlaced; // Kaya hedef konuma getirildiğinde tetiklenecek
@@ -36,6 +44,7 @@ namespace _Root.Scripts.Interactable
                 
             _currentInteractor = interactor;
             _isBeingPushed = true;
+            _hasInteracted = true; // En az bir kere etkileşime geçti
             _initialInteractionPosition = interactor.position;
         }
         
@@ -101,10 +110,55 @@ namespace _Root.Scripts.Interactable
             if (!Object.HasStateAuthority)
                 return;
             
+            // Trigger içindeyse ve etkileşim halindeyse veya daha önce etkileşime geçtiyse
+            if (_isInTrigger && _activeTrigger != null && (_isBeingPushed || _hasInteracted))
+            {
+                // Trigger objesinin forward yönünde sabit force uygula
+                Vector3 triggerDirection = _activeTrigger.forward;
+                triggerDirection.y = 0f; // Sadece yatay yön
+                triggerDirection.Normalize();
+                
+                Vector3 force = triggerDirection * triggerForce * Runner.DeltaTime;
+                _rigidbody.AddForce(force, ForceMode.Force);
+            }
+            
             // Kaya ittirilmiyorsa ve hareket ediyorsa, yavaşça durdur
-            if (!_isBeingPushed && _rigidbody.velocity.magnitude > 0.1f)
+            if (!_isBeingPushed && !_isInTrigger && _rigidbody.velocity.magnitude > 0.1f)
             {
                 _rigidbody.velocity = Vector3.Lerp(_rigidbody.velocity, Vector3.zero, Runner.DeltaTime * 2f);
+            }
+        }
+        
+        private void OnTriggerEnter(Collider other)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+            
+            // BreakableDoor kontrolü - kapıyı kır
+            BreakableDoor door = other.GetComponent<BreakableDoor>();
+            if (door != null && (_isBeingPushed || _hasInteracted))
+            {
+                door.BreakDoor();
+            }
+            
+            // "RockTrigger" adlı trigger'a girdi mi kontrol et
+            if (other.CompareTag("RockTrigger") || other.name.Contains("RockTrigger"))
+            {
+                _isInTrigger = true;
+                _activeTrigger = other.transform;
+            }
+        }
+        
+        private void OnTriggerExit(Collider other)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+            
+            // "RockTrigger" adlı trigger'dan çıktı mı kontrol et
+            if (other.CompareTag("RockTrigger") || other.name.Contains("RockTrigger"))
+            {
+                _isInTrigger = false;
+                _activeTrigger = null;
             }
         }
     }

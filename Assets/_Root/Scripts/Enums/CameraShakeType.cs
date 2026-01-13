@@ -6,6 +6,7 @@ namespace _Root.Scripts.Enums
         MeleeAttackHit,
         DamageTaken,
         DamageBlocked,
-        HeavyAttackTaken
+        HeavyAttackTaken,
+        DoorBreak
     }
 }

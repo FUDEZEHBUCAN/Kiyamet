@@ -24,6 +24,12 @@ namespace _Root.Scripts.Controllers
         [Tooltip("Kalkanla saldırı blokladığında")]
         [SerializeField] private AudioClip[] blockSounds;
         
+        [Header("Dash Sounds")]
+        [Tooltip("Dash skill kullanıldığında")]
+        [SerializeField] private AudioClip[] dashSounds;
+        [Tooltip("Dash enemy'ye isabet ettiğinde")]
+        [SerializeField] private AudioClip[] dashHitSounds;
+        
         [Header("Settings")]
         [SerializeField] private float pitchVariation = 0.1f;
         [SerializeField] private float minTimeBetweenSounds = 0.05f;
@@ -74,6 +80,22 @@ namespace _Root.Scripts.Controllers
         public void PlayBlock()
         {
             PlayRandomSound(blockSounds);
+        }
+        
+        /// <summary>
+        /// Dash skill kullanıldığında
+        /// </summary>
+        public void PlayDash()
+        {
+            PlayRandomSound(dashSounds);
+        }
+        
+        /// <summary>
+        /// Dash enemy'ye isabet ettiğinde
+        /// </summary>
+        public void PlayDashHit()
+        {
+            PlayRandomSound(dashHitSounds);
         }
         
         private void PlayRandomSound(AudioClip[] clips)
