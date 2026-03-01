@@ -12,12 +12,13 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - TCP2_COLORS_AS_NORMALS
   - TCP2_UV_NORMALS_FULL
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 2000
   stringTagMap: {}
   disabledShaderPasses: []
   m_LockedProperties: 
@@ -40,13 +41,17 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _DiffuseTintMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Scale: {x: 21, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
@@ -60,32 +65,36 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _ProgressiveSketchTexture:
+        m_Texture: {fileID: 2800000, guid: b1b62855ddf91f140a6b405c3037c38d, type: 3}
+        m_Scale: {x: 5, y: 5}
+        m_Offset: {x: 0, y: 0}
     - _StylizedThreshold:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 2, y: 2}
+        m_Scale: {x: 0.2, y: 0.2}
         m_Offset: {x: 0, y: 0}
     - _TriCeiling:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
+        m_Scale: {x: 0.05, y: 0.1}
         m_Offset: {x: 0, y: 0}
     - _TriCeilingBump:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TriGround:
-        m_Texture: {fileID: 2800000, guid: 56f5336e4d6894948aeb53b61d2b1cee, type: 3}
-        m_Scale: {x: 0.1, y: 0.1}
+        m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
+        m_Scale: {x: 0.01, y: 0.05}
         m_Offset: {x: 0, y: 0}
     - _TriGroundBump:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TriSide:
-        m_Texture: {fileID: 2800000, guid: 56f5336e4d6894948aeb53b61d2b1cee, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
+        m_Scale: {x: 0.1, y: 0.1}
         m_Offset: {x: 0, y: 0}
     - _TriSideBump:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -100,34 +109,46 @@ Material:
     - _GlossyReflections: 1
     - _Metallic: 0
     - _Mode: 0
-    - _NormalsSource: 0
+    - _NormalsSource: 1
     - _NormalsUVType: 0
     - _OcclusionStrength: 1
-    - _OutlineWidth: 1.9
+    - _OutlineMaxWidth: 5.7
+    - _OutlineMinWidth: 4
+    - _OutlineWidth: 3.24
+    - _OutlineZSmooth: -1.95
     - _Parallax: 0.02
-    - _RampSmoothing: 0.001
-    - _RampThreshold: 0.378
+    - _ProgressiveSketchSmoothness: 0.435
+    - _RampSmoothing: 0.396
+    - _RampThreshold: 0.254
     - _RenderingMode: 0
-    - _ShadowLineSmoothing: 0.015
-    - _ShadowLineStrength: 1
-    - _ShadowLineThreshold: 0.5
+    - _ShadowLineSmoothing: 0.0119
+    - _ShadowLineStrength: 305.2
+    - _ShadowLineThreshold: 0.087
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _TriCeilingBumpScale: 1
-    - _TriSideBumpScale: 1
+    - _TriGroundBumpScale: 1
+    - _TriSideBumpScale: 0.2
+    - _TriplanarHeightOffset: 0
+    - _TriplanarHeightSmooth: 0.1
     - _UVSec: 0
+    - _UseSketch: 0
+    - _UseTexturedThreshold: 0
+    - _VerticalFogSmoothness: 0.5
+    - _VerticalFogThreshold: 0
     - _ZWrite: 1
-    - __BeginGroup_ShadowHSV: 0
+    - __BeginGroup_ShadowHSV: 1
     - __EndGroup: 0
     - __dummy__: 0
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _DiffuseTint: {r: 1, g: 0.5, b: 0, a: 1}
+    - _Color: {r: 1, g: 0.889859, b: 0.7783019, a: 1}
+    - _DiffuseTint: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColorVertex: {r: 0, g: 0, b: 0, a: 1}
     - _SColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _ShadowLineColor: {r: 0, g: 0, b: 0, a: 1}
-    - _TriplanarBlendStrength: {r: 11, g: 12.6, b: 5.3, a: 0.732}
+    - _TriplanarBlendStrength: {r: 2.3, g: 2.6, b: 1.2, a: 0.325}
+    - _VerticalFogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_BuildTextureStacks: []
