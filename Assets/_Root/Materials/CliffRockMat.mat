@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: New Material
+  m_Name: CliffRockMat
   m_Shader: {fileID: 4800000, guid: 830bf02c450cea04caf7fc0efb2da0b8, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -74,19 +74,19 @@ Material:
         m_Scale: {x: 0.2, y: 0.2}
         m_Offset: {x: 0, y: 0}
     - _TriCeiling:
-        m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
-        m_Scale: {x: 0.05, y: 0.1}
+        m_Texture: {fileID: 2800000, guid: f5abb6c3def28d5419b35e171abf8ca6, type: 3}
+        m_Scale: {x: 0.1, y: 0.1}
         m_Offset: {x: 0, y: 0}
     - _TriCeilingBump:
-        m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
+        m_Texture: {fileID: 2800000, guid: 278d0c9d5a16c01409eaadafb65a4ba6, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TriGround:
-        m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
-        m_Scale: {x: 0.01, y: 0.05}
+        m_Texture: {fileID: 2800000, guid: f5abb6c3def28d5419b35e171abf8ca6, type: 3}
+        m_Scale: {x: 0.5, y: 0.5}
         m_Offset: {x: 0, y: 0}
     - _TriGroundBump:
-        m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
+        m_Texture: {fileID: 2800000, guid: 278d0c9d5a16c01409eaadafb65a4ba6, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TriSide:
@@ -100,6 +100,8 @@ Material:
     m_Ints: []
     m_Floats:
     - _BumpScale: 1
+    - _CeilingMax: -11.64
+    - _CeilingMin: -6.82
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
@@ -107,19 +109,22 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _HSV_H: 0
+    - _HSV_S: 0
+    - _HSV_V: 0
     - _Metallic: 0
     - _Mode: 0
     - _NormalsSource: 1
     - _NormalsUVType: 0
     - _OcclusionStrength: 1
-    - _OutlineMaxWidth: 5.7
+    - _OutlineMaxWidth: 17.2
     - _OutlineMinWidth: 4
     - _OutlineWidth: 3.24
-    - _OutlineZSmooth: -1.95
+    - _OutlineZSmooth: 0
     - _Parallax: 0.02
     - _ProgressiveSketchSmoothness: 0.435
-    - _RampSmoothing: 0.396
-    - _RampThreshold: 0.254
+    - _RampSmoothing: 0.26
+    - _RampThreshold: 0.383
     - _RenderingMode: 0
     - _ShadowLineSmoothing: 0.0119
     - _ShadowLineStrength: 305.2
@@ -127,9 +132,9 @@ Material:
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _TriCeilingBumpScale: 1
-    - _TriGroundBumpScale: 1
-    - _TriSideBumpScale: 0.2
+    - _TriCeilingBumpScale: -0.37
+    - _TriGroundBumpScale: 2
+    - _TriSideBumpScale: 0.73
     - _TriplanarHeightOffset: 0
     - _TriplanarHeightSmooth: 0.1
     - _UVSec: 0
@@ -138,17 +143,19 @@ Material:
     - _VerticalFogSmoothness: 0.5
     - _VerticalFogThreshold: 0
     - _ZWrite: 1
+    - __BeginGroup_AlbedoHSV: 0
     - __BeginGroup_ShadowHSV: 1
     - __EndGroup: 0
     - __dummy__: 0
     m_Colors:
-    - _Color: {r: 1, g: 0.889859, b: 0.7783019, a: 1}
+    - _Color: {r: 1, g: 0.9142668, b: 0.8254717, a: 1}
     - _DiffuseTint: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColorVertex: {r: 0, g: 0, b: 0, a: 1}
     - _SColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _ShadowLineColor: {r: 0, g: 0, b: 0, a: 1}
-    - _TriplanarBlendStrength: {r: 2.3, g: 2.6, b: 1.2, a: 0.325}
+    - _SilhouetteColor: {r: 1, g: 1, b: 1, a: 0.02745098}
+    - _TriplanarBlendStrength: {r: 1.9, g: 12.5, b: 2.1, a: 0.602}
     - _VerticalFogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_BuildTextureStacks: []
