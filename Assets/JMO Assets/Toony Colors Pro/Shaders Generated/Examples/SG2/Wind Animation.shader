@@ -18,6 +18,10 @@ Shader "Toony Colors Pro 2/Examples/SG2/Wind Animation"
 		_RampThreshold ("Threshold", Range(0.01,1)) = 0.5
 		_RampSmoothing ("Smoothing", Range(0.001,1)) = 0.5
 		[TCP2Separator]
+
+		[TCP2HeaderHelp(Emission)]
+		[TCP2ColorNoAlpha] [HDR] _Emission ("Emission Color", Color) = (0,0,0,1)
+		[TCP2Separator]
 		
 		[TCP2HeaderHelp(Wind)]
 		_WindDirection ("Direction", Vector) = (1,0,0,0)
@@ -62,6 +66,7 @@ Shader "Toony Colors Pro 2/Examples/SG2/Wind Animation"
 		float _Cutoff;
 		fixed4 _Color;
 		fixed4 _ColorBack;
+		half4 _Emission;
 		float _RampThreshold;
 		float _RampSmoothing;
 		fixed4 _HColor;
@@ -182,6 +187,7 @@ Shader "Toony Colors Pro 2/Examples/SG2/Wind Animation"
 			float4 __mainColor = (  lerp(_Color, _ColorBack, step(input.vFace,0.5)) );
 			float __alpha = ( __albedo.a * __mainColor.a );
 			float __cutoff = ( _Cutoff );
+			float3 __emission = ( _Emission.rgb );
 			output.__rampThreshold = ( _RampThreshold );
 			output.__rampSmoothing = ( _RampSmoothing );
 			output.__highlightColor = ( _HColor.rgb );
@@ -202,6 +208,7 @@ Shader "Toony Colors Pro 2/Examples/SG2/Wind Animation"
 			output.Alpha = (output.Alpha - cutoffValue) / max(fwidth(output.Alpha), 0.0001) + 0.5;
 			
 			output.Albedo *= __mainColor.rgb;
+			output.Emission += __emission;
 
 		}
 
@@ -278,5 +285,5 @@ Shader "Toony Colors Pro 2/Examples/SG2/Wind Animation"
 	CustomEditor "ToonyColorsPro.ShaderGenerator.MaterialInspector_SG2"
 }
 
-/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","ALPHA_TESTING","ALPHA_TO_COVERAGE","CULLING","BACKFACE_LIGHTING_XYZ","WIND_ANIM_SIN","WIND_ANIM","WIND_SIN_4","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1"];flags:list["addshadow","fullforwardshadows"];flags_extra:dict[];keywords:dict[RENDER_TYPE="TransparentCutout",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0"];shaderProperties:list[,sp(name:"Main Color";imps:list[imp_customcode(prepend_type:Disabled;prepend_code:"";prepend_file:"";prepend_file_block:"";preprend_params:dict[];code:"lerp({2}, {3}, step({4},0.5))";guid:"1c5db44b-8d01-49ad-a5ee-416d3d4962c4";op:Multiply;lbl:"Main Color";gpu_inst:False;locked:False;impl_index:-1),imp_mp_color(def:RGBA(1, 1, 1, 1);hdr:False;cc:4;chan:"RGBA";prop:"_Color";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"789f2dec-39bb-4470-9840-9f7f921bf298";op:Multiply;lbl:"Color";gpu_inst:False;locked:False;impl_index:0),imp_mp_color(def:RGBA(1, 1, 1, 1);hdr:False;cc:4;chan:"RGBA";prop:"_ColorBack";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"d3cfedbe-7cb8-4bfe-9976-761cf43aa208";op:Multiply;lbl:"Color Backfaces";gpu_inst:False;locked:False;impl_index:-1),imp_generic(cc:4;chan:"XXXX";source_id:"float input.vFace3fragment";needed_features:"USE_VFACE";custom_code_compatible:True;options_v:dict[];guid:"12cd787c-e7d9-4b08-9a80-42936cbe31fb";op:Multiply;lbl:"Main Color";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,sp(name:"Wind Frequency";imps:list[imp_mp_range(def:0.5;min:0;max:5;prop:"_WindFrequency";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"67b5ef57-6852-4c5c-90e3-574ff9fb1792";op:Multiply;lbl:"Frequency";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Wind Time Offset";imps:list[imp_vcolors(cc:1;chan:"G";guid:"2ebc261a-2229-4562-af73-fbd31c837a69";op:Multiply;lbl:"Mask";gpu_inst:False;locked:False;impl_index:0),imp_mp_range(def:1;min:0;max:1;prop:"_WindTimeOffset";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e0b01e50-df71-4294-aca6-2130bf9f7a29";op:Multiply;lbl:"Wind Time Offset Range";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,sp(name:"Face Culling";imps:list[imp_enum(value_type:0;value:2;enum_type:"ToonyColorsPro.ShaderGenerator.Culling";guid:"02177cce-d630-4014-9924-a87706edb4c2";op:Multiply;lbl:"Face Culling";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,sp(name:"Depth Write";imps:list[imp_enum(value_type:0;value:1;enum_type:"ToonyColorsPro.ShaderGenerator.DepthWrite";guid:"29f3cfcf-9a2e-4e62-92da-941217ec7141";op:Multiply;lbl:"Depth Write";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
-/* TCP_HASH 6d62033cd8b772632e70e159b923c251 */
+/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","ALPHA_TESTING","ALPHA_TO_COVERAGE","CULLING","BACKFACE_LIGHTING_XYZ","WIND_ANIM_SIN","WIND_ANIM","WIND_SIN_4","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","EMISSION"];flags:list["addshadow","fullforwardshadows"];flags_extra:dict[];keywords:dict[RENDER_TYPE="TransparentCutout",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0"];shaderProperties:list[,sp(name:"Main Color";imps:list[imp_customcode(prepend_type:Disabled;prepend_code:"";prepend_file:"";prepend_file_block:"";preprend_params:dict[];code:"lerp({2}, {3}, step({4},0.5))";guid:"1c5db44b-8d01-49ad-a5ee-416d3d4962c4";op:Multiply;lbl:"Main Color";gpu_inst:False;locked:False;impl_index:-1),imp_mp_color(def:RGBA(1, 1, 1, 1);hdr:False;cc:4;chan:"RGBA";prop:"_Color";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"789f2dec-39bb-4470-9840-9f7f921bf298";op:Multiply;lbl:"Color";gpu_inst:False;locked:False;impl_index:0),imp_mp_color(def:RGBA(1, 1, 1, 1);hdr:False;cc:4;chan:"RGBA";prop:"_ColorBack";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"d3cfedbe-7cb8-4bfe-9976-761cf43aa208";op:Multiply;lbl:"Color Backfaces";gpu_inst:False;locked:False;impl_index:-1),imp_generic(cc:4;chan:"XXXX";source_id:"float input.vFace3fragment";needed_features:"USE_VFACE";custom_code_compatible:True;options_v:dict[];guid:"12cd787c-e7d9-4b08-9a80-42936cbe31fb";op:Multiply;lbl:"Main Color";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,sp(name:"Wind Frequency";imps:list[imp_mp_range(def:0.5;min:0;max:5;prop:"_WindFrequency";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"67b5ef57-6852-4c5c-90e3-574ff9fb1792";op:Multiply;lbl:"Frequency";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Wind Time Offset";imps:list[imp_vcolors(cc:1;chan:"G";guid:"2ebc261a-2229-4562-af73-fbd31c837a69";op:Multiply;lbl:"Mask";gpu_inst:False;locked:False;impl_index:0),imp_mp_range(def:1;min:0;max:1;prop:"_WindTimeOffset";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e0b01e50-df71-4294-aca6-2130bf9f7a29";op:Multiply;lbl:"Wind Time Offset Range";gpu_inst:False;locked:False;impl_index:-1)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,sp(name:"Face Culling";imps:list[imp_enum(value_type:0;value:2;enum_type:"ToonyColorsPro.ShaderGenerator.Culling";guid:"02177cce-d630-4014-9924-a87706edb4c2";op:Multiply;lbl:"Face Culling";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,sp(name:"Depth Write";imps:list[imp_enum(value_type:0;value:1;enum_type:"ToonyColorsPro.ShaderGenerator.DepthWrite";guid:"29f3cfcf-9a2e-4e62-92da-941217ec7141";op:Multiply;lbl:"Depth Write";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
+/* TCP_HASH 0ca030c9346d5b990d1bc692bba3ff5b */
