@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_COLORS_AS_NORMALS
+  - TCP2_RIM_LIGHTING
   - TCP2_UV_NORMALS_FULL
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -51,7 +52,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _MainTex:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 21, y: 1}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCapTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
@@ -68,6 +73,10 @@ Material:
     - _ProgressiveSketchTexture:
         m_Texture: {fileID: 2800000, guid: b1b62855ddf91f140a6b405c3037c38d, type: 3}
         m_Scale: {x: 5, y: 5}
+        m_Offset: {x: 0, y: 0}
+    - _Ramp:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _StylizedThreshold:
         m_Texture: {fileID: 0}
@@ -99,6 +108,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _BandsCount: 2
+    - _BandsSmoothing: 0.165
     - _BumpScale: 1
     - _CeilingMax: -11.64
     - _CeilingMin: -6.82
@@ -117,15 +128,17 @@ Material:
     - _NormalsSource: 1
     - _NormalsUVType: 0
     - _OcclusionStrength: 1
-    - _OutlineMaxWidth: 17.2
-    - _OutlineMinWidth: 4
-    - _OutlineWidth: 3.24
-    - _OutlineZSmooth: 0
+    - _OutlineMaxWidth: 4.1
+    - _OutlineMinWidth: 4.6
+    - _OutlineWidth: 0.1
+    - _OutlineZSmooth: -0.28
     - _Parallax: 0.02
     - _ProgressiveSketchSmoothness: 0.435
-    - _RampSmoothing: 0.26
-    - _RampThreshold: 0.383
+    - _RampSmoothing: 0.164
+    - _RampThreshold: 0.524
     - _RenderingMode: 0
+    - _RimMax: 0.62
+    - _RimMin: 0.58
     - _ShadowLineSmoothing: 0.0119
     - _ShadowLineStrength: 305.2
     - _ShadowLineThreshold: 0.087
@@ -134,14 +147,16 @@ Material:
     - _SrcBlend: 1
     - _TriCeilingBumpScale: 1
     - _TriGroundBumpScale: 1
-    - _TriSideBumpScale: 0.73
+    - _TriSideBumpScale: 0.16
     - _TriplanarHeightOffset: 0
     - _TriplanarHeightSmooth: 0.1
     - _UVSec: 0
+    - _UseMatCap: 0
+    - _UseRim: 1
     - _UseSketch: 0
     - _UseTexturedThreshold: 0
-    - _VerticalFogSmoothness: 0.5
-    - _VerticalFogThreshold: 0
+    - _VerticalFogSmoothness: -22.22
+    - _VerticalFogThreshold: 33.4
     - _ZWrite: 1
     - __BeginGroup_AlbedoHSV: 0
     - __BeginGroup_ShadowHSV: 1
@@ -152,7 +167,10 @@ Material:
     - _DiffuseTint: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
+    - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColorVertex: {r: 0, g: 0, b: 0, a: 1}
+    - _RimColor: {r: 0.3207547, g: 0.13081762, b: 0, a: 0.5}
+    - _RimDir: {r: -1.89, g: -5.07, b: 1.49, a: 1.25}
     - _SColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _ShadowLineColor: {r: 0, g: 0, b: 0, a: 1}
     - _SilhouetteColor: {r: 1, g: 1, b: 1, a: 0.02745098}
