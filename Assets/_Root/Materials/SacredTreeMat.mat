@@ -15,7 +15,6 @@ Material:
   - TCP2_RAMP_BANDS
   - TCP2_REFLECTIONS_FRESNEL
   - TCP2_RIM_LIGHTING
-  - TCP2_RIM_LIGHTING_LIGHTMASK
   - TCP2_SHADOW_LIGHT_COLOR
   - TCP2_UV_NORMALS_FULL
   - _NORMALMAP
@@ -127,19 +126,19 @@ Material:
     - _OutlineTextureType: 0
     - _OutlineWidth: 2.41
     - _Parallax: 0.02
-    - _RampBands: 4
-    - _RampBandsSmoothing: 0.481
+    - _RampBands: 2
+    - _RampBandsSmoothing: 0.202
     - _RampOffset: 0
     - _RampScale: 1
-    - _RampSmoothing: 0.324
-    - _RampThreshold: 0.622
+    - _RampSmoothing: 0.341
+    - _RampThreshold: 0.693
     - _RampType: 2
     - _ReceiveShadowsOff: 1
     - _ReflectionMapType: 0
     - _ReflectionSmoothness: 0.5
     - _RenderingMode: 0
-    - _RimMax: 0.63
-    - _RimMin: 0.46
+    - _RimMax: 1.39
+    - _RimMin: 0.36
     - _ShadowColorLightAtten: 1
     - _SingleIndirectColor: 0
     - _SmoothnessTextureChannel: 0
@@ -162,7 +161,7 @@ Material:
     - _UseOutline: 1
     - _UseReflections: 0
     - _UseRim: 1
-    - _UseRimLightMask: 1
+    - _UseRimLightMask: 0
     - _UseShadowTexture: 0
     - _UseSpecular: 0
     - _ZWrite: 1
