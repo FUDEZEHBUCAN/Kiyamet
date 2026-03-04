@@ -8,19 +8,18 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: WoodenBridgeMat
-  m_Shader: {fileID: 4800000, guid: 830bf02c450cea04caf7fc0efb2da0b8, type: 3}
+  m_Shader: {fileID: -6465566751694194690, guid: df5bb027d94a6c44bb32b3c31ec1303f, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
-  - TCP2_UV_NORMALS_FULL
-  m_InvalidKeywords:
   - TCP2_OUTLINE_MIN_MAX_SIZE
-  - TCP2_RAMP_BANDS
+  - TCP2_RAMP_BANDS_CRISP
   - TCP2_REFLECTIONS_FRESNEL
-  - TCP2_RIM_LIGHTING_LIGHTMASK
   - TCP2_SHADOW_LIGHT_COLOR
+  - TCP2_UV_NORMALS_FULL
   - _ALPHATEST_ON
   - _NORMALMAP
+  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -160,26 +159,26 @@ Material:
     - _OcclusionStrength: 1
     - _OutlineLightingType: 0
     - _OutlineLightingTypeURP: 0
-    - _OutlineMaxWidth: 2
-    - _OutlineMinWidth: 2
+    - _OutlineMaxWidth: 0.1
+    - _OutlineMinWidth: 0.1
     - _OutlinePixelSizeType: 3
     - _OutlineTextureLOD: 5
     - _OutlineTextureType: 0
     - _OutlineWidth: 0.69
     - _Parallax: 0.02
-    - _RampBands: 4
-    - _RampBandsSmoothing: 0
+    - _RampBands: 3
+    - _RampBandsSmoothing: 0.298
     - _RampOffset: 0
     - _RampScale: 1
-    - _RampSmoothing: 0.172
-    - _RampThreshold: 0.83
-    - _RampType: 2
+    - _RampSmoothing: 0.077
+    - _RampThreshold: 0.8
+    - _RampType: 3
     - _ReceiveShadowsOff: 1
     - _ReflectionMapType: 0
     - _ReflectionSmoothness: 0.5
     - _RenderingMode: 0
-    - _RimMax: 0.2
-    - _RimMin: 0
+    - _RimMax: 1.967
+    - _RimMin: 1.773
     - _ShadowColorLightAtten: 1
     - _ShadowLineSmoothing: 0.015
     - _ShadowLineStrength: 1
@@ -208,7 +207,7 @@ Material:
     - _UseOutline: 1
     - _UseReflections: 0
     - _UseRim: 0
-    - _UseRimLightMask: 1
+    - _UseRimLightMask: 0
     - _UseShadowTexture: 0
     - _UseSpecular: 0
     - _UseTexturedThreshold: 0
