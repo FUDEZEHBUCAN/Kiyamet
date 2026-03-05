@@ -70,7 +70,7 @@ Material:
     - _DeepFoamBlur: 0
     - _DeepFoamCoverage: 1
     - _DeepFoamTiling: 0.637
-    - _Density: 0.18
+    - _Density: 1.97
     - _DensityDepth: 0.01
     - _DepthAtten: 2.12
     - _DetailDistance: 600
@@ -88,9 +88,9 @@ Material:
     - _FoamSpeed: -6
     - _FoamTiling: 4
     - _FoamTranslucencyIntensity: 1
-    - _FogAbsorptionCancellation: 0.2
+    - _FogAbsorptionCancellation: 0.808
     - _FresbnelFactor: 5
-    - _FresnelPower: 5
+    - _FresnelPower: 3.11
     - _GGlobalFrequency: 3
     - _GGlobalRotation: 0
     - _GGlobalSpeed: 1
@@ -100,14 +100,14 @@ Material:
     - _GerstnerNormalIntensity: 1
     - _GerstnerPlanarNormalIntensity: 1
     - _GerstnerVertexIntensity: 0.2
-    - _Glossiness: 0.92
+    - _Glossiness: 0.33
     - _HeightBasedScatteringMax: 2
     - _HeightBasedScatteringPower: 2
     - _Help: 0
     - _HorizonOcclusion: 0
     - _InvFade: 6
     - _InvFadeParameter: 0.56
-    - _LuxWater_EdgeLength: 35
+    - _LuxWater_EdgeLength: 54
     - _LuxWater_Extrusion: 0.1
     - _LuxWater_Phong: 0.5
     - _LuxWater_ReflectionTexMip: 10
@@ -121,7 +121,7 @@ Material:
     - _PlaneReflectionBumpClamp: 0.05
     - _PlaneReflectionBumpScale: 0.4
     - _PlaneReflectionIntensityScale: 1
-    - _ReflectionBumpScale: 0.3
+    - _ReflectionBumpScale: 0.407
     - _ReflectionGeoScale: 0.5
     - _ReflectionGlossiness: 1
     - _ReflectionSmoothing: 1
@@ -141,7 +141,7 @@ Material:
     - _UnderwaterScatteringIntensity: 8
     - _UnderwaterScatteringPower: 1.75
     - _UsesWaterVolume: 0
-    - _WaterIOR: 1.25
+    - _WaterIOR: 1.243
     - _WaterSurfaceYPos: 122.7
     - _WorldSpaceMappingEnabled: 1
     - _ZTest: 4
@@ -153,9 +153,9 @@ Material:
     - _BumpSpeed: {r: 1.8, g: -3.04, b: 2.8, a: 0.3}
     - _BumpSpeedXXX: {r: 1.7, g: 1, b: 0, a: 0}
     - _BumpTiling: {r: 0.2, g: 0.6, b: 1, a: 1}
-    - _Color: {r: 0.21323526, g: 0.2091695, b: 0.06585204, a: 0}
+    - _Color: {r: 0.39551443, g: 0.679925, b: 0.8301887, a: 0}
     - _DeepFoamColor: {r: 0.7, g: 0.7, b: 0.7, a: 0.5}
-    - _DepthAtten: {r: 0, g: 25, b: 1, a: 0}
+    - _DepthAtten: {r: 0, g: 22, b: 1, a: 0}
     - _FarBumpSampleParams: {r: 0.2, g: 150, b: 0.37, a: -0.05}
     - _FinalBumpRotation: {r: 2155.8538, g: 3.7999985, b: 118.79876, a: 118.79876}
     - _FinalBumpSpeed01: {r: -0.53621256, g: -0.06384439, b: 0.90823203, a: -0.08281572}
