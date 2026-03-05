@@ -20,9 +20,9 @@ RenderSettings:
   m_FogDensity: 0.005
   m_LinearFogStart: 50
   m_LinearFogEnd: 364.5
-  m_AmbientSkyColor: {r: 0, g: 0.042052343, b: 0.1273585, a: 1}
-  m_AmbientEquatorColor: {r: 0.21188228, g: 0.20558919, b: 0.41509438, a: 1}
-  m_AmbientGroundColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_AmbientSkyColor: {r: 0.062032744, g: 0.15096842, b: 0.3207547, a: 1}
+  m_AmbientEquatorColor: {r: 0.12237452, g: 0.19223925, b: 0.4716981, a: 1}
+  m_AmbientGroundColor: {r: 0.6886792, g: 0.38436803, b: 0.19815768, a: 1}
   m_AmbientIntensity: 2.05
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 1, g: 1, b: 1, a: 1}
@@ -35,7 +35,7 @@ RenderSettings:
   m_DefaultReflectionMode: 0
   m_DefaultReflectionResolution: 256
   m_ReflectionBounces: 1
-  m_ReflectionIntensity: 0.609
+  m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 2101120748}
   m_UseRadianceAmbientProbe: 0
@@ -1023,7 +1023,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3555982264057269904, guid: cccdeeef9a3304e4c9992eeb23714290, type: 3}
       propertyPath: m_LocalScale.y
-      value: 3.5898
+      value: 4.294119
       objectReference: {fileID: 0}
     - target: {fileID: 3555982264057269904, guid: cccdeeef9a3304e4c9992eeb23714290, type: 3}
       propertyPath: m_LocalScale.z
@@ -1035,7 +1035,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3555982264057269904, guid: cccdeeef9a3304e4c9992eeb23714290, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.21
+      value: -0.31806
       objectReference: {fileID: 0}
     - target: {fileID: 3555982264057269904, guid: cccdeeef9a3304e4c9992eeb23714290, type: 3}
       propertyPath: m_LocalPosition.z
@@ -16937,19 +16937,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 53.879997
+      value: 55.02
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -4.7
+      value: -3.74
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -129.49
+      value: -126.13
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.34768355
+      value: -0.12484661
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalRotation.x
@@ -16957,7 +16957,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.937612
+      value: 0.9921761
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalRotation.z
@@ -16969,7 +16969,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 220.691
+      value: 194.344
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -18956,7 +18956,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.93
+      value: 3.16
       objectReference: {fileID: 0}
     - target: {fileID: 1711641332682021473, guid: 5fb03a1dff996e049b0fd918f5a0e91d, type: 3}
       propertyPath: m_LocalPosition.z
@@ -30530,7 +30530,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.5
     m_Bias: 0
     m_NormalBias: 1.34
     m_NearPlane: 0.99
