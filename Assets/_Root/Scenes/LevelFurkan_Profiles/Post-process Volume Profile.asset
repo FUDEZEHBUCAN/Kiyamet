@@ -20,7 +20,7 @@ MonoBehaviour:
     overrideState: 1
     value: 1
   externalLut:
-    overrideState: 0
+    overrideState: 1
     value: {fileID: 0}
     defaultState: 1
   tonemapper:
@@ -53,10 +53,10 @@ MonoBehaviour:
     value: 1
   temperature:
     overrideState: 0
-    value: -30
+    value: -19
   tint:
     overrideState: 0
-    value: 0
+    value: -74
   colorFilter:
     overrideState: 0
     value: {r: 1, g: 0, b: 0, a: 1}
@@ -1326,7 +1326,7 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 1
+    value: 0
   mode:
     overrideState: 1
     value: 0
@@ -1370,7 +1370,7 @@ MonoBehaviour:
   active: 1
   enabled:
     overrideState: 1
-    value: 1
+    value: 0
   spectralLut:
     overrideState: 0
     value: {fileID: 0}
