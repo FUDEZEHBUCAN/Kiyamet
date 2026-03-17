@@ -6,23 +6,18 @@ using UnityEngine.UI;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 namespace _Root.Scripts.Controllers
 {
-    /// <summary>
-    /// Tamamen local çalışan, üçüncü şahıs kamera takip scripti.
-    /// Network component gerektirmez; sadece local oyuncuyu takip eder.
-    /// </summary>
     public class TpsCameraController : MonoBehaviour
     {
         public static TpsCameraController Instance { get; private set; }
         
         [Header("Target")]
-        public Transform target;                 // Takip edilecek oyuncu (NetworkPlayer)
-
+        public Transform target;
+      
         [Header("Offset")]
-        public float distance = 4f;              // Hedeften geri mesafe
-        public float height = 2f;                // Hedeften yukarı mesafe
+        public float distance = 4f;
+        public float height = 2f;
 
         [Header("Mouse")]
-        // Yatay (yaw) karakter tarafından kontrol ediliyor; kamera sadece dikey ekseni (pitch) mouse ile kontrol eder
         public float mouseYSensitivity = 2f;
         public Vector2 pitchLimits = new Vector2(-40f, 80f);
         
@@ -38,8 +33,8 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
         [SerializeField] private float vignetteFadeOutDuration = 0.3f;
 
-        private float _yaw;   // Yatay açı (sağa-sola)
-        private float _pitch; // Dikey açı (yukarı-aşağı)
+        private float _yaw;
+        private float _pitch;
         private Transform _cameraTransform;
         private Image _damageVignetteImage;
         private Tweener _vignetteTween;
@@ -52,7 +47,6 @@ namespace _Root.Scripts.Controllers
         private void Start()
         {
             _cameraTransform = transform.GetChild(0);
-            // Eğer target atanmadıysa local player'dan al
             if (target == null && NetworkPlayer.Local != null)
             {
                 target = NetworkPlayer.Local.transform;
@@ -65,17 +59,14 @@ namespace _Root.Scripts.Controllers
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
             
-            // Damage Vignette Image'ı bul
             FindDamageVignetteImage();
         }
         
         private void FindDamageVignetteImage()
         {
-            // Local player'ı bul
             if (NetworkPlayer.Local == null)
                 return;
             
-            // Player prefab'ının içinde Canvas'ı bul
             Canvas canvas = NetworkPlayer.Local.GetComponentInChildren<Canvas>();
             if (canvas == null)
             {
@@ -83,14 +74,12 @@ namespace _Root.Scripts.Controllers
                 return;
             }
             
-            // Canvas içinde "Damage Vignette Image" adında Image'ı bul
             Image[] images = canvas.GetComponentsInChildren<Image>();
             foreach (var img in images)
             {
                 if (img.name.Contains("Damage Vignette") || img.name.Contains("DamageVignette"))
                 {
                     _damageVignetteImage = img;
-                    // Başlangıçta alpha = 0
                     Color color = img.color;
                     color.a = 0f;
                     img.color = color;

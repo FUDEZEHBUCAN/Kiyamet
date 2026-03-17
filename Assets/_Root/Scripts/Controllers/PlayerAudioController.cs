@@ -9,25 +9,18 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private AudioSource audioSource;
         
         [Header("Attack Sounds")]
-        [Tooltip("Melee saldırı başlangıç sesi (swing)")]
         [SerializeField] private AudioClip[] meleeSwingSounds;
-        [Tooltip("Melee saldırı hasar verdiğinde")]
         [SerializeField] private AudioClip[] meleeHitSounds;
         
         [Header("Damage Sounds")]
-        [Tooltip("Hasar aldığında")]
         [SerializeField] private AudioClip[] takeDamageSounds;
-        [Tooltip("Öldüğünde")]
         [SerializeField] private AudioClip[] deathSounds;
         
         [Header("Block Sounds")]
-        [Tooltip("Kalkanla saldırı blokladığında")]
         [SerializeField] private AudioClip[] blockSounds;
         
         [Header("Dash Sounds")]
-        [Tooltip("Dash skill kullanıldığında")]
         [SerializeField] private AudioClip[] dashSounds;
-        [Tooltip("Dash enemy'ye isabet ettiğinde")]
         [SerializeField] private AudioClip[] dashHitSounds;
         
         [Header("Settings")]
@@ -42,57 +35,36 @@ namespace _Root.Scripts.Controllers
                 audioSource = GetComponent<AudioSource>();
         }
         
-        /// <summary>
-        /// Melee saldırı başlangıç sesi (swing)
-        /// </summary>
         public void PlayMeleeSwing()
         {
             PlayRandomSound(meleeSwingSounds);
         }
         
-        /// <summary>
-        /// Melee saldırı hasar verdiğinde
-        /// </summary>
         public void PlayMeleeHit()
         {
             PlayRandomSound(meleeHitSounds);
         }
         
-        /// <summary>
-        /// Hasar aldığında
-        /// </summary>
         public void PlayTakeDamage()
         {
             PlayRandomSound(takeDamageSounds);
         }
         
-        /// <summary>
-        /// Öldüğünde
-        /// </summary>
         public void PlayDeath()
         {
             PlayRandomSound(deathSounds);
         }
         
-        /// <summary>
-        /// Kalkanla saldırı blokladığında
-        /// </summary>
         public void PlayBlock()
         {
             PlayRandomSound(blockSounds);
         }
         
-        /// <summary>
-        /// Dash skill kullanıldığında
-        /// </summary>
         public void PlayDash()
         {
             PlayRandomSound(dashSounds);
         }
         
-        /// <summary>
-        /// Dash enemy'ye isabet ettiğinde
-        /// </summary>
         public void PlayDashHit()
         {
             PlayRandomSound(dashHitSounds);
@@ -122,9 +94,6 @@ namespace _Root.Scripts.Controllers
             _lastSoundTime = Time.time;
         }
         
-        /// <summary>
-        /// Belirli bir ses çal (özel durumlar için)
-        /// </summary>
         public void PlaySound(AudioClip clip, float volumeScale = 1f)
         {
             if (clip == null || audioSource == null)
