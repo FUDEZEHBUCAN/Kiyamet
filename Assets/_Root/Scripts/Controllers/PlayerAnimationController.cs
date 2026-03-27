@@ -11,7 +11,6 @@ namespace _Root.Scripts.Controllers
         [Header("Animation Settings")]
         [SerializeField] private float locomotionSmoothTime = 0.1f;
         
-        // Animator parameter hashes
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
         private static readonly int ParamIsGrounded = Animator.StringToHash("IsGrounded");
@@ -26,7 +25,6 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
         
-        // Smoothing
         private float _currentSpeed;
         private float _speedVelocity;
         
@@ -38,9 +36,6 @@ namespace _Root.Scripts.Controllers
         
         #region Locomotion
         
-        /// <summary>
-        /// Hareket hızını günceller (smooth geçiş)
-        /// </summary>
         public void SetSpeed(float speed)
         {
             _currentSpeed = Mathf.SmoothDamp(_currentSpeed, speed, ref _speedVelocity, locomotionSmoothTime);
@@ -52,9 +47,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Anlık hız (smooth yok)
-        /// </summary>
         public void SetSpeedImmediate(float speed)
         {
             _currentSpeed = speed;
@@ -67,9 +59,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Yerde mi kontrolü
-        /// </summary>
         public void SetGrounded(bool isGrounded)
         {
             if (animator != null)
@@ -78,9 +67,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Dikey hız (jump/fall için)
-        /// </summary>
         public void SetVerticalVelocity(float velocity)
         {
             // if (animator != null)
@@ -93,9 +79,6 @@ namespace _Root.Scripts.Controllers
         
         #region Actions
         
-        /// <summary>
-        /// Zıplama animasyonu
-        /// </summary>
         public void TriggerJump()
         {
             if (animator != null)
@@ -104,9 +87,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Ateş etme animasyonu
-        /// </summary>
         public void TriggerShoot()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -115,9 +95,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Melee saldırı animasyonu
-        /// </summary>
         public void TriggerMeleeAttack()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -126,9 +103,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Dash animasyonu
-        /// </summary>
         public void TriggerDash()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -137,22 +111,15 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Saldırı animasyonunu iptal et (hasar aldığında)
-        /// </summary>
         public void InterruptAttack()
         {
             if (animator != null)
             {
-                // Tüm saldırı trigger'larını resetle
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamShoot);
             }
         }
         
-        /// <summary>
-        /// Block durumu (basılı tutulduğu sürece true)
-        /// </summary>
         public void SetBlocking(bool isBlocking)
         {
             if (animator != null)
@@ -161,9 +128,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// İttirme durumu (kaya ittirirken true)
-        /// </summary>
         public void SetPushing(bool isPushing)
         {
             if (animator != null)
@@ -172,9 +136,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Hasar alma animasyonu
-        /// </summary>
         public void TriggerHit()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -183,9 +144,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Ölüm animasyonu
-        /// </summary>
         public void TriggerDeath()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -196,9 +154,6 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <summary>
-        /// Respawn için reset
-        /// </summary>
         public void ResetAnimator()
         {
             if (animator != null)
@@ -208,8 +163,6 @@ namespace _Root.Scripts.Controllers
                 animator.SetBool(ParamIsGrounded, true);
                 SetSpeedImmediate(0f);
                 
-               //animator.ResetTrigger(ParamJump);
-                //animator.ResetTrigger(ParamShoot);
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamHit);
                 animator.ResetTrigger(ParamDie);
@@ -220,9 +173,6 @@ namespace _Root.Scripts.Controllers
         
         public bool IsAnimatorValid => animator != null;
         
-        /// <summary>
-        /// Animator'ın enabled olduğundan emin ol
-        /// </summary>
         public void EnsureAnimatorEnabled()
         {
             if (animator != null)

@@ -15,26 +15,24 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float meleeRange = 2f;
         [SerializeField] private float meleeRadius = 1f;
         [SerializeField] private float meleeCooldown = 0.8f;
-        [SerializeField] private float damageDelay = 0.3f; // Animasyonun ortasında hasar ver
-        [SerializeField] private Transform meleePoint; // Saldırı noktası
+        [SerializeField] private float damageDelay = 0.3f;
+        [SerializeField] private Transform meleePoint;
         [SerializeField] private LayerMask hitLayers = -1;
         
         [Header("Visual Effects")]
         [SerializeField] private GameObject meleeEffectPrefab;
-        [SerializeField] private Transform effectSpawnPoint; // Silahın ucunda efekt spawn noktası
+        [SerializeField] private Transform effectSpawnPoint;
         
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
         [SerializeField] private PlayerAudioController audioController;
         
-        // Networked
         [Networked] private TickTimer MeleeCooldownTimer { get; set; }
         [Networked] private TickTimer DamageDelayTimer { get; set; }
         [Networked] public NetworkBool PendingDamage { get; set; }
         [Networked] private int LastMeleeAttackTick { get; set; }
-        [Networked] private int LastHitEffectTick { get; set; } // Vuruş efekti için
+        [Networked] private int LastHitEffectTick { get; set; }
         
-        // Local
         private NetworkPlayer _networkPlayer;
         private int _lastVisualMeleeTick;
         private int _lastVisualHitEffectTick;

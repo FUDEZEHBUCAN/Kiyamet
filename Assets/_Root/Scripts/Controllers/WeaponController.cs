@@ -2,7 +2,7 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Network;
 using _Root.Scripts.Enemy;
-using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer; // Explicit alias
+using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Controllers
 {
@@ -11,21 +11,20 @@ namespace _Root.Scripts.Controllers
     {
         [Header("Weapon Settings")]
         [SerializeField] private Transform weaponTransform;
-        [SerializeField] private Transform firePoint; // Mermi çıkış noktası (silah ucu)
+        [SerializeField] private Transform firePoint;
         [SerializeField] private float maxRange = 100f;
-        [SerializeField] private LayerMask hitLayers = -1; // Vurulabilir layer'lar
+        [SerializeField] private LayerMask hitLayers = -1;
         
         [Header("Visual Effects")]
-        [SerializeField] private ParticleSystem muzzleFlash; // Silah ağzı efekti (opsiyonel)
-        [SerializeField] private GameObject hitEffectPrefab; // Vuruş efekti (opsiyonel)
+        [SerializeField] private ParticleSystem muzzleFlash;
+        [SerializeField] private GameObject hitEffectPrefab;
         
         private NetworkPlayer _networkPlayer;
         private PlayerAnimationController _animController;
         private Camera _playerCamera;
         private float _lastFireTime;
-        private float _lastClientFireTime; // Client-side prediction için
+        private float _lastClientFireTime;
         
-        // Remote player ateş etme takibi için
         [Networked] private int LastShootTick { get; set; }
         [Networked] private Vector3 LastHitPosition { get; set; }
         [Networked] private Vector3 LastHitNormal { get; set; }

@@ -11,7 +11,7 @@ namespace _Root.Scripts.Controllers
         [Header("Interaction Settings")]
         [SerializeField] private float interactionRange = 3f;
         [SerializeField] private LayerMask interactableLayer = -1;
-        [SerializeField] private Transform interactionPoint; // Player prefab'ında kayayı tutacağı konum referansı
+        [SerializeField] private Transform interactionPoint;
         
         private NetworkPlayer _networkPlayer;
         private IInteractable _currentInteractable;
@@ -21,7 +21,6 @@ namespace _Root.Scripts.Controllers
         {
             _networkPlayer = GetComponent<NetworkPlayer>();
             
-            // Interaction point yoksa oluştur
             if (interactionPoint == null)
             {
                 GameObject interactionPointObj = new GameObject("InteractionPoint");
