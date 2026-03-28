@@ -13,7 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_OCCLUSION
-  - TCP2_OUTLINE_MIN_MAX_SIZE
   - TCP2_RAMP_BANDS_CRISP
   - TCP2_REFLECTIONS_FRESNEL
   - TCP2_SHADOW_LIGHT_COLOR
@@ -163,10 +162,10 @@ Material:
     - _OutlineLightingTypeURP: 0
     - _OutlineMaxWidth: 3.3
     - _OutlineMinWidth: 0
-    - _OutlinePixelSizeType: 3
+    - _OutlinePixelSizeType: 0
     - _OutlineTextureLOD: 5
     - _OutlineTextureType: 0
-    - _OutlineWidth: 5.45
+    - _OutlineWidth: 1
     - _Parallax: 0.02
     - _RampBands: 1
     - _RampBandsSmoothing: 0.298
