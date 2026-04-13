@@ -1,0 +1,159 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1869373115676928186
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3429710006337792825}
+  m_Layer: 0
+  m_Name: Empty Tower
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3429710006337792825
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1869373115676928186}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.91, y: 7.87, z: -25.33139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5222132833328853480}
+  - {fileID: 8809563119865793624}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &6319122946282383722
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3429710006337792825}
+    m_Modifications:
+    - target: {fileID: 618106272354648239, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_Name
+      value: X Tower Base with Floor (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -4.0003614
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+--- !u!4 &5222132833328853480 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+  m_PrefabInstance: {fileID: 6319122946282383722}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7317060808669500634
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 3429710006337792825}
+    m_Modifications:
+    - target: {fileID: 618106272354648239, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_Name
+      value: X Tower Base with Floor (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+--- !u!4 &8809563119865793624 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2290844511998711938, guid: 0ccf71c914150ad469cdb3dc1ad63b70, type: 3}
+  m_PrefabInstance: {fileID: 7317060808669500634}
+  m_PrefabAsset: {fileID: 0}
