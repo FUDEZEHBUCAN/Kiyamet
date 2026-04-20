@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 438782780701699874}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.902, y: 2.189, z: -41.826}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -60,7 +60,7 @@ Transform:
   m_GameObject: {fileID: 872453712997043161}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.782, y: -0.1789999, z: -0.9599991}
+  m_LocalPosition: {x: 1.89, y: 2, z: -3.35}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -97,7 +97,7 @@ Transform:
   m_GameObject: {fileID: 3829431869862148621}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.049000025, y: -1.2659999, z: 4.014}
+  m_LocalPosition: {x: -1.843, y: 0.913, z: 1.6239991}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -136,7 +136,7 @@ Transform:
   m_GameObject: {fileID: 6785625143260899350}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1.924, y: -0.21599984, z: 5.2389984}
+  m_LocalPosition: {x: 0.031999946, y: 1.963, z: 2.8489976}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -198,7 +198,7 @@ Transform:
   m_GameObject: {fileID: 7436265324039535476}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -1.8920001, y: 2.179, z: -2.3900008}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -220,6 +220,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.23600006
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister
@@ -263,6 +267,26 @@ PrefabInstance:
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.723
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.7229996
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.236
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.23600006
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.7229996
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -678,6 +702,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.537
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (2)
@@ -722,8 +750,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.27199936
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.272
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.6836998
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.97
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.27199936
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 4912029463063706592, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 2808944668955113132, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 8076931390257510122, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
@@ -1796,6 +1847,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.287
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (7)
@@ -1839,6 +1894,26 @@ PrefabInstance:
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.765
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.765
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.287
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.287
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.765
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2122,6 +2197,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.289
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (4)
@@ -2165,6 +2244,26 @@ PrefabInstance:
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.723
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.723
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.289
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.289
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.723
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2316,6 +2415,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.21900177
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (3)
@@ -2359,6 +2462,26 @@ PrefabInstance:
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.7389984
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.739
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.219
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.21900177
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.7389984
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2488,8 +2611,23 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.192
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.192
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.192
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 4912029463063706592, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 2808944668955113132, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 8076931390257510122, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
@@ -2506,6 +2644,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.4462999
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (1)
@@ -2550,8 +2692,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.28499985
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.285
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.5929999
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.873
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.28499985
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 4912029463063706592, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 2808944668955113132, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 8076931390257510122, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
@@ -3426,6 +3591,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3123752010694661437}
     m_Modifications:
+    - target: {fileID: 1026707974408193036, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.785
+      objectReference: {fileID: 0}
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (5)
@@ -3470,8 +3639,31 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5669872094212819119, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.225
+      objectReference: {fileID: 0}
+    - target: {fileID: 6939332798507414281, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.225
+      objectReference: {fileID: 0}
+    - target: {fileID: 7797340431473366001, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.932
+      objectReference: {fileID: 0}
+    - target: {fileID: 7849758724264069440, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.474
+      objectReference: {fileID: 0}
+    - target: {fileID: 8899828271645728579, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.225
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 4912029463063706592, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 2808944668955113132, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+    - {fileID: 8076931390257510122, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
