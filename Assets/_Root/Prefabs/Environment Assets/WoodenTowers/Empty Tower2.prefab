@@ -25,7 +25,7 @@ Transform:
   m_GameObject: {fileID: 6860194996225510264}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.25, y: 6.07, z: -29.081123}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -47,11 +47,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.9931846
+      value: 2.11
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 1.45
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -86,7 +86,11 @@ PrefabInstance:
       value: X Tower Base without Floor (2)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 3203156829041476253, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+    - {fileID: 1862161634428819808, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+    - {fileID: 183064906681370501, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+    - {fileID: 427926100196447246, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
@@ -109,11 +113,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 6.1031847
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: 1.45
       objectReference: {fileID: 0}
     - target: {fileID: 1021990510932523819, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -146,6 +150,46 @@ PrefabInstance:
     - target: {fileID: 1683872880780453957, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
       propertyPath: m_Name
       value: X Tower Base without Floor (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315753674599221903, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.9072
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315753674599221903, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4721860659763562715, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.9072
+      objectReference: {fileID: 0}
+    - target: {fileID: 4721860659763562715, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 5912326251249966914, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.9072
+      objectReference: {fileID: 0}
+    - target: {fileID: 5912326251249966914, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.8210251
+      objectReference: {fileID: 0}
+    - target: {fileID: 5912326251249966914, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 6512856727350151248, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.9072
+      objectReference: {fileID: 0}
+    - target: {fileID: 6512856727350151248, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.8152501
+      objectReference: {fileID: 0}
+    - target: {fileID: 6512856727350151248, guid: 2536240caf588124cb53e6a5732141c4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -2.25
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
