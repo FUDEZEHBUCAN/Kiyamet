@@ -9,6 +9,9 @@ namespace _Root.Scripts.Data
         [Tooltip("Karakterin maksimum hareket hızı")]
         public float movementSpeed = 6.0f;
         
+        [Tooltip("Shift ile koşarken maksimum yatay hız (0 veya daha küçükse movementSpeed kullanılır)")]
+        public float runningSpeed = 9f;
+        
         [Tooltip("Zıplama kuvveti")]
         public float jumpForce = 8.0f;
         

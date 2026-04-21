@@ -10,6 +10,8 @@ namespace _Root.Scripts.Controllers
     [RequireComponent(typeof(NetworkPlayer))]
     public class MeleeController : NetworkBehaviour
     {
+        private const float ComboDamageMultiplier = 1.2f;
+        
         [Header("Melee Settings")]
         [SerializeField] private float meleeDamage = 25f;
         [SerializeField] private float meleeRange = 2f;
@@ -33,9 +35,18 @@ namespace _Root.Scripts.Controllers
         [Networked] private int LastMeleeAttackTick { get; set; }
         [Networked] private int LastHitEffectTick { get; set; }
         
+        /// <summary>Bir sonraki saldırıda oynatılacak / hasar için kullanılacak zincir adımı (1, 2 veya 3).</summary>
+        [Networked] public int NextMeleeAttackType { get; set; }
+        /// <summary>O anki saldırı başladığında dondurulan tip (animasyon + hasar).</summary>
+        [Networked] public int ActiveMeleeSwingType { get; set; }
+        [Networked] private int MeleeResolveTick { get; set; }
+        [Networked] private NetworkBool MeleeResolveWasHit { get; set; }
+        
         private NetworkPlayer _networkPlayer;
         private int _lastVisualMeleeTick;
         private int _lastVisualHitEffectTick;
+        private int _lastVisualMeleeResolveTick;
+        private bool _damageAppliedThisSwing;
         
         /// <summary>
         /// Saldırıyı iptal et (hasar aldığında çağrılır)
@@ -47,6 +58,8 @@ namespace _Root.Scripts.Controllers
                 PendingDamage = false;
                 // Cooldown'ı da sıfırla ki tekrar saldırabilsin
                 MeleeCooldownTimer = TickTimer.None;
+                NextMeleeAttackType = 1;
+                _damageAppliedThisSwing = false;
             }
         }
         
@@ -61,8 +74,27 @@ namespace _Root.Scripts.Controllers
                 audioController = GetComponentInChildren<PlayerAudioController>();
         }
         
+        /// <summary>
+        /// Melee (basic skill) cooldown: 0 = kullanılabilir, 1 = yeni saldırı / tam süre kaldı.
+        /// </summary>
+        public float GetMeleeCooldownNormalized()
+        {
+            if (Object == null || !Object.IsValid || Runner == null || meleeCooldown <= 0.001f)
+                return 0f;
+            if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
+                return 0f;
+
+            float remaining = MeleeCooldownTimer.RemainingTime(Runner) ?? 0f;
+            if (remaining <= 0f)
+                return 0f;
+            return Mathf.Clamp01(remaining / meleeCooldown);
+        }
+        
         public override void Spawned()
         {
+            if (NextMeleeAttackType < 1 || NextMeleeAttackType > 3)
+                NextMeleeAttackType = 1;
+            
             if (meleePoint == null)
             {
                 // Varsayılan: Karakterin önünde
@@ -87,6 +119,13 @@ namespace _Root.Scripts.Controllers
             {
                 if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
                 {
+                    int chainType = NextMeleeAttackType;
+                    if (chainType < 1 || chainType > 3)
+                        chainType = 1;
+                    
+                    ActiveMeleeSwingType = chainType;
+                    _damageAppliedThisSwing = false;
+                    
                     // Hasar için timer başlat (animasyonun ortasında)
                     DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
                     PendingDamage = true;
@@ -120,6 +159,13 @@ namespace _Root.Scripts.Controllers
                 _lastVisualMeleeTick = LastMeleeAttackTick;
             }
             
+            if (MeleeResolveTick > _lastVisualMeleeResolveTick && MeleeResolveTick > 0)
+            {
+                if (!MeleeResolveWasHit && animController != null)
+                    animController.SetMeleeAttackType(0);
+                _lastVisualMeleeResolveTick = MeleeResolveTick;
+            }
+            
             // Tüm clientlar için vuruş efekti (hasar anında) - sadece remote clientlar için
             if (!Object.HasStateAuthority)
             {
@@ -136,7 +182,11 @@ namespace _Root.Scripts.Controllers
             // Animasyon
             if (animController != null)
             {
-                animController.TriggerMeleeAttack();
+                int visualType = ActiveMeleeSwingType;
+                if (visualType < 1 || visualType > 3)
+                    visualType = 1;
+                
+                animController.TriggerMeleeAttack(visualType);
             }
             
             // Swing sesi (saldırı başlangıcında)
@@ -183,6 +233,16 @@ namespace _Root.Scripts.Controllers
         
         private void PerformMeleeAttack()
         {
+            if (_damageAppliedThisSwing)
+                return;
+            
+            int swingType = ActiveMeleeSwingType;
+            if (swingType < 1 || swingType > 3)
+                swingType = NextMeleeAttackType is >= 1 and <= 3 ? NextMeleeAttackType : 1;
+            
+            float finalDamage = meleeDamage * (_networkPlayer != null ? _networkPlayer.GetDamageMultiplier() : 1f);
+            if (swingType == 3)
+                finalDamage *= ComboDamageMultiplier;
             Vector3 attackPos = meleePoint != null 
                 ? meleePoint.position 
                 : transform.position + transform.forward * meleeRange * 0.5f + Vector3.up * 1f;
@@ -203,12 +263,12 @@ namespace _Root.Scripts.Controllers
                 if (enemy != null && enemy.IsAlive)
                 {
                     bool wasAlive = enemy.IsAlive;
-                    enemy.TakeDamage(meleeDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
+                    enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
                     
                     // Enemy öldürüldüyse mana kazan
                     if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
                     {
-                        _networkPlayer.GainMana(_networkPlayer.ManaRegen);
+                        _networkPlayer.RegisterEnemyKill();
                     }
                     
                     didHit = true;
@@ -219,7 +279,7 @@ namespace _Root.Scripts.Controllers
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive && player != _networkPlayer)
                 {
-                    player.TakeDamage(meleeDamage);
+                    player.TakeDamage(finalDamage);
                     didHit = true;
                 }
             }
@@ -241,13 +301,28 @@ namespace _Root.Scripts.Controllers
                 {
                     TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
                 }
+                
+                if (swingType == 1)
+                    NextMeleeAttackType = 2;
+                else if (swingType == 2)
+                    NextMeleeAttackType = 3;
+                else
+                    NextMeleeAttackType = 1;
             }
+            else
+            {
+                NextMeleeAttackType = 1;
+            }
+            
+            MeleeResolveTick = Runner.Tick;
+            MeleeResolveWasHit = didHit;
+            _damageAppliedThisSwing = true;
         }
         
         // Animation Event - Animasyonun vuruş anında hasar vermek için
         public void OnMeleeHit()
         {
-            if (Object.HasStateAuthority)
+            if (Object.HasStateAuthority && PendingDamage && !_damageAppliedThisSwing)
             {
                 PerformMeleeAttack();
             }

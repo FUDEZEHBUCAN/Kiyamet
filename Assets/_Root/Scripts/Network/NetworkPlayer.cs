@@ -1,7 +1,5 @@
 using Fusion;
 using UnityEngine;
-using UnityEngine.UI;
-using DG.Tweening;
 using _Root.Scripts.Data;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
@@ -22,18 +20,20 @@ namespace _Root.Scripts.Network
         [Header("Respawn")]
         [Tooltip("Öldükten sonra respawn süresi (saniye)")]
         [SerializeField] private float respawnDelay = 5f;
+
+        [Header("Ultimate")]
+        [Tooltip("Ultiyi doldurmak için gereken kill sayısı")]
+        [SerializeField] private int killsRequiredForUltimate = 3;
+        [Tooltip("Ulti aktif kaldığı süre (saniye)")]
+        [SerializeField] private float ultimateDuration = 10f;
+        [Tooltip("Ulti aktifken uygulanacak hasar çarpanı")]
+        [SerializeField] private float ultimateDamageMultiplier = 2f;
         
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
         [SerializeField] private PlayerAudioController audioController;
-        [SerializeField] private Image healthBarImage;
-        [SerializeField] private Image manaBarImage;
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
-        
-        // Health Bar UI
-        private Tween _healthBarTween;
-        private Tween _manaBarTween;
         
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
@@ -42,7 +42,11 @@ namespace _Root.Scripts.Network
         [Networked] public NetworkBool IsPushing { get; set; }
         [Networked] private TickTimer HitStunTimer { get; set; }
         [Networked] private TickTimer RespawnTimer { get; set; }
+        [Networked] private TickTimer UltimateTimer { get; set; }
+        [Networked] private float UltimateEndTime { get; set; }
         [Networked] private NetworkBool IsDead { get; set; }
+        [Networked] public NetworkBool IsUltimateActive { get; set; }
+        [Networked] public int UltimateKillCount { get; set; }
         [Networked] private int LastHitTick { get; set; } // Hit animasyonu için
         [Networked] private int LastDeathTick { get; set; } // Death animasyonu için
         
@@ -50,8 +54,6 @@ namespace _Root.Scripts.Network
         private int _lastVisualHitTick;
         private int _lastVisualDeathTick;
         private bool _wasDead;
-        private float _lastHealth; // Health bar güncellemesi için
-        private float _lastMana; // Mana bar güncellemesi için
         
         /// <summary>
         /// Saldırı yapabilir mi? (Hit stun kontrolü)
@@ -70,6 +72,9 @@ namespace _Root.Scripts.Network
         // Health property
         public float Health => CurrentHealth;
         public bool IsAlive => CurrentHealth > 0f && !IsDead;
+        public bool IsUltimateReady => UltimateKillCount >= Mathf.Max(1, killsRequiredForUltimate);
+        public int UltimateKillsRequired => Mathf.Max(1, killsRequiredForUltimate);
+        public float UltimateDurationSeconds => ultimateDuration;
         
         // Mana property
         public float Mana => CurrentMana;
@@ -126,120 +131,10 @@ namespace _Root.Scripts.Network
             
             // Local state initialize
             _wasDead = IsDead;
-            _lastHealth = CurrentHealth;
-            _lastMana = CurrentMana;
-            
-            // Health bar'ı bul (Inspector'da atanmamışsa otomatik bul)
-            if (healthBarImage == null)
-            {
-                FindHealthBarImage();
-            }
-            
-            // Mana bar'ı bul (Inspector'da atanmamışsa otomatik bul)
-            if (manaBarImage == null)
-            {
-                FindManaBarImage();
-            }
-            
-            // Başlangıç health bar değerini ayarla
-            UpdateHealthBar(CurrentHealth / MaxHealth);
-            
-            // Başlangıç mana bar değerini ayarla
-            UpdateManaBar(CurrentMana / MaxMana);
             
             // Animator reset (respawn sonrası)
             if (animController != null)
                 animController.ResetAnimator();
-        }
-        
-        /// <summary>
-        /// Canvas içinde Health Bar Image'ını bul (fallback - Inspector'da atanmamışsa)
-        /// </summary>
-        private void FindHealthBarImage()
-        {
-            Canvas canvas = GetComponentInChildren<Canvas>();
-            if (canvas == null)
-            {
-                Debug.LogWarning("[NetworkPlayer] Player prefab'ında Canvas bulunamadı!");
-                return;
-            }
-            
-            // Canvas içinde "Health Bar" adında Image'ı bul
-            Image[] images = canvas.GetComponentsInChildren<Image>();
-            foreach (var img in images)
-            {
-                if (img.name.Contains("Health Bar") || img.name.Contains("HealthBar"))
-                {
-                    healthBarImage = img;
-                    return;
-                }
-            }
-            
-            Debug.LogWarning("[NetworkPlayer] 'Health Bar' Image bulunamadı! Inspector'da healthBarImage alanına atayın veya Canvas içinde bu isimde bir Image olmalı.");
-        }
-        
-        /// <summary>
-        /// Canvas içinde Mana Bar Image'ını bul (fallback - Inspector'da atanmamışsa)
-        /// </summary>
-        private void FindManaBarImage()
-        {
-            Canvas canvas = GetComponentInChildren<Canvas>();
-            if (canvas == null)
-            {
-                Debug.LogWarning("[NetworkPlayer] Player prefab'ında Canvas bulunamadı!");
-                return;
-            }
-            
-            // Canvas içinde "Mana Bar" adında Image'ı bul
-            Image[] images = canvas.GetComponentsInChildren<Image>();
-            foreach (var img in images)
-            {
-                if (img.name.Contains("Mana Bar") || img.name.Contains("ManaBar"))
-                {
-                    manaBarImage = img;
-                    return;
-                }
-            }
-            
-            Debug.LogWarning("[NetworkPlayer] 'Mana Bar' Image bulunamadı! Inspector'da manaBarImage alanına atayın veya Canvas içinde bu isimde bir Image olmalı.");
-        }
-        
-        /// <summary>
-        /// Health bar'ın fill amount'unu DoTween ile güncelle
-        /// </summary>
-        private void UpdateHealthBar(float targetFillAmount)
-        {
-            if (healthBarImage == null)
-                return;
-            
-            // Önceki tween'i iptal et
-            if (_healthBarTween != null && _healthBarTween.IsActive())
-            {
-                _healthBarTween.Kill();
-            }
-            
-            // DoTween ile fill amount'u animasyonlu olarak güncelle
-            _healthBarTween = healthBarImage.DOFillAmount(targetFillAmount, 0.3f)
-                .SetEase(Ease.OutQuad);
-        }
-        
-        /// <summary>
-        /// Mana bar'ın fill amount'unu DoTween ile güncelle
-        /// </summary>
-        private void UpdateManaBar(float targetFillAmount)
-        {
-            if (manaBarImage == null)
-                return;
-            
-            // Önceki tween'i iptal et
-            if (_manaBarTween != null && _manaBarTween.IsActive())
-            {
-                _manaBarTween.Kill();
-            }
-            
-            // DoTween ile fill amount'u animasyonlu olarak güncelle
-            _manaBarTween = manaBarImage.DOFillAmount(targetFillAmount, 0.3f)
-                .SetEase(Ease.OutQuad);
         }
         
         public override void FixedUpdateNetwork()
@@ -249,27 +144,31 @@ namespace _Root.Scripts.Network
             {
                 PerformRespawn();
             }
+
+            if (Object.HasStateAuthority && IsUltimateActive && UltimateTimer.Expired(Runner))
+            {
+                DeactivateUltimate();
+            }
             
+        }
+
+        public float GetUltimateChargeNormalized()
+        {
+            int requiredKills = Mathf.Max(1, killsRequiredForUltimate);
+            return Mathf.Clamp01(UltimateKillCount / (float)requiredKills);
+        }
+
+        public float GetUltimateActiveRemainingNormalized()
+        {
+            if (!IsUltimateActive)
+                return 0f;
+
+            float remaining = Mathf.Max(0f, UltimateEndTime - Runner.SimulationTime);
+            return ultimateDuration > 0.0001f ? Mathf.Clamp01(remaining / ultimateDuration) : 0f;
         }
         
         public override void Render()
         {
-            // Health bar güncellemesi (tüm client'larda)
-            if (CurrentHealth != _lastHealth)
-            {
-                float healthPercent = MaxHealth > 0 ? CurrentHealth / MaxHealth : 0f;
-                UpdateHealthBar(healthPercent);
-                _lastHealth = CurrentHealth;
-            }
-            
-            // Mana bar güncellemesi (tüm client'larda)
-            if (CurrentMana != _lastMana)
-            {
-                float manaPercent = MaxMana > 0 ? CurrentMana / MaxMana : 0f;
-                UpdateManaBar(manaPercent);
-                _lastMana = CurrentMana;
-            }
-            
             // Remote clientlar için animasyon senkronizasyonu (Render'da - her frame kontrol edilir)
             if (!Object.HasStateAuthority)
             {
@@ -316,6 +215,14 @@ namespace _Root.Scripts.Network
         {
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
+
+            if (!IsAlive)
+                return;
+
+            if (IsUltimateActive)
+            {
+                return;
+            }
             
             // Block kontrolü - blokluyorsa hasar alma
             if (IsBlocking)
@@ -419,10 +326,45 @@ namespace _Root.Scripts.Network
             
             CurrentMana = Mathf.Min(MaxMana, CurrentMana + amount);
         }
+
+        public void RegisterEnemyKill()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            int requiredKills = Mathf.Max(1, killsRequiredForUltimate);
+            UltimateKillCount = Mathf.Min(requiredKills, UltimateKillCount + 1);
+            GainMana(ManaRegen);
+        }
+
+        public bool TryActivateUltimate()
+        {
+            if (!Object.HasStateAuthority || !IsAlive || IsUltimateActive || !IsUltimateReady)
+                return false;
+
+            IsUltimateActive = true;
+            UltimateKillCount = 0;
+            UltimateTimer = TickTimer.CreateFromSeconds(Runner, ultimateDuration);
+            UltimateEndTime = Runner.SimulationTime + ultimateDuration;
+            return true;
+        }
+
+        public float GetDamageMultiplier()
+        {
+            return IsUltimateActive ? ultimateDamageMultiplier : 1f;
+        }
+
+        private void DeactivateUltimate()
+        {
+            IsUltimateActive = false;
+            UltimateTimer = TickTimer.None;
+            UltimateEndTime = 0f;
+        }
         
         private void OnDeath()
         {
             IsDead = true;
+            DeactivateUltimate();
             
             // Death sesi
             if (audioController != null)
@@ -443,20 +385,14 @@ namespace _Root.Scripts.Network
         {
             IsDead = false;
             RespawnTimer = TickTimer.None;
+            DeactivateUltimate();
+            UltimateKillCount = 0;
             
             if (_characterController != null)
             {
                 _characterController.Respawn();
                 CurrentHealth = MaxHealth;
                 CurrentMana = MaxMana;
-                _lastHealth = CurrentHealth;
-                _lastMana = CurrentMana;
-                
-                // Health bar'ı tam doldur
-                UpdateHealthBar(1f);
-                
-                // Mana bar'ı tam doldur
-                UpdateManaBar(1f);
                 
                 // Animator reset
                 if (animController != null)
@@ -464,18 +400,5 @@ namespace _Root.Scripts.Network
             }
         }
         
-        private void OnDestroy()
-        {
-            // Tween'leri temizle
-            if (_healthBarTween != null && _healthBarTween.IsActive())
-            {
-                _healthBarTween.Kill();
-            }
-            
-            if (_manaBarTween != null && _manaBarTween.IsActive())
-            {
-                _manaBarTween.Kill();
-            }
-        }
     }
 }

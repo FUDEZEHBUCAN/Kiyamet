@@ -34,7 +34,7 @@ namespace _Root.Scripts.Controllers
         // Fire rate kontrolü için
         private float FireRate => _networkPlayer?.FireRate ?? 1f;
         private float FireCooldown => 1f / FireRate;
-        private float BulletDamage => _networkPlayer?.BulletDamage ?? 10f;
+        private float BulletDamage => (_networkPlayer?.BulletDamage ?? 10f) * (_networkPlayer != null ? _networkPlayer.GetDamageMultiplier() : 1f);
 
         private void Awake()
         {
@@ -295,7 +295,7 @@ namespace _Root.Scripts.Controllers
                 // Enemy öldürüldüyse mana kazan
                 if (wasAlive && !hitEnemy.IsAlive && _networkPlayer != null)
                 {
-                    _networkPlayer.GainMana(_networkPlayer.ManaRegen);
+                    _networkPlayer.RegisterEnemyKill();
                 }
                 
                 Debug.Log($"[WeaponController] → Damaged ENEMY: {hitEnemy.name}, Health: {hitEnemy.CurrentHealth}");

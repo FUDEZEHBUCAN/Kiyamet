@@ -19,6 +19,7 @@ namespace _Root.Scripts.Controllers
         private NetworkPlayer _networkPlayer;
         
         [Networked] private float NetworkedYaw { get; set; }
+        [Networked] public NetworkBool NetworkedIsRunning { get; set; }
 
         private Vector3 _lastPosition;
         private Vector3 _lastFrameVelocity;
@@ -68,6 +69,7 @@ namespace _Root.Scripts.Controllers
                     if (_animController != null)
                     {
                         _animController.SetBlocking(localInput.IsBlockPressed);
+                        _animController.SetRunning(localInput.IsRunning);
                     }
 
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
@@ -93,12 +95,15 @@ namespace _Root.Scripts.Controllers
 
             if (!isAlive)
             {
-                _cc.Move(Vector3.zero);
+                _cc.Move(Vector3.zero, false);
+                NetworkedIsRunning = false;
                 return;
             }
 
             if (GetInput(out NetworkInputData input))
             {
+                NetworkedIsRunning = input.IsRunning;
+                
                 if (Mathf.Abs(input.RotationInput) > 0.001f)
                 {
                     NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
@@ -116,7 +121,7 @@ namespace _Root.Scripts.Controllers
                 else
                     moveDir = Vector3.zero;
 
-                _cc.Move(moveDir);
+                _cc.Move(moveDir, input.IsRunning);
 
                 if (input.IsJumpPressed)
                 {
@@ -129,6 +134,11 @@ namespace _Root.Scripts.Controllers
                 if (input.IsDashPressed && (_networkPlayer == null || !_networkPlayer.IsPushing))
                 {
                     _cc.Dash();
+                }
+
+                if (input.IsUltimatePressed && _networkPlayer != null)
+                {
+                    _networkPlayer.TryActivateUltimate();
                 }
                 
                 if (input.IsInteractPressed && _interactionController != null)
@@ -183,7 +193,7 @@ namespace _Root.Scripts.Controllers
             }
             else
             {
-                _cc.Move(Vector3.zero);
+                _cc.Move(Vector3.zero, false);
             }
         }
         
@@ -223,6 +233,11 @@ namespace _Root.Scripts.Controllers
                     speed = 0f;
                 
                 _animController.SetSpeed(speed);
+                
+                bool isRunningForAnim = Object.HasInputAuthority && _inputController != null
+                    ? _inputController.IsRunHeld
+                    : NetworkedIsRunning;
+                _animController.SetRunning(isRunningForAnim);
                 
                 // Yerde mi (server'dan gelen değeri kullan)
                 _animController.SetGrounded(_cc.Grounded);

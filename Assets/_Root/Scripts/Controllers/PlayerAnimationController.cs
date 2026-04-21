@@ -17,9 +17,11 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamVerticalVelocity = Animator.StringToHash("VerticalVelocity");
         private static readonly int ParamIsBlocking = Animator.StringToHash("IsBlocking");
         private static readonly int ParamIsPushing = Animator.StringToHash("IsPushing");
+        private static readonly int ParamIsRunning = Animator.StringToHash("IsRunning");
         private static readonly int ParamJump = Animator.StringToHash("Jump");
         private static readonly int ParamShoot = Animator.StringToHash("Shoot");
         private static readonly int ParamMeleeAttack = Animator.StringToHash("MeleeAttack");
+        private static readonly int ParamAttackType = Animator.StringToHash("AttackType");
         private static readonly int ParamDash = Animator.StringToHash("Dash");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamDie = Animator.StringToHash("Die");
@@ -83,7 +85,7 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null)
             {
-                //animator.SetTrigger(ParamJump);
+                animator.SetTrigger(ParamJump);
             }
         }
         
@@ -95,11 +97,29 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        public void TriggerMeleeAttack()
+        /// <param name="attackType">1 = ilk vuruş, 2 = ikinci, 3 = combo</param>
+        /// <remarks>
+        /// Geçişin doğru AttackType ile değerlendirilmesi için int set + trigger sonrası
+        /// <see cref="Animator.Update"/> ile anında işlenir; ardından AttackType 0 yapılır
+        /// (art arda transition / yapışık int koşullarını temizlemek için).
+        /// </remarks>
+        public void TriggerMeleeAttack(int attackType = 1)
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
+                int type = attackType is >= 1 and <= 3 ? attackType : 1;
+                animator.SetInteger(ParamAttackType, type);
                 animator.SetTrigger(ParamMeleeAttack);
+                animator.Update(0f);
+                animator.SetInteger(ParamAttackType, 0);
+            }
+        }
+        
+        public void SetMeleeAttackType(int attackType)
+        {
+            if (animator != null)
+            {
+                animator.SetInteger(ParamAttackType, Mathf.Clamp(attackType, 0, 3));
             }
         }
         
@@ -117,6 +137,7 @@ namespace _Root.Scripts.Controllers
             {
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamShoot);
+                animator.SetInteger(ParamAttackType, 0);
             }
         }
         
@@ -133,6 +154,14 @@ namespace _Root.Scripts.Controllers
             if (animator != null)
             {
                 animator.SetBool(ParamIsPushing, isPushing);
+            }
+        }
+        
+        public void SetRunning(bool isRunning)
+        {
+            if (animator != null)
+            {
+                animator.SetBool(ParamIsRunning, isRunning);
             }
         }
         
@@ -161,11 +190,13 @@ namespace _Root.Scripts.Controllers
                 animator.SetBool(ParamIsDead, false);
                 animator.SetBool(ParamIsMoving, false);
                 animator.SetBool(ParamIsGrounded, true);
+                animator.SetBool(ParamIsRunning, false);
                 SetSpeedImmediate(0f);
                 
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamHit);
                 animator.ResetTrigger(ParamDie);
+                animator.SetInteger(ParamAttackType, 0);
             }
         }
         

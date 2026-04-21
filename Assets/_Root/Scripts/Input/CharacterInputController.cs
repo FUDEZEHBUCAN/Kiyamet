@@ -15,8 +15,13 @@ namespace _Root.Scripts.Input
         private bool _meleePressed;
         private bool _blockPressed;
         private bool _dashPressed;
+        private bool _ultimatePressed;
         private bool _interactPressed;
         private Camera _playerCamera;
+        
+        /// <summary>Shift basılı (koşu); network'e sürekli durum olarak gönderilir.</summary>
+        public bool IsRunHeld =>
+            UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift);
 
         private void Start()
         {
@@ -62,6 +67,12 @@ namespace _Root.Scripts.Input
             {
                 _dashPressed = true;
             }
+
+            // Ultimate - X tuşu (tek basış)
+            if (UnityEngine.Input.GetKeyDown(KeyCode.X))
+            {
+                _ultimatePressed = true;
+            }
             
             // Interact - F tuşu (tek basış)
             if (UnityEngine.Input.GetKeyDown(KeyCode.F))
@@ -100,7 +111,9 @@ namespace _Root.Scripts.Input
                 IsMeleePressed = _meleePressed,
                 IsBlockPressed = _blockPressed,
                 IsDashPressed = _dashPressed,
+                IsUltimatePressed = _ultimatePressed,
                 IsInteractPressed = _interactPressed,
+                IsRunning = IsRunHeld,
                 AimPoint = aimPoint
             };
 
@@ -109,6 +122,7 @@ namespace _Root.Scripts.Input
             _jumpPressed = false;
             _meleePressed = false;
             _dashPressed = false;
+            _ultimatePressed = false;
             _interactPressed = false;
             // _shootPressed ve _blockPressed sıfırlanmaz - sürekli durumu gösterir
 

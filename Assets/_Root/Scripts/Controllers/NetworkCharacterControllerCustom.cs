@@ -33,22 +33,29 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float respawnYThreshold = -10f;
     
     private float BaseMaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
+    private float RunningMaxSpeed
+    {
+        get
+        {
+            if (characterData == null)
+                return BaseMaxSpeed * 1.35f;
+            if (characterData.runningSpeed > 0.001f)
+                return characterData.runningSpeed;
+            return BaseMaxSpeed;
+        }
+    }
     private float JumpImpulse => characterData != null ? characterData.jumpForce : 8.0f;
     
     // İttirme sırasında hız azaltma çarpanı
     [Header("Push Settings")]
     [SerializeField] private float pushSpeedMultiplier = 0.5f;
     
-    private float MaxSpeed
+    private float GetMaxSpeed(bool wantsRun)
     {
-        get
-        {
-            if (_networkPlayer != null && _networkPlayer.IsPushing)
-            {
-                return BaseMaxSpeed * pushSpeedMultiplier;
-            }
-            return BaseMaxSpeed;
-        }
+        float horizontalCap = wantsRun ? RunningMaxSpeed : BaseMaxSpeed;
+        if (_networkPlayer != null && _networkPlayer.IsPushing)
+            return horizontalCap * pushSpeedMultiplier;
+        return horizontalCap;
     }
 
     [Networked] public Vector3 NetworkPosition { get; set; }
@@ -178,7 +185,23 @@ namespace _Root.Scripts.Controllers {
       }
     }
 
-    public void Move(Vector3 direction) {
+    /// <summary>
+    /// Dash (signature skill) cooldown: 0 = kullanılabilir, 1 = yeni kullanıldı / tam süre kaldı.
+    /// </summary>
+    public float GetDashCooldownNormalized()
+    {
+      if (Object == null || !Object.IsValid || Runner == null || dashCooldown <= 0.001f)
+        return 0f;
+      if (DashCooldownTimer.ExpiredOrNotRunning(Runner))
+        return 0f;
+
+      float remaining = DashCooldownTimer.RemainingTime(Runner) ?? 0f;
+      if (remaining <= 0f)
+        return 0f;
+      return Mathf.Clamp01(remaining / dashCooldown);
+    }
+
+    public void Move(Vector3 direction, bool wantsRun = false) {
       if (!Object.HasStateAuthority) {
         Debug.LogWarning($"[NetworkCC] Move() called but HasStateAuthority = False! ObjectId: {Object.Id}");
         return;
@@ -200,11 +223,12 @@ namespace _Root.Scripts.Controllers {
       moveVelocity.y += gravity * deltaTime;
 
       var horizontalVel = new Vector3(moveVelocity.x, 0, moveVelocity.z);
+      float maxSpeed = GetMaxSpeed(wantsRun);
 
       if (direction == Vector3.zero) {
         horizontalVel = Vector3.Lerp(horizontalVel, Vector3.zero, braking * deltaTime);
       } else {
-        horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, MaxSpeed);
+        horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, maxSpeed);
       }
 
       moveVelocity.x = horizontalVel.x;
