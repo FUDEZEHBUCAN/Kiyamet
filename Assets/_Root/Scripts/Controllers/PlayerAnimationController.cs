@@ -10,8 +10,11 @@ namespace _Root.Scripts.Controllers
         
         [Header("Animation Settings")]
         [SerializeField] private float locomotionSmoothTime = 0.1f;
+        [SerializeField] private float directionalMaxSpeed = 6f;
         
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
+        private static readonly int ParamMoveX = Animator.StringToHash("MoveX");
+        private static readonly int ParamMoveY = Animator.StringToHash("MoveY");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
         private static readonly int ParamIsGrounded = Animator.StringToHash("IsGrounded");
         private static readonly int ParamVerticalVelocity = Animator.StringToHash("VerticalVelocity");
@@ -47,6 +50,20 @@ namespace _Root.Scripts.Controllers
                 animator.SetFloat(ParamSpeed, _currentSpeed);
                 animator.SetBool(ParamIsMoving, speed > 0.1f);
             }
+        }
+        
+        public void SetMoveDirection(Vector3 worldVelocity, Transform referenceTransform)
+        {
+            if (animator == null || referenceTransform == null)
+                return;
+            
+            Vector3 localVelocity = referenceTransform.InverseTransformDirection(worldVelocity);
+            float maxSpeed = Mathf.Max(0.01f, directionalMaxSpeed);
+            float moveX = Mathf.Clamp(localVelocity.x / maxSpeed, -1f, 1f);
+            float moveY = Mathf.Clamp(localVelocity.z / maxSpeed, -1f, 1f);
+            
+            animator.SetFloat(ParamMoveX, moveX, locomotionSmoothTime, Time.deltaTime);
+            animator.SetFloat(ParamMoveY, moveY, locomotionSmoothTime, Time.deltaTime);
         }
         
         public void SetSpeedImmediate(float speed)
@@ -191,6 +208,8 @@ namespace _Root.Scripts.Controllers
                 animator.SetBool(ParamIsMoving, false);
                 animator.SetBool(ParamIsGrounded, true);
                 animator.SetBool(ParamIsRunning, false);
+                animator.SetFloat(ParamMoveX, 0f);
+                animator.SetFloat(ParamMoveY, 0f);
                 SetSpeedImmediate(0f);
                 
                 animator.ResetTrigger(ParamMeleeAttack);

@@ -232,6 +232,7 @@ namespace _Root.Scripts.Controllers
                 if (speed < 0.1f)
                     speed = 0f;
                 
+                _animController.SetMoveDirection(horizontalVelocity, transform);
                 _animController.SetSpeed(speed);
                 
                 bool isRunningForAnim = Object.HasInputAuthority && _inputController != null
