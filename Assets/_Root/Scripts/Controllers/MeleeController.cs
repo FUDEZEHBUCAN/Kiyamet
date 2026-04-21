@@ -10,14 +10,13 @@ namespace _Root.Scripts.Controllers
     [RequireComponent(typeof(NetworkPlayer))]
     public class MeleeController : NetworkBehaviour
     {
-        private const float ComboDamageMultiplier = 1.2f;
-        
         [Header("Melee Settings")]
         [SerializeField] private float meleeDamage = 25f;
         [SerializeField] private float meleeRange = 2f;
         [SerializeField] private float meleeRadius = 1f;
         [SerializeField] private float meleeCooldown = 0.8f;
         [SerializeField] private float damageDelay = 0.3f;
+        [SerializeField] private float comboSecondDamageDelay = 0.12f;
         [SerializeField] private Transform meleePoint;
         [SerializeField] private LayerMask hitLayers = -1;
         
@@ -31,7 +30,9 @@ namespace _Root.Scripts.Controllers
         
         [Networked] private TickTimer MeleeCooldownTimer { get; set; }
         [Networked] private TickTimer DamageDelayTimer { get; set; }
+        [Networked] private TickTimer ComboSecondDamageTimer { get; set; }
         [Networked] public NetworkBool PendingDamage { get; set; }
+        [Networked] private NetworkBool PendingComboSecondDamage { get; set; }
         [Networked] private int LastMeleeAttackTick { get; set; }
         [Networked] private int LastHitEffectTick { get; set; }
         
@@ -56,6 +57,8 @@ namespace _Root.Scripts.Controllers
             if (PendingDamage)
             {
                 PendingDamage = false;
+                PendingComboSecondDamage = false;
+                ComboSecondDamageTimer = TickTimer.None;
                 // Cooldown'ı da sıfırla ki tekrar saldırabilsin
                 MeleeCooldownTimer = TickTimer.None;
                 NextMeleeAttackType = 1;
@@ -145,6 +148,15 @@ namespace _Root.Scripts.Controllers
                 {
                     PerformMeleeAttack();
                     PendingDamage = false;
+                }
+            }
+            
+            if (Object.HasStateAuthority && PendingComboSecondDamage)
+            {
+                if (ComboSecondDamageTimer.Expired(Runner))
+                {
+                    PerformComboSecondDamage();
+                    PendingComboSecondDamage = false;
                 }
             }
         }
@@ -240,49 +252,7 @@ namespace _Root.Scripts.Controllers
             if (swingType < 1 || swingType > 3)
                 swingType = NextMeleeAttackType is >= 1 and <= 3 ? NextMeleeAttackType : 1;
             
-            float finalDamage = meleeDamage * (_networkPlayer != null ? _networkPlayer.GetDamageMultiplier() : 1f);
-            if (swingType == 3)
-                finalDamage *= ComboDamageMultiplier;
-            Vector3 attackPos = meleePoint != null 
-                ? meleePoint.position 
-                : transform.position + transform.forward * meleeRange * 0.5f + Vector3.up * 1f;
-            
-            // OverlapSphere ile hedefleri bul
-            Collider[] hitColliders = Physics.OverlapSphere(attackPos, meleeRadius, hitLayers);
-            
-            bool didHit = false;
-            
-            foreach (var col in hitColliders)
-            {
-                // Kendimize vurmayı atla
-                if (col.transform.IsChildOf(transform))
-                    continue;
-                
-                // Enemy kontrolü
-                var enemy = col.GetComponentInParent<NetworkEnemy>();
-                if (enemy != null && enemy.IsAlive)
-                {
-                    bool wasAlive = enemy.IsAlive;
-                    enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
-                    
-                    // Enemy öldürüldüyse mana kazan
-                    if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
-                    {
-                        _networkPlayer.RegisterEnemyKill();
-                    }
-                    
-                    didHit = true;
-                    continue;
-                }
-                
-                // Player kontrolü (PvP için)
-                var player = col.GetComponentInParent<NetworkPlayer>();
-                if (player != null && player.IsAlive && player != _networkPlayer)
-                {
-                    player.TakeDamage(finalDamage);
-                    didHit = true;
-                }
-            }
+            bool didHit = ApplyMeleeDamageTick();
             
             // Sadece hasar verildiyse efekt, ses ve camera shake
             if (didHit)
@@ -317,6 +287,78 @@ namespace _Root.Scripts.Controllers
             MeleeResolveTick = Runner.Tick;
             MeleeResolveWasHit = didHit;
             _damageAppliedThisSwing = true;
+            
+            if (swingType == 3)
+            {
+                ComboSecondDamageTimer = TickTimer.CreateFromSeconds(Runner, comboSecondDamageDelay);
+                PendingComboSecondDamage = true;
+            }
+            else
+            {
+                PendingComboSecondDamage = false;
+                ComboSecondDamageTimer = TickTimer.None;
+            }
+        }
+        
+        private void PerformComboSecondDamage()
+        {
+            bool didHit = ApplyMeleeDamageTick();
+            if (!didHit)
+                return;
+            
+            SpawnHitEffect();
+            LastHitEffectTick = Runner.Tick;
+            
+            if (audioController != null)
+            {
+                audioController.PlayMeleeHit();
+            }
+            
+            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+            {
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
+            }
+        }
+        
+        private bool ApplyMeleeDamageTick()
+        {
+            float finalDamage = meleeDamage * (_networkPlayer != null ? _networkPlayer.GetDamageMultiplier() : 1f);
+            Vector3 attackPos = meleePoint != null 
+                ? meleePoint.position 
+                : transform.position + transform.forward * meleeRange * 0.5f + Vector3.up * 1f;
+            
+            Collider[] hitColliders = Physics.OverlapSphere(attackPos, meleeRadius, hitLayers);
+            bool didHit = false;
+            
+            foreach (var col in hitColliders)
+            {
+                if (col.transform.IsChildOf(transform))
+                    continue;
+                
+                var enemy = col.GetComponentInParent<NetworkEnemy>();
+                if (enemy != null && enemy.IsAlive)
+                {
+                    bool wasAlive = enemy.IsAlive;
+                    enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
+                    
+                    if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
+                    {
+                        _networkPlayer.RegisterEnemyKill();
+                    }
+                    
+                    didHit = true;
+                    continue;
+                }
+                
+                var player = col.GetComponentInParent<NetworkPlayer>();
+                if (player != null && player.IsAlive && player != _networkPlayer)
+                {
+                    player.TakeDamage(finalDamage);
+                    didHit = true;
+                }
+            }
+            
+            return didHit;
         }
         
         // Animation Event - Animasyonun vuruş anında hasar vermek için

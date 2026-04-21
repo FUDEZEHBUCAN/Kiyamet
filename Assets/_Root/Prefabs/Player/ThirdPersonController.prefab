@@ -121,7 +121,6 @@ GameObject:
   - component: {fileID: 2466232279108737139}
   - component: {fileID: 5959922504594899774}
   - component: {fileID: 4710478631908659489}
-  - component: {fileID: 4466402347547139208}
   - component: {fileID: 6479868430836930602}
   - component: {fileID: 2906434901052993012}
   - component: {fileID: 4802528241806454918}
@@ -251,8 +250,9 @@ MonoBehaviour:
   meleeDamage: 25
   meleeRange: 2.79
   meleeRadius: 1.25
-  meleeCooldown: 1
+  meleeCooldown: 1.25
   damageDelay: 0.43
+  comboSecondDamageDelay: 0.3
   meleePoint: {fileID: 0}
   hitLayers:
     serializedVersion: 2
@@ -265,26 +265,6 @@ MonoBehaviour:
     _value: 0
   _NextMeleeAttackType: 0
   _ActiveMeleeSwingType: 0
---- !u!114 &4466402347547139208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2992128532372965093}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 975f75e0130284eca9779a5244aeb9a3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  weaponTransform: {fileID: 832934677040661628}
-  firePoint: {fileID: 7156682466333839582}
-  maxRange: 100
-  hitLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  muzzleFlash: {fileID: 8581994203333135606}
-  hitEffectPrefab: {fileID: 1163463443628474519, guid: 04d29f6e6405f42f09234386e7ac2903, type: 3}
 --- !u!114 &6479868430836930602
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -304,7 +284,6 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 5959922504594899774}
   - {fileID: 4710478631908659489}
-  - {fileID: 4466402347547139208}
   - {fileID: 4802528241806454918}
   - {fileID: 8747253484073344204}
   - {fileID: 1978066652320965982}
@@ -1022,28 +1001,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 7800905868712934827, guid: 47f6507c943864011ae9449f4ce88585, type: 3}
   m_PrefabInstance: {fileID: 2888031693574087231}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8262620093346402230 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6538910774875090313, guid: 47f6507c943864011ae9449f4ce88585, type: 3}
-  m_PrefabInstance: {fileID: 2888031693574087231}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &9109695982613670788 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6230868335252212155, guid: 47f6507c943864011ae9449f4ce88585, type: 3}
-  m_PrefabInstance: {fileID: 2888031693574087231}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &9040069434045009215
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1120,11 +1077,6 @@ PrefabInstance:
 --- !u!4 &212277514505230425 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9189293804954162534, guid: 9a6d34266a3374c26b069a92499007d3, type: 3}
-  m_PrefabInstance: {fileID: 9040069434045009215}
-  m_PrefabAsset: {fileID: 0}
---- !u!198 &8581994203333135606 stripped
-ParticleSystem:
-  m_CorrespondingSourceObject: {fileID: 751424951864295881, guid: 9a6d34266a3374c26b069a92499007d3, type: 3}
   m_PrefabInstance: {fileID: 9040069434045009215}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &9125842044507881986

@@ -34,6 +34,10 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private LayerMask playerLayer;
         [SerializeField] private LayerMask obstacleLayer = -1; // Duvarlar için layer mask
         
+        [Header("Awareness")]
+        [SerializeField] private float detectionRange = 12f;
+        [SerializeField] private float disengageRangeMultiplier = 1.25f;
+        
         [Header("Visual Effects")]
         [SerializeField] private GameObject hitEffectPrefab;
         [SerializeField] private GameObject attackEffectPrefab;
@@ -64,6 +68,7 @@ namespace _Root.Scripts.Enemy
         private int _lastVisualAttackEffectTick;
         private int _lastVisualHitTick;
         private Vector3 _lastPosition; // Animasyon için hız hesaplama
+        private Vector3 _guardPosition;
         private bool _deathAnimTriggered; // Death animasyonu için flag
         private EnemyState _lastState; // State değişikliğini takip et
         private const float TARGET_UPDATE_INTERVAL = 0.1f;
@@ -96,6 +101,7 @@ namespace _Root.Scripts.Enemy
             _deathAnimTriggered = false;
             _lastChaseAttemptTime = 0f;
             _lastChaseLogTime = 0f;
+            detectionRange = Mathf.Max(detectionRange, enemyData.AttackRange + 0.5f);
             
             if (Object.HasStateAuthority)
             {
@@ -151,6 +157,7 @@ namespace _Root.Scripts.Enemy
                 
                 // Transform pozisyonunu NavMesh üzerindeki pozisyona ayarla (agent enable olmadan önce)
                 transform.position = spawnPosition;
+                _guardPosition = spawnPosition;
                 
                 // Agent ayarları (enable olmadan önce)
                 agent.speed = enemyData.MovementSpeed;
@@ -465,6 +472,8 @@ namespace _Root.Scripts.Enemy
         
         private void UpdateIdle()
         {
+            ReturnToGuardPositionIfNeeded();
+            
             // Cooldown kontrolü - path bulunamazsa sürekli deneme yapma
             if (Runner.SimulationTime - _lastChaseAttemptTime < CHASE_RETRY_COOLDOWN)
             {
@@ -491,6 +500,13 @@ namespace _Root.Scripts.Enemy
             }
             
             float distanceToTarget = Vector3.Distance(transform.position, _currentTarget.transform.position);
+            float disengageRange = detectionRange * disengageRangeMultiplier;
+            
+            if (distanceToTarget > disengageRange)
+            {
+                LoseTarget();
+                return;
+            }
             
             if (distanceToTarget <= enemyData.AttackRange)
             {
@@ -598,6 +614,13 @@ namespace _Root.Scripts.Enemy
             }
             
             float distanceToTarget = Vector3.Distance(transform.position, _currentTarget.transform.position);
+            float disengageRange = detectionRange * disengageRangeMultiplier;
+            
+            if (distanceToTarget > disengageRange)
+            {
+                LoseTarget();
+                return;
+            }
             
             // Player attack range dışına çıktıysa tekrar chase'e geç
             if (distanceToTarget > enemyData.AttackRange * 1.2f) // 20% tolerance
@@ -645,6 +668,40 @@ namespace _Root.Scripts.Enemy
             }
         }
         
+        private void LoseTarget()
+        {
+            _currentTarget = null;
+            HasTarget = false;
+            CurrentState = EnemyState.Idle;
+            _lastChaseAttemptTime = Runner.SimulationTime;
+            
+            if (agent != null && agent.enabled)
+            {
+                agent.ResetPath();
+            }
+        }
+        
+        private void ReturnToGuardPositionIfNeeded()
+        {
+            if (_currentTarget != null || agent == null || !agent.enabled || !agent.isOnNavMesh)
+                return;
+            
+            float distanceToGuard = Vector3.Distance(transform.position, _guardPosition);
+            if (distanceToGuard <= 0.2f)
+            {
+                if (agent.hasPath)
+                {
+                    agent.ResetPath();
+                }
+                return;
+            }
+            
+            if (!agent.hasPath || Vector3.Distance(agent.destination, _guardPosition) > 0.2f)
+            {
+                agent.SetDestination(_guardPosition);
+            }
+        }
+        
         private void UpdateTarget()
         {
             if (_currentTarget != null && _currentTarget.IsAlive)
@@ -678,6 +735,8 @@ namespace _Root.Scripts.Enemy
                     continue;
                 
                 float distance = Vector3.Distance(transform.position, player.transform.position);
+                if (distance > detectionRange)
+                    continue;
                 
                 if (distance < closestDistance)
                 {
@@ -894,6 +953,9 @@ namespace _Root.Scripts.Enemy
             
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, enemyData.AttackRange);
+            
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, detectionRange);
             
             Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
             Vector3 attackPos = attackPoint != null 

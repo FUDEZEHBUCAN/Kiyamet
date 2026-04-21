@@ -13,7 +13,7 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private Transform[] spawnPoints;
         [SerializeField] private int maxEnemies = 10;
         [SerializeField] private float spawnInterval = 5f;
-        [SerializeField] private bool autoSpawn = true;
+        [SerializeField] private bool autoSpawn = false;
         
         [Header("Wave Settings")]
         [SerializeField] private bool useWaveSystem = false;
