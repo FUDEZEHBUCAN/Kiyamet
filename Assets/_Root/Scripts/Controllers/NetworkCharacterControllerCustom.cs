@@ -2,7 +2,9 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Enemy;
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Enums;
+using System.Collections.Generic;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 using PlayerAnimationController = _Root.Scripts.Controllers.PlayerAnimationController;
 using TpsCameraController = _Root.Scripts.Controllers.TpsCameraController;
@@ -28,6 +30,11 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float dashKnockbackForce = 10f;
     [SerializeField] private float dashRange = 5f;
     [SerializeField] private LayerMask enemyLayer = -1;
+    
+    [Header("Dash Reflector Settings")]
+    [SerializeField] private LayerMask reflectorLayer = -1;
+    [SerializeField] private float reflectorLaunchForce = 12f;
+    [SerializeField] private float reflectorUpwardBoost = 0.15f;
     
     [Header("Respawn Settings")]
     [SerializeField] private float respawnYThreshold = -10f;
@@ -71,6 +78,7 @@ namespace _Root.Scripts.Controllers {
     private CharacterController _controller;
     private NetworkPlayer _networkPlayer;
     private PlayerAnimationController _animController;
+    private readonly HashSet<ReflectorInteractable> _reflectorsHitThisDash = new HashSet<ReflectorInteractable>();
     
     void Awake() {
       TryGetComponent(out _controller);
@@ -122,6 +130,7 @@ namespace _Root.Scripts.Controllers {
       DashDirection = transform.forward;
       DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
       DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
+      _reflectorsHitThisDash.Clear();
       
       if (_animController != null)
       {
@@ -171,7 +180,28 @@ namespace _Root.Scripts.Controllers {
         }
       }
       
-      if (hitEnemy)
+      bool hitReflector = false;
+      Collider[] reflectorColliders = Physics.OverlapSphere(detectionCenter, detectionRadius, reflectorLayer);
+      foreach (var col in reflectorColliders)
+      {
+        var reflector = col.GetComponentInParent<ReflectorInteractable>();
+        if (reflector == null)
+          continue;
+        
+        if (_reflectorsHitThisDash.Contains(reflector))
+          continue;
+        
+        Vector3 toReflector = (reflector.transform.position - transform.position).normalized;
+        float dot = Vector3.Dot(DashDirection, toReflector);
+        if (dot <= 0.5f)
+          continue;
+        
+        reflector.ActivateByDash(DashDirection, reflectorLaunchForce, reflectorUpwardBoost);
+        _reflectorsHitThisDash.Add(reflector);
+        hitReflector = true;
+      }
+      
+      if (hitEnemy || hitReflector)
       {
         if (_networkPlayer != null && _networkPlayer.AudioController != null)
         {
@@ -282,6 +312,7 @@ namespace _Root.Scripts.Controllers {
         if (DashTimer.Expired(Runner)) {
           IsDashing = false;
           DashTimer = TickTimer.None;
+          _reflectorsHitThisDash.Clear();
         } else {
           Vector3 dashMovement = DashDirection * dashSpeed * Runner.DeltaTime;
           _controller.Move(dashMovement);

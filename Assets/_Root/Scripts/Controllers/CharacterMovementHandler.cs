@@ -201,6 +201,11 @@ namespace _Root.Scripts.Controllers
         {
             if (_animController != null)
             {
+                if (_networkPlayer != null)
+                {
+                    _animController.SetPushing(_networkPlayer.IsPushing);
+                }
+                
                 Vector3 velocity;
                 
                 if (Object.HasStateAuthority || Object.HasInputAuthority)

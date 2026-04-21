@@ -41,7 +41,7 @@ namespace _Root.Scripts.Controllers
             
             if (Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer))
             {
-                IInteractable interactable = hit.collider.GetComponent<IInteractable>();
+                IInteractable interactable = hit.collider.GetComponentInParent<IInteractable>();
                 if (interactable != null && interactable.CanInteract(transform))
                 {
                     return interactable;
@@ -97,13 +97,24 @@ namespace _Root.Scripts.Controllers
             // Etkileşim devam ediyorsa güncelle
             if (_currentInteractable != null)
             {
-                // PushableRock ise mesafe kontrolü yap
+                // Mesafe kısıtlı interactable'larda oyuncu çok uzaklaşırsa etkileşimi bitir
                 if (_currentInteractableTransform != null)
                 {
                     var pushableRock = _currentInteractableTransform.GetComponent<PushableRock>();
                     if (pushableRock != null && pushableRock.ShouldEndInteraction(transform))
                     {
                         // Kayadan uzaklaşıldı, etkileşimi bitir
+                        EndInteraction();
+                        if (_networkPlayer != null)
+                        {
+                            _networkPlayer.IsPushing = false;
+                        }
+                        return;
+                    }
+                    
+                    var reflectorInteractable = _currentInteractableTransform.GetComponent<ReflectorInteractable>();
+                    if (reflectorInteractable != null && reflectorInteractable.ShouldEndInteraction(transform))
+                    {
                         EndInteraction();
                         if (_networkPlayer != null)
                         {

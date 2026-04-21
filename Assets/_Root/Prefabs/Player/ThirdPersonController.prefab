@@ -338,6 +338,11 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
+  reflectorLayer:
+    serializedVersion: 2
+    m_Bits: 256
+  reflectorLaunchForce: 15
+  reflectorUpwardBoost: 0.15
   respawnYThreshold: -10
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
