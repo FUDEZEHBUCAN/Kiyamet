@@ -93,6 +93,20 @@ namespace _Root.Scripts.Controllers
             return Mathf.Clamp01(remaining / meleeCooldown);
         }
         
+        public void StartCooldownFromNow()
+        {
+            if (!Object.HasStateAuthority || Runner == null)
+                return;
+            
+            PendingDamage = false;
+            PendingComboSecondDamage = false;
+            DamageDelayTimer = TickTimer.None;
+            ComboSecondDamageTimer = TickTimer.None;
+            _damageAppliedThisSwing = false;
+            NextMeleeAttackType = 1;
+            MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
+        }
+        
         public override void Spawned()
         {
             if (NextMeleeAttackType < 1 || NextMeleeAttackType > 3)

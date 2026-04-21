@@ -2,6 +2,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using _Root.Scripts.Controllers;
+using _Root.Scripts.Input;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.UI
@@ -41,9 +42,11 @@ namespace _Root.Scripts.UI
         private NetworkPlayer _cachedPlayerForControllers;
         private NetworkCharacterControllerCustom _characterController;
         private MeleeController _meleeController;
+        private CharacterInputController _inputController;
 
         private Tween _healthBarTween;
         private Tween _manaBarTween;
+        private Tween _ultimatePulseTween;
         private float _lastSyncedHealth = float.NaN;
         private float _lastSyncedMana = float.NaN;
 
@@ -70,6 +73,8 @@ namespace _Root.Scripts.UI
                 _cachedPlayerForControllers = null;
                 _characterController = null;
                 _meleeController = null;
+                _inputController = null;
+                StopUltimatePulse();
                 SetFill(ultimate, 1f);
                 SetFill(signature, 1f);
                 SetFill(basic, 1f);
@@ -93,6 +98,7 @@ namespace _Root.Scripts.UI
                 _healthBarTween.Kill();
             if (_manaBarTween != null && _manaBarTween.IsActive())
                 _manaBarTween.Kill();
+            StopUltimatePulse();
         }
 
         private void EnsurePlayer()
@@ -132,11 +138,13 @@ namespace _Root.Scripts.UI
             {
                 _characterController = null;
                 _meleeController = null;
+                _inputController = null;
                 return;
             }
 
             _characterController = _player.GetComponent<NetworkCharacterControllerCustom>();
             _meleeController = _player.GetComponent<MeleeController>();
+            _inputController = _player.GetComponent<CharacterInputController>();
         }
 
         /// <summary>Signature = Dash, Basic = Melee; Fusion TickTimer kalan süresinden normalize.</summary>
@@ -153,7 +161,18 @@ namespace _Root.Scripts.UI
             float meleeCd = _meleeController != null ? _meleeController.GetMeleeCooldownNormalized() : 0f;
 
             SetFill(signature, Mathf.Clamp01(dashCd));
-            SetFill(basic, Mathf.Clamp01(meleeCd));
+            
+            bool isBlockingNow = (_player != null && _player.IsBlocking)
+                || (_player != null && _player.Object != null && _player.Object.HasInputAuthority && _inputController != null && _inputController.IsBlockHeld);
+            
+            if (isBlockingNow)
+            {
+                SetFillRaw(basic, 0f);
+            }
+            else
+            {
+                SetFill(basic, Mathf.Clamp01(meleeCd));
+            }
         }
 
         private void UpdateUltimateUI(NetworkPlayer player)
@@ -179,6 +198,7 @@ namespace _Root.Scripts.UI
             }
 
             SetFill(ultimate, fill);
+            UpdateUltimatePulse(player);
         }
 
         private static void ApplySafeDefaults(SkillSlotUI slot)
@@ -287,6 +307,53 @@ namespace _Root.Scripts.UI
             }
 
             slot.cooldownFillImage.fillAmount = v;
+        }
+        
+        private static void SetFillRaw(SkillSlotUI slot, float value01)
+        {
+            if (slot.cooldownFillImage == null)
+                return;
+            
+            slot.cooldownFillImage.fillAmount = Mathf.Clamp01(value01);
+        }
+        
+        private void UpdateUltimatePulse(NetworkPlayer player)
+        {
+            bool shouldPulse = player != null && player.IsUltimateReady && !player.IsUltimateActive;
+            if (shouldPulse)
+            {
+                StartUltimatePulse();
+            }
+            else
+            {
+                StopUltimatePulse();
+            }
+        }
+        
+        private void StartUltimatePulse()
+        {
+            if (ultimate.iconImage == null)
+                return;
+            
+            if (_ultimatePulseTween != null && _ultimatePulseTween.IsActive())
+                return;
+            
+            ultimate.iconImage.transform.localScale = Vector3.one;
+            _ultimatePulseTween = ultimate.iconImage.transform
+                .DOScale(1.06f, 0.55f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo);
+        }
+        
+        private void StopUltimatePulse()
+        {
+            if (_ultimatePulseTween != null && _ultimatePulseTween.IsActive())
+                _ultimatePulseTween.Kill();
+            
+            _ultimatePulseTween = null;
+            
+            if (ultimate.iconImage != null)
+                ultimate.iconImage.transform.localScale = Vector3.one;
         }
     }
 }

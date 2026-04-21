@@ -27,7 +27,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float damageTakenShakeStrength = 1.5f;
         [SerializeField] private float blockedShakeStrength = 0.8f;
         [SerializeField] private float heavyAttackShakeStrength = 3f;
-        [SerializeField] private float doorBreakShakeStrength = 2f;
+        [SerializeField] private float doorBreakShakeStrength = 0.8f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -245,6 +245,16 @@ namespace _Root.Scripts.Controllers
                     break;
             }
         }
+        
+        public void StopCameraShake()
+        {
+            if (_cameraTransform == null)
+                return;
+            
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+        }
+        
         private void LateUpdate()
         {
             // Local player spawn olduysa target'ı at

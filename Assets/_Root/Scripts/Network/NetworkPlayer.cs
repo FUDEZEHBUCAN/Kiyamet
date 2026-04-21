@@ -284,7 +284,14 @@ namespace _Root.Scripts.Network
             if (!Object.HasStateAuthority)
                 return;
             
+            bool wasBlocking = IsBlocking;
             IsBlocking = blocking;
+            
+            // Block bittiğinde basic skill cooldown'u sıfırdan başlat.
+            if (wasBlocking && !blocking && _meleeController != null)
+            {
+                _meleeController.StartCooldownFromNow();
+            }
             
             // Animasyon
             if (animController != null)

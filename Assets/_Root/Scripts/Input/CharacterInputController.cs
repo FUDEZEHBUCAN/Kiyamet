@@ -22,6 +22,9 @@ namespace _Root.Scripts.Input
         /// <summary>Shift basılı (koşu); network'e sürekli durum olarak gönderilir.</summary>
         public bool IsRunHeld =>
             UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift);
+        
+        /// <summary>Sağ tık basılı mı (block).</summary>
+        public bool IsBlockHeld => _blockPressed;
 
         private void Start()
         {
