@@ -14,7 +14,7 @@ Material:
   m_ValidKeywords:
   - GEOM_TYPE_BRANCH_DETAIL
   - _GERSTNERDISPLACEMENT
-  - _PIXELSNAP_POINT
+  - _PIXELSNAP_NONE
   m_InvalidKeywords:
   - GEOM_TYPE_BRANCH
   - _WORLDSPACEMAPPINGENABLED_ON
@@ -60,7 +60,7 @@ Material:
     - _BumpParallax: 0.3
     - _CausticMode: 0
     - _CausticsEnabled: 0
-    - _CausticsScale: 0.5
+    - _CausticsScale: 1.29
     - _CausticsSelfDistortion: 0.2
     - _CausticsSpeed: 5
     - _CausticsTiling: -0.4
@@ -74,7 +74,7 @@ Material:
     - _DetailDistance: 200
     - _DetailFadeRange: 100
     - _FinalFogDensity: 0
-    - _FoamCaps: 0.58
+    - _FoamCaps: 0.59
     - _FoamEnabled: 1
     - _FoamFinalErosion: 0.651
     - _FoamNormalMaskScale: 0.5
@@ -92,7 +92,7 @@ Material:
     - _GGlobalFrequency: 1
     - _GGlobalRotation: 0
     - _GGlobalSpeed: -1
-    - _GerstnerElevationFactor: 0.317
+    - _GerstnerElevationFactor: 0.151
     - _GerstnerEnabled: 1
     - _GerstnerIntensity: 0.1
     - _GerstnerNormalIntensity: 2.54
@@ -106,14 +106,14 @@ Material:
     - _InvFade: 6
     - _InvFadeParameter: 0.56
     - _LuxWater_EdgeLength: 4
-    - _LuxWater_Extrusion: 0.1
+    - _LuxWater_Extrusion: 1
     - _LuxWater_Phong: 0.5
     - _LuxWater_ReflectionTexMip: 10
     - _MaxDirLightDepth: 64
     - _MaxFogLightDepth: 64
     - _Metallic: 0
     - _OrthoSpport: 0
-    - _PixelSnap: 1
+    - _PixelSnap: 0
     - _PixelSnapping: 0
     - _PlanarEnabled: 0
     - _PlaneReflectionBumpClamp: 0.05
@@ -124,7 +124,7 @@ Material:
     - _ReflectionGlossiness: 1
     - _ReflectionSmoothing: 1
     - _ReflectionStrength: 0
-    - _Refraction: 82
+    - _Refraction: 165
     - _ScatterOcclusion: 0.001
     - _ScatteringNormalInfluence: 0.01
     - _ScatteringPower: 0.1
@@ -147,27 +147,27 @@ Material:
     m_Colors:
     - _BumpParams: {r: 0.88, g: 0.5, b: 4.1, a: 0.2}
     - _BumpRotation: {r: 0, g: 12, b: 5, a: 173.21}
-    - _BumpScale: {r: -1.3, g: 0.4, b: -0.2, a: 0}
-    - _BumpSpeed: {r: 1.8, g: -3.04, b: 2.8, a: 0.3}
+    - _BumpScale: {r: 0.1, g: 0.1, b: 1, a: 0}
+    - _BumpSpeed: {r: 1, g: 1, b: 3, a: 1}
     - _BumpSpeedXXX: {r: 1.7, g: 1, b: 0, a: 0}
-    - _BumpTiling: {r: 0.2, g: 0.6, b: 1, a: 1}
+    - _BumpTiling: {r: 0.2, g: 0.2, b: 0.2, a: 0.5}
     - _Color: {r: 0.38995194, g: 0.646081, b: 0.6509434, a: 0}
     - _DeepFoamColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 0.5}
     - _DepthAtten: {r: 0, g: 5, b: 50, a: 0}
     - _FarBumpSampleParams: {r: 0.2, g: 150, b: 0.37, a: -0.05}
     - _FinalBumpRotation: {r: 2155.8538, g: 3.7999985, b: 118.79876, a: 118.79876}
-    - _FinalBumpSpeed01: {r: -0.53621256, g: -0.06384439, b: 0.90823203, a: -0.08281572}
-    - _FinalBumpSpeed23: {r: -0.8395901, g: -0.02623825, b: 0, a: 0}
+    - _FinalBumpSpeed01: {r: -0.9929862, g: -0.11823034, b: -0.99586844, a: 0.090806715}
+    - _FinalBumpSpeed23: {r: -2.9985359, g: -0.09370803, b: 0, a: 0}
     - _FoamCapsContrast: {r: 0, g: 1, b: 0, a: 0}
     - _FoamColor: {r: 1, g: 1, b: 1, a: 0.84}
-    - _GAmplitude: {r: 0.3, g: 0.1, b: 0.2, a: 0.12}
+    - _GAmplitude: {r: 0.03, g: 0.03, b: 0.03, a: 0.03}
     - _GDirectionAB: {r: 1, g: 0, b: 0.99026805, a: -0.13917312}
-    - _GDirectionCD: {r: 0.8192521, g: -0.5734335, b: 0.99992955, a: 0.011867961}
-    - _GFinalFrequency: {r: 1, g: 1.2, b: 1.25, a: 1.3}
-    - _GFinalSpeed: {r: -1.2, g: -0.9, b: 0.88, a: -1.58}
-    - _GFrequency: {r: 1, g: 1.2, b: 1.25, a: 1.3}
-    - _GRotation: {r: 0, g: 8, b: 34.99, a: -0.68}
-    - _GSpeed: {r: 1.2, g: 0.9, b: -0.88, a: 1.58}
+    - _GDirectionCD: {r: 0.96757704, g: -0.25257602, b: 1, a: 0}
+    - _GFinalFrequency: {r: 1, g: 1, b: 1, a: 1}
+    - _GFinalSpeed: {r: -1, g: -1, b: -1, a: -1}
+    - _GFrequency: {r: 1, g: 1, b: 1, a: 1}
+    - _GRotation: {r: 0, g: 8, b: 14.63, a: 0}
+    - _GSpeed: {r: 1, g: 1, b: 1, a: 1}
     - _GSteepness: {r: 2, g: 2, b: 2, a: 2}
     - _GerstnerSecondaryWaves: {r: 0, g: 4.3, b: 0.3, a: 1.65}
     - _GerstnerVertexIntensity: {r: 0.1, g: 0.1, b: 0.1, a: 0}
