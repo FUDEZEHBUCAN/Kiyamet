@@ -41,18 +41,12 @@ Shader "MyTriplanarWSShader"
 		[TCP2HeaderHelp(Triplanar Mapping)]
 		_TriGround ("Ground", 2D) = "white" {}
 		_TriSide ("Walls", 2D) = "white" {}
-		_TriCeiling ("Ceiling", 2D) = "white" {}
-		_CeilingMin ("Ceiling Threshold Min", Float) = -1
-		_CeilingMax ("Ceiling Threshold Max", Float) = 1
-		[Space]
 		[TCP2Vector4Floats(Contrast X,Contrast Y,Contrast Z,Smoothing,1,16,1,16,1,16,0.01,1)] _TriplanarBlendStrength ("Triplanar Parameters", Vector) = (2,8,2,0.5)
 		[TCP2HeaderHelp(Triplanar Mapping Normal Maps)]
 		[NoScaleOffset] _TriGroundBump ("Ground Normal Map", 2D) = "bump" {}
 		_TriGroundBumpScale ("Scale", Range(-2,2)) = 1
 		[NoScaleOffset] _TriSideBump ("Walls Normal Map", 2D) = "bump" {}
 		_TriSideBumpScale ("Scale", Range(-2,2)) = 1
-		[NoScaleOffset] _TriCeilingBump ("Ceiling Normal Map", 2D) = "bump" {}
-		_TriCeilingBumpScale ("Scale", Range(-2,2)) = 1
 		[TCP2Separator]
 		
 		[TCP2ColorNoAlpha] _DiffuseTint ("Diffuse Tint", Color) = (1,0.5,0,1)
@@ -103,10 +97,8 @@ Shader "MyTriplanarWSShader"
 
 		// Shader Properties
 		TCP2_TEX2D_WITH_SAMPLER(_TriGround);
-		TCP2_TEX2D_WITH_SAMPLER(_TriCeiling);
 		TCP2_TEX2D_WITH_SAMPLER(_TriSide);
 		TCP2_TEX2D_NO_SAMPLER(_TriGroundBump);
-		TCP2_TEX2D_WITH_SAMPLER(_TriCeilingBump);
 		TCP2_TEX2D_WITH_SAMPLER(_TriSideBump);
 		TCP2_TEX2D_WITH_SAMPLER(_DiffuseTintMask);
 		TCP2_TEX2D_WITH_SAMPLER(_MainTex);
@@ -119,17 +111,13 @@ Shader "MyTriplanarWSShader"
 		float _VerticalFogThreshold;
 		float _VerticalFogSmoothness;
 		float4 _TriGround_ST;
-		float4 _TriCeiling_ST;
 		float4 _TriSide_ST;
 		float4 _TriplanarBlendStrength;
-		float _CeilingMax;
-		float _CeilingMin;
 		float _HSV_H;
 		float _HSV_S;
 		float _HSV_V;
 		fixed4 _Color;
 		float _TriGroundBumpScale;
-		float _TriCeilingBumpScale;
 		float _TriSideBumpScale;
 		float _RampThreshold;
 		float _RampSmoothing;
@@ -449,15 +437,11 @@ Shader "MyTriplanarWSShader"
 		{
 			// Shader Properties Sampling
 			float4 __triplanarParameters = ( _TriplanarBlendStrength.xyzw );
-			float __ceilingSmoothness = ( .1 );
-			float __ceilingMax = ( _CeilingMax );
-			float __ceilingMin = ( _CeilingMin );
 			float __albedoHue = ( _HSV_H );
 			float __albedoSaturation = ( _HSV_S );
 			float __albedoValue = ( _HSV_V );
 			float4 __mainColor = ( _Color.rgba );
 			float __bumpScaleGround = ( _TriGroundBumpScale );
-			float __bumpScaleCeiling = ( _TriCeilingBumpScale );
 			float __bumpScaleWalls = ( _TriSideBumpScale );
 			output.__rampThreshold = ( _RampThreshold );
 			output.__rampSmoothing = ( _RampSmoothing );
@@ -499,9 +483,6 @@ Shader "MyTriplanarWSShader"
 			//ground
 			half4 triplanar = ( TCP2_TEX2D_SAMPLE(_TriGround, _TriGround, uv_ground * _TriGround_ST.xy + _TriGround_ST.zw).rgba );
 			
-			//ceiling
-			fixed4 tex_ceiling = ( TCP2_TEX2D_SAMPLE(_TriCeiling, _TriCeiling, uv_ground * _TriCeiling_ST.xy + _TriCeiling_ST.zw).rgba );
-			
 			//walls
 			fixed4 tex_sideX = ( TCP2_TEX2D_SAMPLE(_TriSide, _TriSide, uv_sideX * _TriSide_ST.xy + _TriSide_ST.zw).rgba );
 			fixed4 tex_sideZ = ( TCP2_TEX2D_SAMPLE(_TriSide, _TriSide, uv_sideZ * _TriSide_ST.xy + _TriSide_ST.zw).rgba );
@@ -510,9 +491,6 @@ Shader "MyTriplanarWSShader"
 			half3 blendWeights = pow(abs(triplanarNormal), __triplanarParameters.xyz / __triplanarParameters.w);
 			blendWeights = blendWeights / (blendWeights.x + abs(blendWeights.y) + blendWeights.z);
 			
-			float triplanar_ceiling_lerp = smoothstep(input.worldPos.y - __ceilingSmoothness, input.worldPos.y, __ceilingMax) - smoothstep(input.worldPos.y, input.worldPos.y + __ceilingSmoothness, __ceilingMin);
-			triplanar = lerp(tex_ceiling, triplanar, triplanar_ceiling_lerp);
-			blendWeights.y = abs(blendWeights.y);
 			triplanar = tex_sideX * blendWeights.x + triplanar * blendWeights.y + tex_sideZ * blendWeights.z;
 			albedoAlpha *= triplanar;
 			output.Albedo = albedoAlpha.rgb;
@@ -526,21 +504,16 @@ Shader "MyTriplanarWSShader"
 			//ground
 			half3 normalMap = UnpackScaleNormal( ( TCP2_TEX2D_SAMPLE(_TriGroundBump, _TriGround, uv_ground * _TriGround_ST.xy + _TriGround_ST.zw).rgba ), __bumpScaleGround );
 			
-			//ceiling
-			half3 tex_ceiling_bump = UnpackScaleNormal( ( TCP2_TEX2D_SAMPLE(_TriCeilingBump, _TriCeilingBump, uv_ground * _TriCeiling_ST.xy + _TriCeiling_ST.zw).rgba ), __bumpScaleCeiling );
-			
 			//walls
 			half3 tex_sideX_bump = UnpackScaleNormal( ( TCP2_TEX2D_SAMPLE(_TriSideBump, _TriSideBump, uv_sideX * _TriSide_ST.xy + _TriSide_ST.zw).rgba ), __bumpScaleWalls );
 			half3 tex_sideZ_bump = UnpackScaleNormal( ( TCP2_TEX2D_SAMPLE(_TriSideBump, _TriSideBump, uv_sideZ * _TriSide_ST.xy + _TriSide_ST.zw).rgba ), __bumpScaleWalls );
-			
-			normalMap.xyz = lerp(tex_ceiling_bump, normalMap.xyz, triplanar_ceiling_lerp);
 			
 			//Whiteout blending
 			tex_sideX_bump = half3(tex_sideX_bump.xy + triplanarNormal.zy,abs(tex_sideX_bump.z) * triplanarNormal.x);
 			normalMap.xyz = half3(normalMap.xy + triplanarNormal.xz,abs(normalMap.z) * triplanarNormal.y);
 			tex_sideZ_bump = half3(tex_sideZ_bump.xy + triplanarNormal.xy,abs(tex_sideZ_bump.z) * triplanarNormal.z);
 			
-			output.NormalCustom.w = blendWeights.y * triplanar_ceiling_lerp;
+			output.NormalCustom.w = blendWeights.y;
 			output.NormalCustom.xyz = normalize(tex_sideX_bump.zyx * blendWeights.x + normalMap.xzy * blendWeights.y + tex_sideZ_bump.xyz * blendWeights.z);
 
 			// Recalculate NDV to take the triplanar normals into account:
@@ -937,5 +910,5 @@ Shader "MyTriplanarWSShader"
 	CustomEditor "ToonyColorsPro.ShaderGenerator.MaterialInspector_SG2"
 }
 
-/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","TRIPLANAR","TRIPLANAR_BUMP","TT_SHADER_FEATURE","DIFFUSE_TINT","DIFFUSE_TINT_MASK","OUTLINE","AUTO_TRANSPARENT_BLENDING","TRIPLANAR_CEILING","TRIPLANAR_BUMP_SCALE","OUTLINE_MIN_WIDTH","OUTLINE_MAX_WIDTH","SKETCH_AMBIENT","SKETCH_SHADER_FEATURE","SKETCH_PROGRESSIVE_SMOOTH","TRIPLANAR_CEILING_MINMAX","ALBEDO_HSV","RAMP_BANDS","RIM_SHADER_FEATURE","RIM","MATCAP_SHADER_FEATURE","OUTLINE_CLIP_SPACE","VERTICAL_FOG","VERTICAL_FOG_SHADER_FEATURE","VERTICAL_FOG_COLOR","ENABLE_FOG","ENABLE_LIGHTMAPS","DITHERED_SHADOWS"];flags:list["fullforwardshadows","addshadow"];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0",RIM_LABEL="Rim Lighting"];shaderProperties:list[,,,,,,,,,,,,,,,,sp(name:"Ground Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriGround";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e57446d3-b1ef-40e6-b3f6-38c9b42b2ef0";op:Multiply;lbl:"Ground";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSide";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"72b6f4eb-1979-43b0-9a30-e7abed958748";op:Multiply;lbl:"Walls";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeiling";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0d293c1e-c425-4e35-a4d6-28e00db46427";op:Multiply;lbl:"Ceiling";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Ground Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriGround_ST";tov_lbl:"_TriGround_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:"_TriGround";prop:"_TriGroundBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"df40221d-83dc-4360-bdfb-c3142433381b";op:Multiply;lbl:"Ground Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriSide_ST";tov_lbl:"_TriSide_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSideBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"c136113f-35c0-41c7-94a8-42f564b5d3e7";op:Multiply;lbl:"Walls Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriCeiling_ST";tov_lbl:"_TriCeiling_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeilingBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0fc6564a-0974-4a0f-8c69-ac1d93da1fef";op:Multiply;lbl:"Ceiling Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,,,,,,,,,,,,,,,,,sp(name:"Normal Map";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:False;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_BumpMap";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"85e48721-41ba-486d-bf84-95733a7c811d";op:Multiply;lbl:"Normal Map";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
-/* TCP_HASH 4804fdc0f28017124b6e2e3ec0bdbdb0 */
+/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","TRIPLANAR","TRIPLANAR_BUMP","TT_SHADER_FEATURE","DIFFUSE_TINT","DIFFUSE_TINT_MASK","OUTLINE","AUTO_TRANSPARENT_BLENDING","TRIPLANAR_BUMP_SCALE","OUTLINE_MIN_WIDTH","OUTLINE_MAX_WIDTH","SKETCH_AMBIENT","SKETCH_SHADER_FEATURE","SKETCH_PROGRESSIVE_SMOOTH","ALBEDO_HSV","RAMP_BANDS","RIM_SHADER_FEATURE","RIM","MATCAP_SHADER_FEATURE","OUTLINE_CLIP_SPACE","VERTICAL_FOG","VERTICAL_FOG_SHADER_FEATURE","VERTICAL_FOG_COLOR","ENABLE_FOG","ENABLE_LIGHTMAPS","DITHERED_SHADOWS"];flags:list["fullforwardshadows","addshadow"];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0",RIM_LABEL="Rim Lighting"];shaderProperties:list[,,,,,,,,,,,,,,,,sp(name:"Ground Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriGround";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e57446d3-b1ef-40e6-b3f6-38c9b42b2ef0";op:Multiply;lbl:"Ground";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSide";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"72b6f4eb-1979-43b0-9a30-e7abed958748";op:Multiply;lbl:"Walls";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeiling";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0d293c1e-c425-4e35-a4d6-28e00db46427";op:Multiply;lbl:"Ceiling";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Ground Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriGround_ST";tov_lbl:"_TriGround_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:"_TriGround";prop:"_TriGroundBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"df40221d-83dc-4360-bdfb-c3142433381b";op:Multiply;lbl:"Ground Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriSide_ST";tov_lbl:"_TriSide_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSideBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"c136113f-35c0-41c7-94a8-42f564b5d3e7";op:Multiply;lbl:"Walls Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriCeiling_ST";tov_lbl:"_TriCeiling_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeilingBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0fc6564a-0974-4a0f-8c69-ac1d93da1fef";op:Multiply;lbl:"Ceiling Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,,,,,,,,,,,,,,,,,sp(name:"Normal Map";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:False;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_BumpMap";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"85e48721-41ba-486d-bf84-95733a7c811d";op:Multiply;lbl:"Normal Map";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
+/* TCP_HASH 7085567683617126627a3ce6f25372ca */

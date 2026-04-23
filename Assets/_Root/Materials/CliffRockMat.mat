@@ -98,8 +98,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _TriSide:
         m_Texture: {fileID: 2800000, guid: 427959c39eba6b8409b18b7ce6e7467d, type: 3}
-        m_Scale: {x: 0.1, y: 0.1}
-        m_Offset: {x: 0, y: 0}
+        m_Scale: {x: 0.08, y: 0.08}
+        m_Offset: {x: 0, y: 0.76}
     - _TriSideBump:
         m_Texture: {fileID: 2800000, guid: f6d53cccc7ea8104795d1f4e388d0462, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -128,15 +128,15 @@ Material:
     - _OcclusionStrength: 1
     - _OutlineMaxWidth: 2.2
     - _OutlineMinWidth: 8
-    - _OutlineWidth: 1.63
+    - _OutlineWidth: 2.39
     - _OutlineZSmooth: -0.28
     - _Parallax: 0.02
     - _ProgressiveSketchSmoothness: 0.435
     - _RampSmoothing: 0.48
     - _RampThreshold: 0.43
     - _RenderingMode: 0
-    - _RimMax: 1
-    - _RimMin: 0.74
+    - _RimMax: 0.92
+    - _RimMin: 0.55
     - _ShadowLineSmoothing: 0.1
     - _ShadowLineStrength: 150
     - _ShadowLineThreshold: 0.48
@@ -145,7 +145,7 @@ Material:
     - _SrcBlend: 1
     - _TriCeilingBumpScale: 0.5
     - _TriGroundBumpScale: 1
-    - _TriSideBumpScale: 0.5
+    - _TriSideBumpScale: 0.84
     - _TriplanarHeightOffset: 0
     - _TriplanarHeightSmooth: 0.1
     - _UVSec: 0
@@ -168,7 +168,7 @@ Material:
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
     - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColorVertex: {r: 0, g: 0, b: 0, a: 1}
-    - _RimColor: {r: 0.3207547, g: 0.13081762, b: 0, a: 0.5}
+    - _RimColor: {r: 0, g: 0.08829659, b: 0.24528301, a: 0.5}
     - _RimDir: {r: -1.89, g: -5.07, b: 1.49, a: 1.25}
     - _SColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _ShadowLineColor: {r: 0, g: 0, b: 0, a: 0}
