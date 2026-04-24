@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 5639288387045805755}
   - component: {fileID: 8673084059143854104}
   - component: {fileID: 3202822385492761310}
-  - component: {fileID: 1903767672613150289}
   m_Layer: 0
   m_Name: GrassBlades_Dry (1)
   m_TagString: Untagged
@@ -84,25 +83,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!205 &1903767672613150289
-LODGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 649313347578448735}
-  serializedVersion: 2
-  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
-  m_Size: 1
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
-  m_LastLODIsBillboard: 0
-  m_LODs:
-  - screenRelativeHeight: 0.011265382
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 3202822385492761310}
-  m_Enabled: 1
 --- !u!1 &671023635276233022
 GameObject:
   m_ObjectHideFlags: 0
@@ -114,7 +94,6 @@ GameObject:
   - component: {fileID: 7655929323613026183}
   - component: {fileID: 6478967295211251303}
   - component: {fileID: 2217462693332095362}
-  - component: {fileID: 4328430082916447809}
   m_Layer: 0
   m_Name: GrassBlades_Dry
   m_TagString: Untagged
@@ -187,25 +166,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!205 &4328430082916447809
-LODGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 671023635276233022}
-  serializedVersion: 2
-  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
-  m_Size: 1
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
-  m_LastLODIsBillboard: 0
-  m_LODs:
-  - screenRelativeHeight: 0.011265382
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 2217462693332095362}
-  m_Enabled: 1
 --- !u!1 &972877574325835003
 GameObject:
   m_ObjectHideFlags: 0
@@ -215,8 +175,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 489637074812718657}
-  - component: {fileID: 3559059516628517348}
-  - component: {fileID: 1621479002806760750}
   - component: {fileID: 8681960491866966579}
   m_Layer: 0
   m_Name: GrassBlades_Dry
@@ -239,60 +197,11 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7655929323613026183}
-  - {fileID: 1952454074073546503}
   - {fileID: 5639288387045805755}
+  - {fileID: 1952454074073546503}
+  - {fileID: 7920372697171473593}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &3559059516628517348
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 972877574325835003}
-  m_Mesh: {fileID: -7675060675513433528, guid: bce77de6e2bbb054a8b07e0513b70d65, type: 3}
---- !u!23 &1621479002806760750
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 972877574325835003}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 0
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: b9bc74ca2ffb04341bcbcc5a3458e5b6, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 2
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!205 &8681960491866966579
 LODGroup:
   m_ObjectHideFlags: 0
@@ -310,7 +219,7 @@ LODGroup:
   - screenRelativeHeight: 0.011265382
     fadeTransitionWidth: 0
     renderers:
-    - renderer: {fileID: 1621479002806760750}
+    - renderer: {fileID: 7315248534245651901}
     - renderer: {fileID: 2217462693332095362}
     - renderer: {fileID: 6113157632260178720}
     - renderer: {fileID: 3202822385492761310}
@@ -326,7 +235,6 @@ GameObject:
   - component: {fileID: 1952454074073546503}
   - component: {fileID: 4285693787482935850}
   - component: {fileID: 6113157632260178720}
-  - component: {fileID: 3703159277445993082}
   m_Layer: 0
   m_Name: GrassBlades_Dry (2)
   m_TagString: Untagged
@@ -343,7 +251,7 @@ Transform:
   m_GameObject: {fileID: 6594603819948529489}
   serializedVersion: 2
   m_LocalRotation: {x: -0.029978551, y: 0.95452464, z: -0.27821863, w: -0.10285174}
-  m_LocalPosition: {x: 0, y: 0, z: -0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -399,22 +307,86 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!205 &3703159277445993082
-LODGroup:
+--- !u!1 &6770629798756095698
+GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6594603819948529489}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7920372697171473593}
+  - component: {fileID: 7124676833066179547}
+  - component: {fileID: 7315248534245651901}
+  m_Layer: 0
+  m_Name: GrassBlades_Dry (3)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 126
+  m_IsActive: 1
+--- !u!4 &7920372697171473593
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6770629798756095698}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
-  m_Size: 1
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
-  m_LastLODIsBillboard: 0
-  m_LODs:
-  - screenRelativeHeight: 0.011265382
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 6113157632260178720}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 489637074812718657}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &7124676833066179547
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6770629798756095698}
+  m_Mesh: {fileID: -7675060675513433528, guid: bce77de6e2bbb054a8b07e0513b70d65, type: 3}
+--- !u!23 &7315248534245651901
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6770629798756095698}
   m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 0
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: b9bc74ca2ffb04341bcbcc5a3458e5b6, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 2
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
