@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1192562228237687444}
   - component: {fileID: 7547402924877267748}
   - component: {fileID: 2044378661215276522}
-  - component: {fileID: 1459652691370808937}
+  - component: {fileID: 8069432994291804451}
   m_Layer: 0
   m_Name: RockWall_01
   m_TagString: Untagged
@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 7329589590422029925}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 61.28068, y: 10.524154, z: 59.474113}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -84,8 +84,8 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &1459652691370808937
-BoxCollider:
+--- !u!64 &8069432994291804451
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -102,6 +102,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 6.211734, y: 5.672145, z: 4.265214}
-  m_Center: {x: -0.074769974, y: 2.8301816, z: 0.042975068}
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -4660314832313644451, guid: c092366db988ab64ca22c8e2795ce401, type: 3}

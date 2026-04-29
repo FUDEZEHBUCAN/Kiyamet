@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 1922486272278761707}
   - component: {fileID: 5259071938927907129}
   - component: {fileID: 4511018378861643102}
+  - component: {fileID: 4196630376836069996}
   m_Layer: 0
   m_Name: SacredTree
   m_TagString: Untagged
@@ -167,6 +168,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4196630376836069996
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4478397123372846811}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -4374390945973492069, guid: 50edc0a3aaa9c3c4f8c33decc77490eb, type: 3}
 --- !u!1 &6511864072044567204
 GameObject:
   m_ObjectHideFlags: 0
@@ -176,7 +199,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5842604077009600542}
-  - component: {fileID: 6285081181605245121}
   m_Layer: 0
   m_Name: SacredTree
   m_TagString: Untagged
@@ -201,24 +223,3 @@ Transform:
   - {fileID: 1922486272278761707}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 79.576, z: 0}
---- !u!65 &6285081181605245121
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6511864072044567204}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 6.478749, y: 6.488035, z: 3.676467}
-  m_Center: {x: 0.87372047, y: 2.7440176, z: -0.21608806}
