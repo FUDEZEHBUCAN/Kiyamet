@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_NONE
+  - TCP2_OUTLINE_CONST_SIZE
   - TCP2_ZSMOOTH_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -68,7 +69,7 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendOutline: 0
-    - _EnableConstSizeOutline: 0
+    - _EnableConstSizeOutline: 1
     - _EnableTexturedOutline: 0
     - _EnableZSmooth: 1
     - _GlossMapScale: 1
@@ -79,7 +80,7 @@ Material:
     - _OcclusionStrength: 1
     - _Offset1: 0
     - _Offset2: 0
-    - _Outline: 1
+    - _Outline: 2
     - _Parallax: 0.02
     - _RampSmooth: 0.188
     - _RampSmoothAdd: 0.41
@@ -104,6 +105,6 @@ Material:
     - _Color: {r: 0.9063317, g: 0.9063317, b: 0.9063317, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _HColor: {r: 1, g: 1, b: 1, a: 1}
-    - _OutlineColor: {r: 0.6415094, g: 0.12157478, b: 0.033285867, a: 1}
+    - _OutlineColor: {r: 1, g: 0, b: 0, a: 0}
     - _SColor: {r: 0.5, g: 0.20392159, b: 0, a: 1}
   m_BuildTextureStacks: []
