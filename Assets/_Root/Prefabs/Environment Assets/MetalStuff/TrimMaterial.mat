@@ -13,8 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_DISABLE_WRAPPED_LIGHT
-  - TCP2_SPEC_TOON
-  - TCP2_STYLIZED_FRESNEL
   - TCP2_UV_NORMALS_FULL
   - _METALLICGLOSSMAP
   - _NORMALMAP
@@ -39,7 +37,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailMask:
-        m_Texture: {fileID: 2800000, guid: 77eb63a4240ffd84cb8f7bc50e95a94e, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailNormalMap:
@@ -78,7 +76,7 @@ Material:
     - _DstBlend: 0
     - _DstBlendOutline: 10
     - _EnableOutline: 1
-    - _GlossMapScale: 0
+    - _GlossMapScale: 0.587
     - _Glossiness: 0.5
     - _GlossyReflections: 1
     - _Metallic: 0
@@ -88,8 +86,8 @@ Material:
     - _OcclusionStrength: 1
     - _Offset1: 0
     - _Offset2: 0
-    - _Outline: 0.69
-    - _Parallax: 0.02
+    - _Outline: 0.6
+    - _Parallax: 0.05
     - _RampSmooth: 0.316
     - _RampSmoothAdd: 0.158
     - _RampThreshold: 0.25
@@ -106,8 +104,8 @@ Material:
     - _TCP2_OUTLINE_CONST_SIZE: 0
     - _TCP2_OUTLINE_TEXTURED: 0
     - _TCP2_RAMPTEXT: 0
-    - _TCP2_SPEC_TOON: 1
-    - _TCP2_STYLIZED_FRESNEL: 1
+    - _TCP2_SPEC_TOON: 0
+    - _TCP2_STYLIZED_FRESNEL: 0
     - _TCP2_ZSMOOTH_ON: 0
     - _TexLod: 2.74
     - _UVSec: 0

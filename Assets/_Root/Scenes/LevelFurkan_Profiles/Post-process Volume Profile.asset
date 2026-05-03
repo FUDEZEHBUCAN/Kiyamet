@@ -65,16 +65,16 @@ MonoBehaviour:
     value: 0
   saturation:
     overrideState: 0
-    value: 14
+    value: -100
   brightness:
     overrideState: 0
     value: 0
   postExposure:
     overrideState: 0
-    value: 0
+    value: 1
   contrast:
     overrideState: 0
-    value: 11
+    value: -33.4
   mixerRedOutRedIn:
     overrideState: 0
     value: 0
@@ -1326,7 +1326,7 @@ MonoBehaviour:
   active: 0
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   mode:
     overrideState: 1
     value: 0
@@ -1338,10 +1338,10 @@ MonoBehaviour:
     value: {x: 0.5, y: 0.5}
   intensity:
     overrideState: 1
-    value: 0.762
+    value: 0.497
   smoothness:
     overrideState: 1
-    value: 0.392
+    value: 0.082
   roundness:
     overrideState: 1
     value: 0.861
@@ -1370,7 +1370,7 @@ MonoBehaviour:
   active: 0
   enabled:
     overrideState: 1
-    value: 0
+    value: 1
   spectralLut:
     overrideState: 0
     value: {fileID: 0}
@@ -1425,8 +1425,8 @@ MonoBehaviour:
     overrideState: 0
     value: {r: 0, g: 0.2935935, b: 0.3018868, a: 1}
   ambientOnly:
-    overrideState: 0
-    value: 0
+    overrideState: 1
+    value: 1
   noiseFilterTolerance:
     overrideState: 0
     value: 0
@@ -1450,7 +1450,7 @@ MonoBehaviour:
     value: 1
   quality:
     overrideState: 1
-    value: 4
+    value: 0
 --- !u!114 &6069051438405467067
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -1469,7 +1469,7 @@ MonoBehaviour:
     value: 1
   intensity:
     overrideState: 1
-    value: 11.79
+    value: 6
   threshold:
     overrideState: 1
     value: 1
