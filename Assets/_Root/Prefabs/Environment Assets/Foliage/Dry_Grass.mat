@@ -84,11 +84,11 @@ Material:
     - _NormalEnabled: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _RampSmoothing: 0.906
-    - _RampThreshold: 1
+    - _RampSmoothing: 0.001
+    - _RampThreshold: 0.01
     - _RenderingMode: 2
     - _RimMax: 2
-    - _RimMin: 2
+    - _RimMin: 0
     - _SmoothnessTextureChannel: 0
     - _SpecGlossEnabled: 0
     - _SpecularHighlights: 1
@@ -108,15 +108,15 @@ Material:
     - _ZWrite: 0
     - __dummy__: 0
     m_Colors:
-    - _Color: {r: 0.8773585, g: 0.73279375, b: 0, a: 1}
-    - _Color1: {r: 0.8018868, g: 0.59683746, b: 0.03404235, a: 1}
+    - _Color: {r: 1, g: 0.8227807, b: 0, a: 1}
+    - _Color1: {r: 1, g: 0.74773836, b: 0.21226415, a: 1}
     - _ColorBack: {r: 0.736021, g: 0.93333334, b: 0, a: 1}
     - _ColorBackfaces: {r: 1, g: 1, b: 1, a: 1}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
-    - _HColor: {r: 1, g: 0.8282649, b: 0.0047169924, a: 1}
-    - _RimColor: {r: 1, g: 1, b: 1, a: 0.5}
-    - _SColor: {r: 1, g: 0.5487805, b: 0, a: 1}
+    - _HColor: {r: 1, g: 1, b: 1, a: 1}
+    - _RimColor: {r: 1, g: 0.79510856, b: 0, a: 0.5}
+    - _SColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SubsurfaceColor: {r: 0.035238646, g: 0.9716981, b: 0, a: 1}
     - _WindDirection: {r: 1, g: 0, b: 0, a: 0}
