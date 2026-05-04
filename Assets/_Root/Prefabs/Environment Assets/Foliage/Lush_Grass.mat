@@ -70,7 +70,7 @@ Material:
     - _BumpScale: 1
     - _CausticsEnabled: 1
     - _Cull: 0
-    - _Cutoff: 0.14
+    - _Cutoff: 0.444
     - _DetailNormalMapScale: 1
     - _DielectricFresenEnabled: 0
     - _DstBlend: 10
@@ -85,10 +85,10 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _RampSmoothing: 1
-    - _RampThreshold: 0.13
+    - _RampThreshold: 0.018
     - _RenderingMode: 2
-    - _RimMax: 1.74
-    - _RimMin: 1.65
+    - _RimMax: 2
+    - _RimMin: 0.51
     - _SmoothnessTextureChannel: 0
     - _SpecGlossEnabled: 0
     - _SpecularHighlights: 1
@@ -97,6 +97,7 @@ Material:
     - _SubsurfacePower: 1.1
     - _SubsurfaceScale: 0.89
     - _UVSec: 0
+    - _UseRim: 0
     - _UseSubsurface: 0
     - _VertexColorsEnabled: 0
     - _WatersurfFadeDistance: 8
