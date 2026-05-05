@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1021990510932523819}
+  - component: {fileID: 7663030864653459239}
   m_Layer: 0
   m_Name: X Tower Base without Floor (1)
   m_TagString: Untagged
@@ -51,6 +52,27 @@ Transform:
   - {fileID: 7913144991142834438}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &7663030864653459239
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1683872880780453957}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.869853, y: 3.8639526, z: 3.0197568}
+  m_Center: {x: -0.0039446354, y: 1.9369154, z: 0.09467608}
 --- !u!1001 &202566610449594948
 PrefabInstance:
   m_ObjectHideFlags: 0

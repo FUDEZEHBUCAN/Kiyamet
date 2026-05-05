@@ -969,8 +969,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8861781370158799572, guid: ab59a8ef02cfe6a4691f5a4d41d8f236, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 79751504752109696}
   m_SourcePrefab: {fileID: 100100000, guid: ab59a8ef02cfe6a4691f5a4d41d8f236, type: 3}
+--- !u!1 &2624765247140664621 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8861781370158799572, guid: ab59a8ef02cfe6a4691f5a4d41d8f236, type: 3}
+  m_PrefabInstance: {fileID: 6815728689446211577}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &79751504752109696
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2624765247140664621}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2883571, y: 1.9780273, z: 2.0831676}
+  m_Center: {x: -0.044178665, y: -0.8110533, z: 0.041587196}
 --- !u!4 &3579195466329067140 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8015719530118168957, guid: ab59a8ef02cfe6a4691f5a4d41d8f236, type: 3}
@@ -1175,6 +1204,22 @@ PrefabInstance:
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Size.x
+      value: 0.15216133
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Size.z
+      value: 1.9463153
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Center.x
+      value: 0.014756547
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Center.z
+      value: -0.20737727
       objectReference: {fileID: 0}
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1501,6 +1546,26 @@ PrefabInstance:
     - target: {fileID: 2451437206775850797, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_Name
       value: WoodenBannister (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Size.y
+      value: 1.2397374
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Size.z
+      value: 1.5535225
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Center.x
+      value: 0.019234162
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Center.y
+      value: 1.0774834
+      objectReference: {fileID: 0}
+    - target: {fileID: 2466027018435216843, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
+      propertyPath: m_Center.z
+      value: -0.262703
       objectReference: {fileID: 0}
     - target: {fileID: 4478812957149364790, guid: d81629b3f2c132a47b2f4b30f88f7654, type: 3}
       propertyPath: m_LocalPosition.x
