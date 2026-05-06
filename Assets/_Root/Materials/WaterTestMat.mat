@@ -125,7 +125,7 @@ Material:
     - _ReflectionGlossiness: 1
     - _ReflectionSmoothing: 1
     - _ReflectionStrength: 0
-    - _Refraction: 89
+    - _Refraction: 0
     - _ScatterOcclusion: 0.001
     - _ScatteringNormalInfluence: 0.01
     - _ScatteringPower: 0.1
@@ -143,22 +143,22 @@ Material:
     - _WaterIOR: 1.4
     - _WaterSurfaceYPos: 0
     - _WorldSpaceMappingEnabled: 1
-    - _ZTest: 8
+    - _ZTest: 4
     - _ZWrite: 1
     m_Colors:
     - _BumpParams: {r: 0.88, g: 0.5, b: 4.1, a: 0.2}
     - _BumpRotation: {r: 0, g: 0, b: 0, a: 90}
     - _BumpScale: {r: 1, g: 1, b: 1, a: 0}
-    - _BumpSpeed: {r: 1, g: 1, b: 1, a: 5}
+    - _BumpSpeed: {r: 1, g: 1, b: 1, a: 2}
     - _BumpSpeedXXX: {r: 1.7, g: 1, b: 0, a: 0}
-    - _BumpTiling: {r: 1, g: 1, b: 1, a: 0.5}
+    - _BumpTiling: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 0.38995194, g: 0.646081, b: 0.6509434, a: 0}
     - _DeepFoamColor: {r: 0.4528302, g: 0.4528302, b: 0.4528302, a: 0.5}
     - _DepthAtten: {r: 0, g: 5, b: 50, a: 0}
     - _FarBumpSampleParams: {r: 0.2, g: 150, b: 0.37, a: -0.05}
     - _FinalBumpRotation: {r: 2155.8538, g: 3.7999985, b: 118.79876, a: 118.79876}
-    - _FinalBumpSpeed01: {r: 0.00000029802322, g: -4.9999995, b: 0.00000029802322, a: -4.9999995}
-    - _FinalBumpSpeed23: {r: 0.00000029802322, g: -4.9999995, b: 0, a: 0}
+    - _FinalBumpSpeed01: {r: 0.00000011920929, g: -1.9999999, b: 0.00000011920929, a: -1.9999999}
+    - _FinalBumpSpeed23: {r: 0.00000011920929, g: -1.9999999, b: 0, a: 0}
     - _FoamCapsContrast: {r: 0, g: 1, b: 0, a: 0}
     - _FoamColor: {r: 1, g: 1, b: 1, a: 0.84}
     - _GAmplitude: {r: 0.03, g: 0.03, b: 0.03, a: 0.03}
