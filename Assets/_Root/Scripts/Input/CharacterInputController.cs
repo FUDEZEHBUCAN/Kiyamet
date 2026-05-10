@@ -1,5 +1,6 @@
 using _Root.Scripts.Network;
 using UnityEngine;
+using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Input
 {
@@ -7,6 +8,8 @@ namespace _Root.Scripts.Input
     {
         [SerializeField] private float mouseSensitivity = 2f;
         public float MouseSensitivity => mouseSensitivity;
+
+        private NetworkPlayer _networkPlayer;
 
         private Vector2 _moveInput;
         private float _accumulatedRotation; // Tick'ler arasında biriktir
@@ -26,6 +29,11 @@ namespace _Root.Scripts.Input
         /// <summary>Sağ tık basılı mı (block).</summary>
         public bool IsBlockHeld => _blockPressed;
 
+        private void Awake()
+        {
+            TryGetComponent(out _networkPlayer);
+        }
+
         private void Start()
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -43,9 +51,12 @@ namespace _Root.Scripts.Input
             // Movement input - son değeri al
             _moveInput.x = UnityEngine.Input.GetAxis("Horizontal");
             _moveInput.y = UnityEngine.Input.GetAxis("Vertical");
-            
-            // Mouse X - tick'ler arasında biriktir (kaybolmasın)
-            _accumulatedRotation += UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
+
+            bool keyboardTurnBody = _networkPlayer != null && _networkPlayer.RoleRules.UsesKeyboardCharacterRotation;
+            if (!keyboardTurnBody)
+            {
+                _accumulatedRotation += UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
+            }
             
             // Jump - bir kez basıldıysa true olarak kalsın
             if (UnityEngine.Input.GetButtonDown("Jump"))
@@ -105,6 +116,12 @@ namespace _Root.Scripts.Input
                 }
             }
             
+            float movementBasisYawDegrees = 0f;
+            if (_networkPlayer != null && _networkPlayer.RoleRules.UsesKeyboardCharacterRotation && _playerCamera != null)
+            {
+                movementBasisYawDegrees = _playerCamera.transform.eulerAngles.y;
+            }
+
             var networkInputData = new NetworkInputData
             {
                 MovementInput = _moveInput,
@@ -117,7 +134,8 @@ namespace _Root.Scripts.Input
                 IsUltimatePressed = _ultimatePressed,
                 IsInteractPressed = _interactPressed,
                 IsRunning = IsRunHeld,
-                AimPoint = aimPoint
+                AimPoint = aimPoint,
+                MovementBasisYawDegrees = movementBasisYawDegrees
             };
 
             // Input'ları sıfırla - network'e gönderildi

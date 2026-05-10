@@ -3,6 +3,7 @@ using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
+using _Root.Scripts.Roles;
 
 namespace _Root.Scripts.Network
 {
@@ -68,6 +69,15 @@ namespace _Root.Scripts.Network
         public float MaxMana => characterData != null ? characterData.playerMana : 100f;
         public float ManaCost => characterData != null ? characterData.manaCost : 30f;
         public float ManaRegen => characterData != null ? characterData.manaRegen : 20f;
+
+        /// <summary>Tank klavye dönüşü için °/s (sadece <see cref="ICharacterRoleRules.UsesKeyboardCharacterRotation"/> true iken).</summary>
+        public float TankYawDegreesPerSecond => characterData != null ? characterData.tankYawDegreesPerSecond : 120f;
+
+        /// <summary><see cref="CharacterData"/> üzerinden atanmış rol; runtime kural çözümlemesi için.</summary>
+        public PlayerRoleType RoleType => characterData != null ? characterData.RoleType : PlayerRoleType.Tank;
+
+        /// <summary>Rol bazlı izinler ve ileride genişletilecek davranış kancaları.</summary>
+        public ICharacterRoleRules RoleRules => CharacterRoleRulesProvider.Get(RoleType);
         
         // Health property
         public float Health => CurrentHealth;

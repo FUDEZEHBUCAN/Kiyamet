@@ -16,5 +16,11 @@ namespace _Root.Scripts.Network
         public NetworkBool IsInteractPressed;
         public NetworkBool IsRunning;
         public Vector3 AimPoint;
+
+        /// <summary>
+        /// Tank / klavye-free look modunda WASD için referans: yerel oyuncunun kameranın dünya Y açısı (°).
+        /// Diğer rollerde kullanılmaz (0 bırakılabilir).
+        /// </summary>
+        public float MovementBasisYawDegrees;
     }
 }

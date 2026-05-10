@@ -1,5 +1,6 @@
 using _Root.Scripts.Input;
 using _Root.Scripts.Network;
+using _Root.Scripts.Roles;
 using Fusion;
 using UnityEngine;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
@@ -61,6 +62,7 @@ namespace _Root.Scripts.Controllers
         public override void FixedUpdateNetwork()
         {
             bool isAlive = _networkPlayer != null && _networkPlayer.IsAlive;
+            ICharacterRoleRules roleRules = _networkPlayer?.RoleRules;
 
             if (Object.HasInputAuthority && !Object.HasStateAuthority)
             {
@@ -73,14 +75,16 @@ namespace _Root.Scripts.Controllers
                     }
 
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
+                    bool roleMelee = roleRules == null || roleRules.CanMelee(_networkPlayer);
+                    bool roleRanged = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
                     if (!localInput.IsBlockPressed && canAttack)
                     {
-                        if (_weaponController != null && localInput.IsShootPressed)
+                        if (_weaponController != null && localInput.IsShootPressed && roleRanged)
                         {
                             _weaponController.HandleShoot(localInput);
                         }
 
-                        if (_meleeController != null && localInput.IsMeleePressed)
+                        if (_meleeController != null && localInput.IsMeleePressed && roleMelee)
                         {
                             _meleeController.TryMeleeAttack();
                         }
@@ -103,27 +107,54 @@ namespace _Root.Scripts.Controllers
             if (GetInput(out NetworkInputData input))
             {
                 NetworkedIsRunning = input.IsRunning;
-                
-                if (Mathf.Abs(input.RotationInput) > 0.001f)
+
+                bool keyboardTurnBody = roleRules != null && roleRules.UsesKeyboardCharacterRotation;
+
+                if (!keyboardTurnBody)
                 {
-                    NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
+                    if (Mathf.Abs(input.RotationInput) > 0.001f)
+                    {
+                        NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
+                    }
                 }
-                
-                Quaternion newRotation = Quaternion.Euler(0, NetworkedYaw, 0);
-                transform.rotation = newRotation;
-                _cc.SetNetworkRotation(newRotation);
-                
-                Vector3 moveDir = transform.forward * input.MovementInput.y +
-                                  transform.right * input.MovementInput.x;
-                
+
+                Quaternion cameraBasisYaw = Quaternion.Euler(0f, input.MovementBasisYawDegrees, 0f);
+                Quaternion bodyYawQuat = Quaternion.Euler(0f, NetworkedYaw, 0f);
+
+                Vector3 moveDir;
+                if (keyboardTurnBody)
+                {
+                    Vector3 camForward = cameraBasisYaw * Vector3.forward;
+                    Vector3 camRight = cameraBasisYaw * Vector3.right;
+                    moveDir = camForward * input.MovementInput.y + camRight * input.MovementInput.x;
+                }
+                else
+                {
+                    moveDir = bodyYawQuat * Vector3.forward * input.MovementInput.y +
+                              bodyYawQuat * Vector3.right * input.MovementInput.x;
+                }
+
                 if (moveDir.sqrMagnitude > 0.01f)
                     moveDir.Normalize();
                 else
                     moveDir = Vector3.zero;
 
+                if (keyboardTurnBody && moveDir.sqrMagnitude > 0.0001f)
+                {
+                    float targetYawDeg = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                    float yawRate = _networkPlayer != null ? _networkPlayer.TankYawDegreesPerSecond : 120f;
+                    float delta = Mathf.DeltaAngle(NetworkedYaw, targetYawDeg);
+                    float maxStep = yawRate * Runner.DeltaTime;
+                    NetworkedYaw += Mathf.Clamp(delta, -maxStep, maxStep);
+                }
+
+                Quaternion newRotation = Quaternion.Euler(0f, NetworkedYaw, 0f);
+                transform.rotation = newRotation;
+                _cc.SetNetworkRotation(newRotation);
+
                 _cc.Move(moveDir, input.IsRunning);
 
-                if (input.IsJumpPressed)
+                if (input.IsJumpPressed && (roleRules == null || roleRules.CanJump(_networkPlayer)))
                 {
                     _cc.Jump();
 
@@ -131,7 +162,9 @@ namespace _Root.Scripts.Controllers
                         _animController.TriggerJump();
                 }
                 
-                if (input.IsDashPressed && (_networkPlayer == null || !_networkPlayer.IsPushing))
+                bool canTryDash = (_networkPlayer == null || !_networkPlayer.IsPushing)
+                    && (roleRules == null || roleRules.CanDash(_networkPlayer));
+                if (input.IsDashPressed && canTryDash)
                 {
                     _cc.Dash();
                 }
@@ -168,7 +201,8 @@ namespace _Root.Scripts.Controllers
                 
                 if (_networkPlayer != null)
                 {
-                    bool canBlock = !_networkPlayer.IsPushing;
+                    bool canBlock = !_networkPlayer.IsPushing
+                        && (roleRules == null || roleRules.CanBlock(_networkPlayer));
                     _networkPlayer.SetBlocking(input.IsBlockPressed && canBlock);
                 }
                 
@@ -178,14 +212,16 @@ namespace _Root.Scripts.Controllers
                 }
                 
                 bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack && !_networkPlayer.IsPushing;
+                bool roleMeleeAuth = roleRules == null || roleRules.CanMelee(_networkPlayer);
+                bool roleRangedAuth = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
                 if (!input.IsBlockPressed && canAttack)
                 {
-                    if (_weaponController != null && input.IsShootPressed)
+                    if (_weaponController != null && input.IsShootPressed && roleRangedAuth)
                     {
                         _weaponController.HandleShoot(input);
                     }
                     
-                    if (_meleeController != null && input.IsMeleePressed)
+                    if (_meleeController != null && input.IsMeleePressed && roleMeleeAuth)
                     {
                         _meleeController.TryMeleeAttack();
                     }

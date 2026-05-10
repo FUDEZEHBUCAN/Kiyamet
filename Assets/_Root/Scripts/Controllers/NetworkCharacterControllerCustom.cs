@@ -116,6 +116,10 @@ namespace _Root.Scripts.Controllers {
       if (IsDashing) {
         return;
       }
+
+      if (_networkPlayer != null && !_networkPlayer.RoleRules.CanDash(_networkPlayer)) {
+        return;
+      }
       
       if (_networkPlayer != null) {
         float manaCost = _networkPlayer.ManaCost;

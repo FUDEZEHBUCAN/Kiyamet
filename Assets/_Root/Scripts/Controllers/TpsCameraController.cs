@@ -18,6 +18,7 @@ namespace _Root.Scripts.Controllers
         public float height = 2f;
 
         [Header("Mouse")]
+        public float mouseXSensitivity = 2f;
         public float mouseYSensitivity = 2f;
         public Vector2 pitchLimits = new Vector2(-40f, 80f);
         
@@ -35,6 +36,8 @@ namespace _Root.Scripts.Controllers
 
         private float _yaw;
         private float _pitch;
+        private float _tankCameraWorldYaw;
+        private bool _wasTankFreeLookActive;
         private Transform _cameraTransform;
         private Image _damageVignetteImage;
         private Tweener _vignetteTween;
@@ -265,14 +268,30 @@ namespace _Root.Scripts.Controllers
             if (target == null) 
                 return;
 
-            // Mouse input: sadece dikey (pitch) kamera tarafından kontrol ediliyor
-            float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseYSensitivity;
+            bool tankFreeLook = NetworkPlayer.Local != null &&
+                                NetworkPlayer.Local.RoleRules.UsesKeyboardCharacterRotation;
 
+            float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseYSensitivity;
             _pitch -= mouseY;
             _pitch  = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
 
-            // Yatay açı her zaman karakterin Y rotasyonundan alınır; kamera ve karakter senkron kalır
-            _yaw = target.eulerAngles.y;
+            if (tankFreeLook)
+            {
+                if (!_wasTankFreeLookActive)
+                {
+                    _tankCameraWorldYaw = target.eulerAngles.y;
+                    _wasTankFreeLookActive = true;
+                }
+
+                float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseXSensitivity;
+                _tankCameraWorldYaw += mouseX;
+                _yaw = _tankCameraWorldYaw;
+            }
+            else
+            {
+                _wasTankFreeLookActive = false;
+                _yaw = target.eulerAngles.y;
+            }
 
             // Kamera rotasyonu
             Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);

@@ -1,10 +1,18 @@
 using UnityEngine;
+using _Root.Scripts.Enums;
 
 namespace _Root.Scripts.Data
 {
     [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Game/Character Data", order = 1)]
     public class CharacterData : ScriptableObject
     {
+        [Header("Role")]
+        [Tooltip("Karakter sınıfı — movement, saldırı ve skill kuralları kodda bu role göre özelleştirilir.")]
+        [SerializeField] private PlayerRoleType roleType = PlayerRoleType.Tank;
+
+        /// <summary>Oyuncu prefab/veri asset’inin bağlı olduğu rol.</summary>
+        public PlayerRoleType RoleType => roleType;
+
         [Header("Movement Settings")]
         [Tooltip("Karakterin maksimum hareket hızı")]
         public float movementSpeed = 6.0f;
@@ -14,6 +22,10 @@ namespace _Root.Scripts.Data
         
         [Tooltip("Zıplama kuvveti")]
         public float jumpForce = 8.0f;
+
+        [Header("Tank movement")]
+        [Tooltip("Tank rolünde gövdenin hareket yönüne (kameraya göre WASD) dönüş hızı (°/s). Diğer rollerde kullanılmaz.")]
+        public float tankYawDegreesPerSecond = 120f;
         
         [Header("Combat Settings")]
         [Tooltip("Karakterin maksimum can değeri")]
