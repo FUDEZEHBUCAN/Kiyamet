@@ -651,6 +651,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8676086249178060461}
+  - component: {fileID: 1010820312694463834}
   m_Layer: 0
   m_Name: ShamanRigged
   m_TagString: Untagged
@@ -675,6 +676,27 @@ Transform:
   - {fileID: 4481337777280089827}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!95 &1010820312694463834
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3579665516113268028}
+  m_Enabled: 1
+  m_Avatar: {fileID: 9000000, guid: 73a6964ce3c9bbe45b2cb39522f3e2ec, type: 3}
+  m_Controller: {fileID: 9100000, guid: 9e0896f47cd694a7e87a0f0586aa35fe, type: 2}
+  m_CullingMode: 1
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &3762584343857818262
 GameObject:
   m_ObjectHideFlags: 0

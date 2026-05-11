@@ -86,7 +86,7 @@ namespace _Root.Scripts.Controllers
 
                         if (_meleeController != null && localInput.IsMeleePressed && roleMelee)
                         {
-                            _meleeController.TryMeleeAttack();
+                            _meleeController.TryMeleeAttack(localInput.MovementInput);
                         }
                     }
                 }
@@ -120,6 +120,7 @@ namespace _Root.Scripts.Controllers
 
                 Quaternion cameraBasisYaw = Quaternion.Euler(0f, input.MovementBasisYawDegrees, 0f);
                 Quaternion bodyYawQuat = Quaternion.Euler(0f, NetworkedYaw, 0f);
+                bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
 
                 Vector3 moveDir;
                 if (keyboardTurnBody)
@@ -139,9 +140,13 @@ namespace _Root.Scripts.Controllers
                 else
                     moveDir = Vector3.zero;
 
-                if (keyboardTurnBody && moveDir.sqrMagnitude > 0.0001f)
+                if (isMeleeMovementLocked)
+                    moveDir = Vector3.zero;
+
+                if (!isMeleeMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
                 {
-                    float targetYawDeg = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                    Vector3 faceDir = cameraBasisYaw * Vector3.forward;
+                    float targetYawDeg = Mathf.Atan2(faceDir.x, faceDir.z) * Mathf.Rad2Deg;
                     float yawRate = _networkPlayer != null ? _networkPlayer.TankYawDegreesPerSecond : 120f;
                     float delta = Mathf.DeltaAngle(NetworkedYaw, targetYawDeg);
                     float maxStep = yawRate * Runner.DeltaTime;
@@ -152,7 +157,7 @@ namespace _Root.Scripts.Controllers
                 transform.rotation = newRotation;
                 _cc.SetNetworkRotation(newRotation);
 
-                _cc.Move(moveDir, input.IsRunning);
+                _cc.Move(moveDir, input.IsRunning && !isMeleeMovementLocked);
 
                 if (input.IsJumpPressed && (roleRules == null || roleRules.CanJump(_networkPlayer)))
                 {
@@ -223,7 +228,7 @@ namespace _Root.Scripts.Controllers
                     
                     if (_meleeController != null && input.IsMeleePressed && roleMeleeAuth)
                     {
-                        _meleeController.TryMeleeAttack();
+                        _meleeController.TryMeleeAttack(input.MovementInput);
                     }
                 }
             }

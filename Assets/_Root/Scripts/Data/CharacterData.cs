@@ -24,7 +24,7 @@ namespace _Root.Scripts.Data
         public float jumpForce = 8.0f;
 
         [Header("Tank movement")]
-        [Tooltip("Tank rolünde gövdenin hareket yönüne (kameraya göre WASD) dönüş hızı (°/s). Diğer rollerde kullanılmaz.")]
+        [Tooltip("Tank rolünde W/S basılıyken gövdenin kameranın baktığı yöne dönüş hızı (°/s). A/D yönü değiştirmez. Diğer rollerde kullanılmaz.")]
         public float tankYawDegreesPerSecond = 120f;
         
         [Header("Combat Settings")]
