@@ -114,7 +114,7 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <param name="attackType">1 = ilk vuruş, 2 = ikinci, 3 = combo</param>
+        /// <param name="attackType">1 = sağdan sola, 2 = soldan sağa, 3 = ileri, 4 = geriye</param>
         /// <remarks>
         /// Geçişin doğru AttackType ile değerlendirilmesi için int set + trigger sonrası
         /// <see cref="Animator.Update"/> ile anında işlenir; ardından AttackType 0 yapılır
@@ -124,7 +124,7 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
-                int type = attackType is >= 1 and <= 3 ? attackType : 1;
+                int type = attackType is >= 1 and <= 4 ? attackType : 3;
                 animator.SetInteger(ParamAttackType, type);
                 animator.SetTrigger(ParamMeleeAttack);
                 animator.Update(0f);
@@ -136,7 +136,7 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null)
             {
-                animator.SetInteger(ParamAttackType, Mathf.Clamp(attackType, 0, 3));
+                animator.SetInteger(ParamAttackType, Mathf.Clamp(attackType, 0, 4));
             }
         }
         

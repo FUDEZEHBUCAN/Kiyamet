@@ -161,7 +161,7 @@ GameObject:
   - component: {fileID: 5647890001390091276}
   - component: {fileID: 1978066652320965982}
   m_Layer: 3
-  m_Name: ThirdPersonController
+  m_Name: Player_Tank
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -283,7 +283,7 @@ MonoBehaviour:
   meleeRadius: 1.25
   meleeCooldown: 1.25
   damageDelay: 0.38
-  comboSecondDamageDelay: 0.2
+  movementLockDuration: 0.8
   meleePoint: {fileID: 6768759924057309602}
   hitLayers:
     serializedVersion: 2
