@@ -84,7 +84,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -993,6 +993,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 73a6964ce3c9bbe45b2cb39522f3e2ec, type: 3}
       propertyPath: m_Name
       value: PlayerTank
+      objectReference: {fileID: 0}
+    - target: {fileID: 5068514113494238247, guid: 73a6964ce3c9bbe45b2cb39522f3e2ec, type: 3}
+      propertyPath: m_DynamicOccludee
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5068514113494238247, guid: 73a6964ce3c9bbe45b2cb39522f3e2ec, type: 3}
       propertyPath: m_Materials.Array.data[0]
