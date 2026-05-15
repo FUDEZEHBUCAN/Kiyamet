@@ -147,6 +147,14 @@ namespace _Root.Scripts.Controllers
                 animator.SetTrigger(ParamDash);
             }
         }
+
+        /// <summary>Animator'da isimle tanımlı trigger (Support imza skill vb.).</summary>
+        public void TriggerSkillByName(string triggerName)
+        {
+            if (animator == null || !animator.enabled || !animator.isActiveAndEnabled || string.IsNullOrEmpty(triggerName))
+                return;
+            animator.SetTrigger(Animator.StringToHash(triggerName));
+        }
         
         public void InterruptAttack()
         {

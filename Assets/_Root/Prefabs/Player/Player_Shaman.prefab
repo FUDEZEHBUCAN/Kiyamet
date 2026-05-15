@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 8847745754991213709}
   - component: {fileID: 8876303188666349773}
   - component: {fileID: 1868908445738182960}
+  - component: {fileID: 4728391056283749102}
   m_Layer: 3
   m_Name: Player_Shaman
   m_TagString: Untagged
@@ -179,6 +180,7 @@ MonoBehaviour:
   - {fileID: 1897184230565983797}
   - {fileID: 3360321549091136651}
   - {fileID: 1868908445738182960}
+  - {fileID: 4728391056283749102}
   ForceRemoteRenderTimeframe: 0
 --- !u!143 &8595738508119770567
 CharacterController:
@@ -257,6 +259,23 @@ MonoBehaviour:
   rotationSpeed: 150
   _NetworkedIsRunning:
     _value: 0
+--- !u!114 &4728391056283749102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476297565452505369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a38548e6a2345bb87d1c62a675103cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healingOrbPrefab: {fileID: 5839021746510976128, guid: bc875fffd8f847fb8ac6b2f1859b9f88, type: 3}
+  staffFirePoint: {fileID: 2446396890388987212}
+  castAnimatorTriggerName: SignatureSkill
+  castReleaseDelaySeconds: 0.45
+  signatureCooldownSeconds: 5
 --- !u!114 &1404457538942026996
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -592,6 +611,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7546040212942369527}
     m_Modifications:
+    - target: {fileID: 1840212485067165715, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 8c9f18983fad70b45966967e025bc81b, type: 3}
     - target: {fileID: 2608998072524037950, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -632,9 +655,37 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3064311463978926921, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 71.63
+      objectReference: {fileID: 0}
+    - target: {fileID: 3999668058440456037, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5881430845045619099, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_SizeDelta.x
+      value: 67.6
+      objectReference: {fileID: 0}
     - target: {fileID: 6449105282416596975, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_Name
       value: Gameplay_HUID
+      objectReference: {fileID: 0}
+    - target: {fileID: 6821281161463906748, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: eb51d04b36693b9418c9386c4593b1a1, type: 3}
+    - target: {fileID: 6821281161463906748, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_PreserveAspect
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8436241324309306473, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: d048cfa0e89b3af43ae427732f05c7d2, type: 3}
+    - target: {fileID: 8436241324309306473, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_PreserveAspect
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

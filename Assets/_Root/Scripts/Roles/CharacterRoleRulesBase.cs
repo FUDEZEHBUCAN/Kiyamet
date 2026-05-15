@@ -26,5 +26,10 @@ namespace _Root.Scripts.Roles
             player != null && player.IsAlive;
 
         public virtual bool UsesKeyboardCharacterRotation => false;
+
+        /// <summary>
+        /// False ise dash tuşu rol özel imza yeteneğini tetikler (ör. Support iyileştirme topu).
+        /// </summary>
+        public virtual bool UsesDashAsSignature => true;
     }
 }

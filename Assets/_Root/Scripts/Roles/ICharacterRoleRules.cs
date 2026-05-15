@@ -21,5 +21,10 @@ namespace _Root.Scripts.Roles
         /// True ise gövde mouse ile dönmez; yatay bakış kamerada kalır, W/S ileri-geri, A/D yaw döndürür.
         /// </summary>
         bool UsesKeyboardCharacterRotation { get; }
+
+        /// <summary>
+        /// False ise dash girişi tank dash'ı yerine rolün imza yeteneğini çalıştırır.
+        /// </summary>
+        bool UsesDashAsSignature { get; }
     }
 }

@@ -18,6 +18,7 @@ namespace _Root.Scripts.Controllers
         private InteractionController _interactionController;
         private PlayerAnimationController _animController;
         private NetworkPlayer _networkPlayer;
+        private SupportSignatureSkillController _supportSignatureSkill;
         
         [Networked] private float NetworkedYaw { get; set; }
         [Networked] public NetworkBool NetworkedIsRunning { get; set; }
@@ -33,6 +34,7 @@ namespace _Root.Scripts.Controllers
             _interactionController = GetComponent<InteractionController>();
             _animController = GetComponentInChildren<PlayerAnimationController>();
             _networkPlayer = GetComponent<NetworkPlayer>();
+            _supportSignatureSkill = GetComponent<SupportSignatureSkillController>();
         }
 
         public override void Spawned()
@@ -167,11 +169,18 @@ namespace _Root.Scripts.Controllers
                         _animController.TriggerJump();
                 }
                 
-                bool canTryDash = (_networkPlayer == null || !_networkPlayer.IsPushing)
-                    && (roleRules == null || roleRules.CanDash(_networkPlayer));
-                if (input.IsDashPressed && canTryDash)
+                bool canTrySignatureMove = _networkPlayer == null || !_networkPlayer.IsPushing;
+                if (input.IsDashPressed && canTrySignatureMove)
                 {
-                    _cc.Dash();
+                    bool dashAsSignature = roleRules == null || roleRules.UsesDashAsSignature;
+                    if (!dashAsSignature && _supportSignatureSkill != null)
+                    {
+                        _supportSignatureSkill.TryCastSignature(input);
+                    }
+                    else if (roleRules == null || roleRules.CanDash(_networkPlayer))
+                    {
+                        _cc.Dash();
+                    }
                 }
 
                 if (input.IsUltimatePressed && _networkPlayer != null)

@@ -224,6 +224,13 @@ namespace _Root.Scripts.Controllers {
     /// </summary>
     public float GetDashCooldownNormalized()
     {
+      if (_networkPlayer != null && _networkPlayer.RoleType == PlayerRoleType.Support)
+      {
+        var supportSig = GetComponent<SupportSignatureSkillController>();
+        if (supportSig != null)
+          return supportSig.GetSignatureCooldownNormalized();
+      }
+
       if (Object == null || !Object.IsValid || Runner == null || dashCooldown <= 0.001f)
         return 0f;
       if (DashCooldownTimer.ExpiredOrNotRunning(Runner))
