@@ -17,6 +17,15 @@ namespace _Root.Scripts.Controllers
         public float distance = 4f;
         public float height = 2f;
 
+        [Header("Duvar / engel çarpışması")]
+        [Tooltip("Kamera ile hedef arasında SphereCast; karakter katmanı hariç tutulur.")]
+        [SerializeField] private LayerMask collisionLayers;
+        [SerializeField] private float collisionRadius = 0.3f;
+        [SerializeField] private float collisionSkin = 0.25f;
+        [SerializeField] private float minDistanceFromPivot = 0.75f;
+        [SerializeField] private float collisionOriginHeight = 1.35f;
+        [SerializeField] private float collisionSmoothTime = 0.04f;
+
         [Header("Mouse")]
         public float mouseXSensitivity = 2f;
         public float mouseYSensitivity = 2f;
@@ -52,6 +61,9 @@ namespace _Root.Scripts.Controllers
         private float _floatShakeStartTime;
         private float _floatShakeEndTime;
         private float _floatShakeDuration;
+        private float _smoothedArmLength;
+        private float _armLengthVelocity;
+        private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
 
         private void Awake()
         {
@@ -74,6 +86,25 @@ namespace _Root.Scripts.Controllers
             Cursor.visible = false;
             
             FindDamageVignetteImage();
+
+            _smoothedArmLength = distance;
+            EnsureDefaultCollisionLayers();
+        }
+
+        private void Reset()
+        {
+            EnsureDefaultCollisionLayers();
+        }
+
+        private void EnsureDefaultCollisionLayers()
+        {
+            if (collisionLayers.value != 0)
+                return;
+
+            int mask = LayerMask.GetMask("Default", "Obstacle");
+            if (mask == 0)
+                mask = ~(LayerMask.GetMask("Character", "Ignore Raycast", "UI", "Water"));
+            collisionLayers = mask;
         }
         
         private void FindDamageVignetteImage()
@@ -369,12 +400,93 @@ namespace _Root.Scripts.Controllers
             Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);
             transform.rotation = rotation;
 
-            // Hedef etrafında konum (ekstra smoothing yok, direkt takip)
             Vector3 desiredOffset = new Vector3(0f, height, -distance);
             Vector3 desiredPos = target.position + rotation * desiredOffset;
-            transform.position = desiredPos;
+            Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+            Vector3 toCamera = desiredPos - pivot;
+            float desiredLength = toCamera.magnitude;
+            Vector3 direction = desiredLength > 0.001f ? toCamera / desiredLength : rotation * Vector3.back;
+            float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
+            float finalLength = ApplyArmLengthSmoothing(safeLength, desiredLength);
+            transform.position = pivot + direction * finalLength;
 
             ApplySupportUltimateFloatShake();
+        }
+
+        /// <summary>
+        /// SphereCast merkezi duvara değdiğinde bile kamera gözü içerde kalmasın diye
+        /// hit.point + normal * (radius + skin) kullanılır.
+        /// </summary>
+        private float ComputeSafeArmLength(Vector3 pivot, Vector3 direction, float desiredLength)
+        {
+            if (desiredLength <= 0.001f)
+                return minDistanceFromPivot;
+
+            if (collisionLayers.value == 0)
+                return desiredLength;
+
+            float wallOffset = collisionRadius + collisionSkin;
+            float safeLength = desiredLength;
+
+            int hitCount = Physics.SphereCastNonAlloc(
+                pivot,
+                collisionRadius,
+                direction,
+                CollisionHitBuffer,
+                desiredLength,
+                collisionLayers,
+                QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                ref RaycastHit hit = ref CollisionHitBuffer[i];
+                if (IsIgnoredCollider(hit.collider))
+                    continue;
+
+                float alongRay = Vector3.Dot(hit.point + hit.normal * wallOffset - pivot, direction);
+                alongRay = Mathf.Clamp(alongRay, minDistanceFromPivot, desiredLength);
+                safeLength = Mathf.Min(safeLength, alongRay);
+            }
+
+            return safeLength;
+        }
+
+        private float ApplyArmLengthSmoothing(float safeLength, float desiredLength)
+        {
+            safeLength = Mathf.Clamp(safeLength, minDistanceFromPivot, desiredLength);
+
+            // Duvara yaklaşırken gecikme yok; uzaklaşırken yumuşat.
+            if (safeLength < _smoothedArmLength - 0.01f)
+            {
+                _smoothedArmLength = safeLength;
+                _armLengthVelocity = 0f;
+            }
+            else if (collisionSmoothTime > 0.001f)
+            {
+                _smoothedArmLength = Mathf.SmoothDamp(
+                    _smoothedArmLength,
+                    safeLength,
+                    ref _armLengthVelocity,
+                    collisionSmoothTime);
+                _smoothedArmLength = Mathf.Min(_smoothedArmLength, safeLength);
+            }
+            else
+            {
+                _smoothedArmLength = safeLength;
+            }
+
+            return Mathf.Clamp(_smoothedArmLength, minDistanceFromPivot, desiredLength);
+        }
+
+        private bool IsIgnoredCollider(Collider col)
+        {
+            if (col == null)
+                return true;
+
+            if (target != null && (col.transform == target || col.transform.IsChildOf(target)))
+                return true;
+
+            return false;
         }
     }
 }
