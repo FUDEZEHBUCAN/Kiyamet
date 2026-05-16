@@ -57,6 +57,7 @@ namespace _Root.Scripts.Enemy
         [Networked] private NetworkBool IsKnockedBack { get; set; }
         [Networked] private Vector3 KnockbackVelocity { get; set; }
         [Networked] private TickTimer KnockbackTimer { get; set; }
+        [Networked] private float TimeDistortionSpeedMultiplier { get; set; }
         
         // Local variables
         private NetworkPlayer _currentTarget;
@@ -68,6 +69,7 @@ namespace _Root.Scripts.Enemy
         private int _lastVisualAttackEffectTick;
         private int _lastVisualHitTick;
         private Vector3 _lastPosition; // Animasyon için hız hesaplama
+        private float _lastAppliedAnimPlaybackSpeed = 1f;
         private Vector3 _guardPosition;
         private bool _deathAnimTriggered; // Death animasyonu için flag
         private EnemyState _lastState; // State değişikliğini takip et
@@ -77,6 +79,32 @@ namespace _Root.Scripts.Enemy
         // Properties
         public bool IsAlive => CurrentHealth > 0f;
         public EnemyState State => CurrentState;
+
+        public void SetTimeDistortionSlow(float speedMultiplier)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            TimeDistortionSpeedMultiplier = Mathf.Clamp(speedMultiplier, 0.05f, 1f);
+            RefreshAgentSpeed();
+        }
+
+        public void ClearTimeDistortionSlow()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            TimeDistortionSpeedMultiplier = 1f;
+            RefreshAgentSpeed();
+        }
+
+        private void RefreshAgentSpeed()
+        {
+            if (agent == null || enemyData == null)
+                return;
+
+            agent.speed = enemyData.MovementSpeed * Mathf.Max(0.05f, TimeDistortionSpeedMultiplier);
+        }
         
         private void Awake()
         {
@@ -160,7 +188,8 @@ namespace _Root.Scripts.Enemy
                 _guardPosition = spawnPosition;
                 
                 // Agent ayarları (enable olmadan önce)
-                agent.speed = enemyData.MovementSpeed;
+                TimeDistortionSpeedMultiplier = 1f;
+                RefreshAgentSpeed();
                 agent.angularSpeed = enemyData.RotationSpeed;
                 agent.stoppingDistance = enemyData.StoppingDistance;
                 agent.acceleration = enemyData.Acceleration;
@@ -464,8 +493,21 @@ namespace _Root.Scripts.Enemy
             
             if (animController != null)
             {
+                float playbackSpeed = GetTimeDistortionAnimPlaybackSpeed();
+                if (Mathf.Abs(playbackSpeed - _lastAppliedAnimPlaybackSpeed) > 0.001f)
+                {
+                    animController.SetPlaybackSpeed(playbackSpeed);
+                    _lastAppliedAnimPlaybackSpeed = playbackSpeed;
+                }
+
                 animController.SetSpeed(speed);
             }
+        }
+
+        private float GetTimeDistortionAnimPlaybackSpeed()
+        {
+            float mult = TimeDistortionSpeedMultiplier;
+            return mult > 0.001f ? Mathf.Clamp(mult, 0.05f, 1f) : 1f;
         }
 
         #region AI States

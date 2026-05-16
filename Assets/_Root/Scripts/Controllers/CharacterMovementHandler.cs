@@ -66,13 +66,15 @@ namespace _Root.Scripts.Controllers
             bool isAlive = _networkPlayer != null && _networkPlayer.IsAlive;
             ICharacterRoleRules roleRules = _networkPlayer?.RoleRules;
 
+            bool isSupportUltimateCastLocked = _networkPlayer != null && _networkPlayer.IsSupportUltimateCastLocked;
+
             if (Object.HasInputAuthority && !Object.HasStateAuthority)
             {
                 if (isAlive && GetInput(out NetworkInputData localInput))
                 {
                     if (_animController != null)
                     {
-                        _animController.SetBlocking(localInput.IsBlockPressed);
+                        _animController.SetBlocking(localInput.IsBlockPressed && !isSupportUltimateCastLocked);
                         _animController.SetRunning(localInput.IsRunning);
                     }
 
@@ -111,8 +113,12 @@ namespace _Root.Scripts.Controllers
                 NetworkedIsRunning = input.IsRunning;
 
                 bool keyboardTurnBody = roleRules != null && roleRules.UsesKeyboardCharacterRotation;
+                bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
+                isSupportUltimateCastLocked = _networkPlayer != null && _networkPlayer.IsSupportUltimateCastLocked;
+                bool isSignatureCastMovementLocked = _supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked;
+                bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked || isSignatureCastMovementLocked;
 
-                if (!keyboardTurnBody)
+                if (!isMovementLocked && !keyboardTurnBody)
                 {
                     if (Mathf.Abs(input.RotationInput) > 0.001f)
                     {
@@ -122,7 +128,6 @@ namespace _Root.Scripts.Controllers
 
                 Quaternion cameraBasisYaw = Quaternion.Euler(0f, input.MovementBasisYawDegrees, 0f);
                 Quaternion bodyYawQuat = Quaternion.Euler(0f, NetworkedYaw, 0f);
-                bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
 
                 Vector3 moveDir;
                 if (keyboardTurnBody)
@@ -142,10 +147,10 @@ namespace _Root.Scripts.Controllers
                 else
                     moveDir = Vector3.zero;
 
-                if (isMeleeMovementLocked)
+                if (isMovementLocked)
                     moveDir = Vector3.zero;
 
-                if (!isMeleeMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
+                if (!isMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
                 {
                     Vector3 faceDir = cameraBasisYaw * Vector3.forward;
                     float targetYawDeg = Mathf.Atan2(faceDir.x, faceDir.z) * Mathf.Rad2Deg;
@@ -159,9 +164,9 @@ namespace _Root.Scripts.Controllers
                 transform.rotation = newRotation;
                 _cc.SetNetworkRotation(newRotation);
 
-                _cc.Move(moveDir, input.IsRunning && !isMeleeMovementLocked);
+                _cc.Move(moveDir, input.IsRunning && !isMovementLocked);
 
-                if (input.IsJumpPressed && (roleRules == null || roleRules.CanJump(_networkPlayer)))
+                if (!isMovementLocked && input.IsJumpPressed && (roleRules == null || roleRules.CanJump(_networkPlayer)))
                 {
                     _cc.Jump();
 
@@ -169,7 +174,8 @@ namespace _Root.Scripts.Controllers
                         _animController.TriggerJump();
                 }
                 
-                bool canTrySignatureMove = _networkPlayer == null || !_networkPlayer.IsPushing;
+                bool canTrySignatureMove = !isMovementLocked
+                    && (_networkPlayer == null || !_networkPlayer.IsPushing);
                 if (input.IsDashPressed && canTrySignatureMove)
                 {
                     bool dashAsSignature = roleRules == null || roleRules.UsesDashAsSignature;
@@ -188,7 +194,7 @@ namespace _Root.Scripts.Controllers
                     _networkPlayer.TryActivateUltimate();
                 }
                 
-                if (input.IsInteractPressed && _interactionController != null)
+                if (input.IsInteractPressed && _interactionController != null && !isSupportUltimateCastLocked)
                 {
                     if (_interactionController.IsInteracting)
                     {
@@ -215,7 +221,8 @@ namespace _Root.Scripts.Controllers
                 
                 if (_networkPlayer != null)
                 {
-                    bool canBlock = !_networkPlayer.IsPushing
+                    bool canBlock = !isSupportUltimateCastLocked
+                        && !_networkPlayer.IsPushing
                         && (roleRules == null || roleRules.CanBlock(_networkPlayer));
                     _networkPlayer.SetBlocking(input.IsBlockPressed && canBlock);
                 }

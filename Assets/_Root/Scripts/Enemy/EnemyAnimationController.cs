@@ -22,12 +22,25 @@ namespace _Root.Scripts.Enemy
         // Smoothing için
         private float _currentSpeed;
         private float _speedVelocity;
+        private float _playbackSpeed = 1f;
         
         private void Awake()
         {
             if (animator == null)
                 animator = GetComponent<Animator>();
         }
+        
+        /// <summary>
+        /// Tüm animasyon kliplerinin oynatma hızı (zaman kubbesi yavaşlatma vb.).
+        /// </summary>
+        public void SetPlaybackSpeed(float multiplier)
+        {
+            _playbackSpeed = Mathf.Clamp(multiplier, 0.05f, 2f);
+            if (animator != null)
+                animator.speed = _playbackSpeed;
+        }
+
+        public float PlaybackSpeed => _playbackSpeed;
         
         /// <summary>
         /// Hareket hızını günceller (Idle/Run blend için)
@@ -114,6 +127,7 @@ namespace _Root.Scripts.Enemy
         {
             if (animator != null)
             {
+                SetPlaybackSpeed(1f);
                 animator.SetBool(ParamIsDead, false);
                 animator.SetBool(ParamIsMoving, false);
                 SetSpeedImmediate(0f);

@@ -83,8 +83,8 @@ namespace _Root.Scripts.Controllers
             if (!input.IsShootPressed)
                 return;
             
-            // Ölü oyuncular ateş edemez
-            if (_networkPlayer != null && !_networkPlayer.IsAlive)
+            // Ölü oyuncular / support ulti cast kilidi sırasında ateş edemez
+            if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
                 return;
             
             float currentTime = Runner.SimulationTime;

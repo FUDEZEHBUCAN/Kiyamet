@@ -23,9 +23,11 @@ namespace _Root.Scripts.Network
         [SerializeField] private float respawnDelay = 5f;
 
         [Header("Ultimate")]
+        [Tooltip("Açıkken oyuncu spawn/respawn sonrası ulti hazır başlar (test için).")]
+        [SerializeField] private bool startWithUltimateReadyForTesting;
         [Tooltip("Ultiyi doldurmak için gereken kill sayısı")]
         [SerializeField] private int killsRequiredForUltimate = 3;
-        [Tooltip("Ulti aktif kaldığı süre (saniye)")]
+        [Tooltip("Tank vb. için ulti aktif süresi. Support süreleri SupportUltimateController'da.")]
         [SerializeField] private float ultimateDuration = 10f;
         [Tooltip("Ulti aktifken uygulanacak hasar çarpanı")]
         [SerializeField] private float ultimateDamageMultiplier = 2f;
@@ -35,6 +37,7 @@ namespace _Root.Scripts.Network
         [SerializeField] private PlayerAudioController audioController;
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
+        private SupportUltimateController _supportUltimateController;
         
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
@@ -44,6 +47,10 @@ namespace _Root.Scripts.Network
         [Networked] private TickTimer HitStunTimer { get; set; }
         [Networked] private TickTimer RespawnTimer { get; set; }
         [Networked] private TickTimer UltimateTimer { get; set; }
+        [Networked] private TickTimer SupportUltimateInvulnTimer { get; set; }
+        [Networked] private float SupportUltimateInvulnTotalSeconds { get; set; }
+        [Networked] public float SupportUltimateFloatOffset { get; private set; }
+        [Networked] private float SupportUltimateAnchorY { get; set; }
         [Networked] private float UltimateEndTime { get; set; }
         [Networked] private NetworkBool IsDead { get; set; }
         [Networked] public NetworkBool IsUltimateActive { get; set; }
@@ -55,11 +62,14 @@ namespace _Root.Scripts.Network
         private int _lastVisualHitTick;
         private int _lastVisualDeathTick;
         private bool _wasDead;
+        private float _supportUltimateFloatVelocity;
+        private bool _supportUltimateFloatCameraShakeActive;
         
         /// <summary>
         /// Saldırı yapabilir mi? (Hit stun kontrolü)
         /// </summary>
-        public bool CanAttack => HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead;
+        public bool CanAttack =>
+            HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead && !IsSupportUltimateCastLocked;
         
         // CharacterData'dan alınan değerler
         public float MaxHealth => characterData != null ? characterData.maxHealth : 100f;
@@ -84,7 +94,10 @@ namespace _Root.Scripts.Network
         public bool IsAlive => CurrentHealth > 0f && !IsDead;
         public bool IsUltimateReady => UltimateKillCount >= Mathf.Max(1, killsRequiredForUltimate);
         public int UltimateKillsRequired => Mathf.Max(1, killsRequiredForUltimate);
-        public float UltimateDurationSeconds => ultimateDuration;
+        public float UltimateDurationSeconds =>
+            RoleType == PlayerRoleType.Support && _supportUltimateController != null
+                ? _supportUltimateController.UltimateDurationSeconds
+                : ultimateDuration;
         
         // Mana property
         public float Mana => CurrentMana;
@@ -115,6 +128,9 @@ namespace _Root.Scripts.Network
             
             if (_characterController == null)
                 _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+            if (_supportUltimateController == null)
+                _supportUltimateController = GetComponent<SupportUltimateController>();
             
             // Animator'ın enabled olduğundan emin ol (remote client'larda)
             if (animController != null)
@@ -138,6 +154,9 @@ namespace _Root.Scripts.Network
             {
                 Local = this;
             }
+
+            if (Object.HasStateAuthority)
+                ApplyTestingUltimateChargeIfEnabled();
             
             // Local state initialize
             _wasDead = IsDead;
@@ -159,7 +178,6 @@ namespace _Root.Scripts.Network
             {
                 DeactivateUltimate();
             }
-            
         }
 
         public float GetUltimateChargeNormalized()
@@ -173,8 +191,9 @@ namespace _Root.Scripts.Network
             if (!IsUltimateActive)
                 return 0f;
 
+            float duration = UltimateDurationSeconds;
             float remaining = Mathf.Max(0f, UltimateEndTime - Runner.SimulationTime);
-            return ultimateDuration > 0.0001f ? Mathf.Clamp01(remaining / ultimateDuration) : 0f;
+            return duration > 0.0001f ? Mathf.Clamp01(remaining / duration) : 0f;
         }
         
         public override void Render()
@@ -219,6 +238,35 @@ namespace _Root.Scripts.Network
                     _lastVisualDeathTick = LastDeathTick;
                 }
             }
+
+            UpdateSupportUltimateFloatCameraShake();
+        }
+
+        private void UpdateSupportUltimateFloatCameraShake()
+        {
+            if (!Object.HasInputAuthority)
+                return;
+
+            var camera = TpsCameraController.Instance;
+            if (camera == null)
+                return;
+
+            bool shouldShake = IsAlive && IsSupportUltimateFloating;
+
+            if (shouldShake && !_supportUltimateFloatCameraShakeActive)
+            {
+                float remaining = SupportUltimateInvulnTimer.RemainingTime(Runner) ?? 0f;
+                if (remaining > 0.01f)
+                {
+                    camera.StartSupportUltimateFloatShake(remaining);
+                    _supportUltimateFloatCameraShakeActive = true;
+                }
+            }
+            else if (!shouldShake && _supportUltimateFloatCameraShakeActive)
+            {
+                camera.StopSupportUltimateFloatShake();
+                _supportUltimateFloatCameraShakeActive = false;
+            }
         }
         
         public void TakeDamage(float damage, bool isHeavyAttack = false)
@@ -229,10 +277,18 @@ namespace _Root.Scripts.Network
             if (!IsAlive)
                 return;
 
-            if (IsUltimateActive)
+            if (HasSupportUltimateInvulnerability())
+                return;
+
+            if (IsUltimateActive && RoleType != PlayerRoleType.Support)
             {
                 return;
             }
+
+            float domeDamageMultiplier = TimeDistortionDomeZone.GetAllyDamageTakenMultiplier(this);
+            damage *= domeDamageMultiplier;
+            if (damage <= 0.001f)
+                return;
             
             // Block kontrolü - blokluyorsa hasar alma
             if (IsBlocking)
@@ -293,6 +349,9 @@ namespace _Root.Scripts.Network
         {
             if (!Object.HasStateAuthority)
                 return;
+
+            if (IsSupportUltimateCastLocked)
+                blocking = false;
             
             bool wasBlocking = IsBlocking;
             IsBlocking = blocking;
@@ -380,9 +439,68 @@ namespace _Root.Scripts.Network
 
         public bool TryActivateUltimate()
         {
-            if (!Object.HasStateAuthority || !IsAlive || IsUltimateActive || !IsUltimateReady)
+            if (!Object.HasStateAuthority || !IsAlive || IsUltimateActive || !IsUltimateReady
+                || IsSupportUltimateCastLocked)
                 return false;
 
+            if (RoleType == PlayerRoleType.Support)
+            {
+                if (_supportUltimateController == null)
+                    _supportUltimateController = GetComponent<SupportUltimateController>();
+
+                return _supportUltimateController != null && _supportUltimateController.TryActivateUltimate();
+            }
+
+            return TryActivateDefaultUltimate();
+        }
+
+        public void BeginSupportUltimate()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (_supportUltimateController == null)
+                _supportUltimateController = GetComponent<SupportUltimateController>();
+
+            float duration = Mathf.Max(0.1f,
+                _supportUltimateController != null
+                    ? _supportUltimateController.UltimateDurationSeconds
+                    : ultimateDuration);
+            float invuln = Mathf.Max(0f,
+                _supportUltimateController != null
+                    ? _supportUltimateController.InvulnDurationSeconds
+                    : 0f);
+
+            IsUltimateActive = true;
+            UltimateKillCount = 0;
+            UltimateTimer = TickTimer.CreateFromSeconds(Runner, duration);
+            UltimateEndTime = Runner.SimulationTime + duration;
+
+            SupportUltimateInvulnTotalSeconds = invuln;
+            SupportUltimateInvulnTimer = invuln > 0.001f
+                ? TickTimer.CreateFromSeconds(Runner, invuln)
+                : TickTimer.None;
+
+            SupportUltimateFloatOffset = 0f;
+            _supportUltimateFloatVelocity = 0f;
+            SupportUltimateAnchorY = _characterController != null
+                ? _characterController.transform.position.y
+                : transform.position.y;
+        }
+
+        public void NotifySupportUltimateEnded()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            DeactivateUltimate();
+
+            if (_supportUltimateController != null)
+                _supportUltimateController.OnSupportUltimateEndedFromDome();
+        }
+
+        private bool TryActivateDefaultUltimate()
+        {
             IsUltimateActive = true;
             UltimateKillCount = 0;
             UltimateTimer = TickTimer.CreateFromSeconds(Runner, ultimateDuration);
@@ -392,7 +510,10 @@ namespace _Root.Scripts.Network
 
         public float GetDamageMultiplier()
         {
-            return IsUltimateActive ? ultimateDamageMultiplier : 1f;
+            if (!IsUltimateActive || RoleType == PlayerRoleType.Support)
+                return 1f;
+
+            return ultimateDamageMultiplier;
         }
 
         private void DeactivateUltimate()
@@ -400,6 +521,147 @@ namespace _Root.Scripts.Network
             IsUltimateActive = false;
             UltimateTimer = TickTimer.None;
             UltimateEndTime = 0f;
+            SupportUltimateInvulnTimer = TickTimer.None;
+            SupportUltimateInvulnTotalSeconds = 0f;
+        }
+
+        /// <summary>Support ultisi: ilk birkaç saniye hasar almaz ve hareket edemez.</summary>
+        public bool IsSupportUltimateCastLocked =>
+            Object != null && Object.IsValid && Runner != null && HasSupportUltimateInvulnerability();
+
+        /// <summary>Invuln boyunca yükselir (ilk yarı) ve iner (ikinci yarı).</summary>
+        public bool IsSupportUltimateFloating =>
+            RoleType == PlayerRoleType.Support && HasSupportUltimateInvulnerability();
+
+        public void TickSupportUltimateFloat(float deltaTime)
+        {
+            if (!Object.HasStateAuthority || RoleType != PlayerRoleType.Support || !IsAlive)
+                return;
+
+            if (!HasSupportUltimateInvulnerability())
+                return;
+
+            float targetOffset = GetSupportUltimateFloatTargetOffset();
+            float smoothTime = Mathf.Max(0.05f, GetSupportUltimateCastFloatSmoothTime());
+            SupportUltimateFloatOffset = Mathf.SmoothDamp(
+                SupportUltimateFloatOffset,
+                targetOffset,
+                ref _supportUltimateFloatVelocity,
+                smoothTime,
+                Mathf.Infinity,
+                deltaTime);
+
+            ApplySupportUltimateFloatPosition();
+        }
+
+        /// <summary>
+        /// Invuln boyunca sinüs eğrisi: ilk yarı yükselir, ikinci yarı iner; tepeye hafif bob.
+        /// </summary>
+        private float GetSupportUltimateFloatTargetOffset()
+        {
+            if (!HasSupportUltimateInvulnerability())
+                return 0f;
+
+            float total = SupportUltimateInvulnTotalSeconds;
+            if (total <= 0.001f)
+                return 0f;
+
+            float remaining = SupportUltimateInvulnTimer.RemainingTime(Runner) ?? 0f;
+            float elapsed = Mathf.Clamp(total - remaining, 0f, total);
+            float t = elapsed / total;
+            float maxHeight = GetSupportUltimateCastFloatHeight();
+
+            float easedT = SmoothStep01(t);
+            float arc = Mathf.Sin(easedT * Mathf.PI);
+            float baseOffset = maxHeight * arc;
+
+            float bobAmplitude = GetSupportUltimateCastFloatBobAmplitude();
+            if (bobAmplitude > 0.001f)
+            {
+                float bobFrequency = GetSupportUltimateCastFloatBobFrequency();
+                float bobEnvelope = arc;
+                float bob = Mathf.Sin(elapsed * bobFrequency * Mathf.PI * 2f) * bobAmplitude * bobEnvelope;
+                baseOffset += bob;
+            }
+
+            return Mathf.Max(0f, baseOffset);
+        }
+
+        private static float SmoothStep01(float t) => t * t * (3f - 2f * t);
+
+        private SupportUltimateController GetSupportUltimateController()
+        {
+            if (_supportUltimateController == null)
+                _supportUltimateController = GetComponent<SupportUltimateController>();
+            return _supportUltimateController;
+        }
+
+        private float GetSupportUltimateCastFloatHeight() =>
+            GetSupportUltimateController()?.CastFloatHeight ?? 0f;
+
+        private float GetSupportUltimateCastFloatSmoothTime() =>
+            GetSupportUltimateController()?.CastFloatSmoothTime ?? 0.45f;
+
+        private float GetSupportUltimateCastFloatBobAmplitude() =>
+            GetSupportUltimateController()?.CastFloatBobAmplitude ?? 0f;
+
+        private float GetSupportUltimateCastFloatBobFrequency() =>
+            GetSupportUltimateController()?.CastFloatBobFrequency ?? 1.8f;
+
+        public void ApplySupportUltimateFloatPosition()
+        {
+            if (!Object.HasStateAuthority || _characterController == null)
+                return;
+
+            if (SupportUltimateFloatOffset <= 0.001f && !HasSupportUltimateInvulnerability())
+                return;
+
+            Vector3 pos = _characterController.transform.position;
+            float desiredY = SupportUltimateAnchorY + SupportUltimateFloatOffset;
+            if (Mathf.Abs(pos.y - desiredY) <= 0.0001f)
+                return;
+
+            _characterController.Teleport(
+                new Vector3(pos.x, desiredY, pos.z),
+                _characterController.transform.rotation);
+
+            var vel = _characterController.Velocity;
+            vel.y = 0f;
+            _characterController.Velocity = vel;
+        }
+
+        private void ResetSupportUltimateFloat()
+        {
+            SupportUltimateFloatOffset = 0f;
+            SupportUltimateAnchorY = 0f;
+            SupportUltimateInvulnTotalSeconds = 0f;
+            _supportUltimateFloatVelocity = 0f;
+            StopSupportUltimateFloatCameraShakeIfActive();
+        }
+
+        private void StopSupportUltimateFloatCameraShakeIfActive()
+        {
+            if (!_supportUltimateFloatCameraShakeActive)
+                return;
+
+            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+                TpsCameraController.Instance.StopSupportUltimateFloatShake();
+
+            _supportUltimateFloatCameraShakeActive = false;
+        }
+
+        private bool HasSupportUltimateInvulnerability()
+        {
+            return RoleType == PlayerRoleType.Support
+                && !SupportUltimateInvulnTimer.ExpiredOrNotRunning(Runner);
+        }
+
+        private void ApplyTestingUltimateChargeIfEnabled()
+        {
+            if (!startWithUltimateReadyForTesting)
+                return;
+
+            UltimateKillCount = Mathf.Max(1, killsRequiredForUltimate);
         }
         
         private void OnDeath()
@@ -428,7 +690,10 @@ namespace _Root.Scripts.Network
             RespawnTimer = TickTimer.None;
             DeactivateUltimate();
             UltimateKillCount = 0;
+            ApplyTestingUltimateChargeIfEnabled();
             
+            ResetSupportUltimateFloat();
+
             if (_characterController != null)
             {
                 _characterController.Respawn();

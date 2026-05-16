@@ -47,6 +47,27 @@ namespace _Root.Scripts.Controllers
             _animController = GetComponentInChildren<PlayerAnimationController>();
         }
 
+        public void ApplyCooldownHaste(float hasteMultiplier, float deltaTime)
+        {
+            if (!Object.HasStateAuthority || Runner == null || hasteMultiplier <= 1.001f || deltaTime <= 0f)
+                return;
+
+            if (SignatureCooldownTimer.ExpiredOrNotRunning(Runner))
+                return;
+
+            float remaining = SignatureCooldownTimer.RemainingTime(Runner) ?? 0f;
+            remaining = Mathf.Max(0f, remaining - deltaTime * (hasteMultiplier - 1f));
+
+            if (remaining <= 0.001f)
+                SignatureCooldownTimer = TickTimer.None;
+            else
+                SignatureCooldownTimer = TickTimer.CreateFromSeconds(Runner, remaining);
+        }
+
+        /// <summary>Cast animasyonu / top fırlatma gecikmesi boyunca hareket kilitli.</summary>
+        public bool IsMovementLocked =>
+            Object != null && Object.IsValid && Runner != null && SignatureCastInProgress;
+
         public float GetSignatureCooldownNormalized()
         {
             float cooldownDuration = SignatureCooldownSeconds;
@@ -76,7 +97,8 @@ namespace _Root.Scripts.Controllers
             if (!SignatureCooldownTimer.ExpiredOrNotRunning(Runner))
                 return;
 
-            if (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack)
+            if (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack
+                || _networkPlayer.IsSupportUltimateCastLocked)
                 return;
 
             float manaCost = _networkPlayer.ManaCost;

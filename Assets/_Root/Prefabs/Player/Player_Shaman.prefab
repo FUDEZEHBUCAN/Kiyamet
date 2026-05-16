@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 8876303188666349773}
   - component: {fileID: 1868908445738182960}
   - component: {fileID: 4728391056283749102}
+  - component: {fileID: 8811223344556677881}
   m_Layer: 3
   m_Name: Player_Shaman
   m_TagString: Untagged
@@ -114,9 +115,10 @@ MonoBehaviour:
   characterData: {fileID: 11400000, guid: 231d6f64768ae490d9c20ee0e627bcf3, type: 2}
   hitStunDuration: 0.5
   respawnDelay: 5
+  startWithUltimateReadyForTesting: 1
   killsRequiredForUltimate: 3
   ultimateDuration: 10
-  ultimateDamageMultiplier: 2
+  ultimateDamageMultiplier: 0
   animController: {fileID: 4593688707520901893}
   audioController: {fileID: 0}
   _CurrentHealth: 0
@@ -125,6 +127,7 @@ MonoBehaviour:
     _value: 0
   _IsPushing:
     _value: 0
+  _SupportUltimateFloatOffset: 0
   _IsUltimateActive:
     _value: 0
   _UltimateKillCount: 0
@@ -181,6 +184,7 @@ MonoBehaviour:
   - {fileID: 3360321549091136651}
   - {fileID: 1868908445738182960}
   - {fileID: 4728391056283749102}
+  - {fileID: 8811223344556677881}
   ForceRemoteRenderTimeframe: 0
 --- !u!143 &8595738508119770567
 CharacterController:
@@ -431,6 +435,26 @@ MonoBehaviour:
   staffFirePoint: {fileID: 6157996054345988851}
   castAnimatorTriggerName: SignatureSkill
   castReleaseDelaySeconds: 1
+--- !u!114 &8811223344556677881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476297565452505369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72f3d85c28ad473f8132e93c6f83e996, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  timeDomePrefab: {fileID: 9011223344556677887, guid: a507d004804940f3aa3bf845e5dd2322, type: 3}
+  ultimateDuration: 13
+  invulnDuration: 3
+  castFloatHeight: 4
+  castFloatSmoothTime: 0.65
+  castFloatBobAmplitude: 0.25
+  castFloatBobFrequency: 1.8
+  castAnimatorTriggerName: UltimateSkill
 --- !u!1 &2862886559042445087
 GameObject:
   m_ObjectHideFlags: 0

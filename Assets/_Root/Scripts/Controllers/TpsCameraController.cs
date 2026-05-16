@@ -30,6 +30,12 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float heavyAttackShakeStrength = 3f;
         [SerializeField] private float doorBreakShakeStrength = 0.8f;
         [SerializeField] private float healingOrbSpawnShakeStrength = 0.35f;
+
+        [Header("Support ulti — süzülme (invuln)")]
+        [SerializeField] private float supportUltimateFloatPitchAmplitude = 0.4f;
+        [SerializeField] private float supportUltimateFloatRollAmplitude = 0.28f;
+        [SerializeField] private float supportUltimateFloatYawAmplitude = 0.12f;
+        [SerializeField] private float supportUltimateFloatBobFrequency = 1.15f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -42,6 +48,10 @@ namespace _Root.Scripts.Controllers
         private Transform _cameraTransform;
         private Image _damageVignetteImage;
         private Tweener _vignetteTween;
+        private bool _supportUltimateFloatShaking;
+        private float _floatShakeStartTime;
+        private float _floatShakeEndTime;
+        private float _floatShakeDuration;
 
         private void Awake()
         {
@@ -255,19 +265,69 @@ namespace _Root.Scripts.Controllers
                             _cameraTransform.localRotation = Quaternion.identity;
                     });
                     break;
+
+                case CameraShakeType.SupportUltimateFloat:
+                    break;
                     
                 default:
                     break;
             }
         }
-        
-        public void StopCameraShake()
+
+        /// <summary>
+        /// Support ulti invuln süresince hafif, sürekli süzülme sarsıntısı (yalnızca local kamera).
+        /// </summary>
+        public void StartSupportUltimateFloatShake(float durationSeconds)
         {
             if (_cameraTransform == null)
                 return;
-            
+
             _cameraTransform.DOKill();
             _cameraTransform.localRotation = Quaternion.identity;
+
+            _supportUltimateFloatShaking = true;
+            _floatShakeDuration = Mathf.Max(0.1f, durationSeconds);
+            _floatShakeStartTime = Time.time;
+            _floatShakeEndTime = _floatShakeStartTime + _floatShakeDuration;
+        }
+
+        public void StopSupportUltimateFloatShake()
+        {
+            _supportUltimateFloatShaking = false;
+            _floatShakeDuration = 0f;
+
+            if (_cameraTransform == null)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+        }
+        
+        public void StopCameraShake()
+        {
+            StopSupportUltimateFloatShake();
+        }
+
+        private void ApplySupportUltimateFloatShake()
+        {
+            if (!_supportUltimateFloatShaking || _cameraTransform == null)
+                return;
+
+            if (Time.time >= _floatShakeEndTime)
+            {
+                StopSupportUltimateFloatShake();
+                return;
+            }
+
+            float elapsed = Time.time - _floatShakeStartTime;
+            float t = _floatShakeDuration > 0.001f ? Mathf.Clamp01(elapsed / _floatShakeDuration) : 1f;
+            float envelope = Mathf.Sin(t * Mathf.PI);
+
+            float phase = Time.time * supportUltimateFloatBobFrequency * (Mathf.PI * 2f);
+            float pitch = Mathf.Sin(phase) * supportUltimateFloatPitchAmplitude * envelope;
+            float roll = Mathf.Sin(phase * 0.73f + 1.2f) * supportUltimateFloatRollAmplitude * envelope;
+            float yaw = Mathf.Sin(phase * 0.51f + 0.4f) * supportUltimateFloatYawAmplitude * envelope;
+            _cameraTransform.localRotation = Quaternion.Euler(pitch, yaw, roll);
         }
         
         private void LateUpdate()
@@ -313,6 +373,8 @@ namespace _Root.Scripts.Controllers
             Vector3 desiredOffset = new Vector3(0f, height, -distance);
             Vector3 desiredPos = target.position + rotation * desiredOffset;
             transform.position = desiredPos;
+
+            ApplySupportUltimateFloatShake();
         }
     }
 }

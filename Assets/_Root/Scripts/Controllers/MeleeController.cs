@@ -106,6 +106,24 @@ namespace _Root.Scripts.Controllers
             NextMeleeAttackType = 3;
             MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
         }
+
+        /// <summary>Shaman zaman kubbesi: cooldown kalan süresini hızlandırır (multiplier &gt; 1).</summary>
+        public void ApplyCooldownHaste(float hasteMultiplier, float deltaTime)
+        {
+            if (!Object.HasStateAuthority || Runner == null || hasteMultiplier <= 1.001f || deltaTime <= 0f)
+                return;
+
+            if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
+                return;
+
+            float remaining = MeleeCooldownTimer.RemainingTime(Runner) ?? 0f;
+            remaining = Mathf.Max(0f, remaining - deltaTime * (hasteMultiplier - 1f));
+
+            if (remaining <= 0.001f)
+                MeleeCooldownTimer = TickTimer.None;
+            else
+                MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, remaining);
+        }
         
         public override void Spawned()
         {
@@ -128,7 +146,7 @@ namespace _Root.Scripts.Controllers
         public void TryMeleeAttack(Vector2 movementInput)
         {
             // Ölü oyuncular saldıramaz
-            if (_networkPlayer != null && !_networkPlayer.IsAlive)
+            if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
                 return;
             
             // Server authority - hasar gecikmeli olarak verilecek

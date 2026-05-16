@@ -8,6 +8,8 @@ namespace _Root.Scripts.Enums
         DamageBlocked,
         HeavyAttackTaken,
         DoorBreak,
-        HealingOrbSpawn
+        HealingOrbSpawn,
+        /// <summary>Support ulti invuln — sürekli hafif süzülme (StartSupportUltimateFloatShake kullan).</summary>
+        SupportUltimateFloat
     }
 }

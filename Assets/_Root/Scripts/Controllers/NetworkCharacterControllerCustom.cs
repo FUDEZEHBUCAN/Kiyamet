@@ -128,7 +128,8 @@ namespace _Root.Scripts.Controllers {
         return;
       }
 
-      if (_networkPlayer != null && !_networkPlayer.RoleRules.CanDash(_networkPlayer)) {
+      if (_networkPlayer != null && (_networkPlayer.IsSupportUltimateCastLocked
+          || !_networkPlayer.RoleRules.CanDash(_networkPlayer))) {
         return;
       }
       
@@ -265,15 +266,25 @@ namespace _Root.Scripts.Controllers {
       }
 
       var deltaTime = Runner.DeltaTime;
+
+      if (Object.HasStateAuthority && _networkPlayer != null)
+        _networkPlayer.TickSupportUltimateFloat(deltaTime);
+
       var moveVelocity = Velocity;
 
       direction = direction.normalized;
+
+      bool isSupportFloating = _networkPlayer != null && _networkPlayer.IsSupportUltimateFloating;
 
       if (Grounded && moveVelocity.y < 0) {
         moveVelocity.y = 0f;
       }
 
-      moveVelocity.y += gravity * deltaTime;
+      if (!isSupportFloating) {
+        moveVelocity.y += gravity * deltaTime;
+      } else {
+        moveVelocity.y = 0f;
+      }
 
       var horizontalVel = new Vector3(moveVelocity.x, 0, moveVelocity.z);
       float maxSpeed = GetMaxSpeed(wantsRun);
@@ -308,6 +319,9 @@ namespace _Root.Scripts.Controllers {
       transform.position = position;
       transform.rotation = rotation;
       _controller.enabled = true;
+
+      NetworkPosition = position;
+      NetworkRotation = rotation;
     }
 
     public void Respawn() {
