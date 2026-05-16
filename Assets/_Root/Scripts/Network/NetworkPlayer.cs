@@ -311,9 +311,33 @@ namespace _Root.Scripts.Network
         public void Heal(float amount)
         {
             if (!Object.HasStateAuthority)
-                return; // Sadece server heal yapabilir
+                return;
             
+            if (amount <= 0f || !IsAlive)
+                return;
+
             CurrentHealth = Mathf.Min(MaxHealth, CurrentHealth + amount);
+        }
+
+        /// <summary>
+        /// Başka network objelerinden (ör. healing orb) güvenli iyileştirme isteği.
+        /// State authority bu makinedeyse doğrudan, değilse RPC ile uygular.
+        /// </summary>
+        public void RequestHeal(float amount)
+        {
+            if (amount <= 0f || Object == null || !Object.IsValid)
+                return;
+
+            if (Object.HasStateAuthority)
+                Heal(amount);
+            else
+                RpcRequestHeal(amount);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void RpcRequestHeal(float amount, RpcInfo info = default)
+        {
+            Heal(amount);
         }
         
         /// <summary>

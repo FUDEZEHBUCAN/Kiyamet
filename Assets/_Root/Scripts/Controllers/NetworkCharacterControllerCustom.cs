@@ -52,6 +52,17 @@ namespace _Root.Scripts.Controllers {
         }
     }
     private float JumpImpulse => characterData != null ? characterData.jumpForce : 8.0f;
+
+    /// <summary>İmza yeteneği cooldown (CharacterData; yoksa bileşendeki dashCooldown yedek).</summary>
+    public float SignatureSkillCooldown
+    {
+      get
+      {
+        if (characterData != null && characterData.signatureSkillCooldown > 0.001f)
+          return characterData.signatureSkillCooldown;
+        return dashCooldown;
+      }
+    }
     
     // İttirme sırasında hız azaltma çarpanı
     [Header("Push Settings")]
@@ -133,7 +144,7 @@ namespace _Root.Scripts.Controllers {
       IsDashing = true;
       DashDirection = transform.forward;
       DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
-      DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, dashCooldown);
+      DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, SignatureSkillCooldown);
       _reflectorsHitThisDash.Clear();
       
       if (_animController != null)
@@ -231,7 +242,8 @@ namespace _Root.Scripts.Controllers {
           return supportSig.GetSignatureCooldownNormalized();
       }
 
-      if (Object == null || !Object.IsValid || Runner == null || dashCooldown <= 0.001f)
+      float cooldownDuration = SignatureSkillCooldown;
+      if (Object == null || !Object.IsValid || Runner == null || cooldownDuration <= 0.001f)
         return 0f;
       if (DashCooldownTimer.ExpiredOrNotRunning(Runner))
         return 0f;
@@ -239,7 +251,7 @@ namespace _Root.Scripts.Controllers {
       float remaining = DashCooldownTimer.RemainingTime(Runner) ?? 0f;
       if (remaining <= 0f)
         return 0f;
-      return Mathf.Clamp01(remaining / dashCooldown);
+      return Mathf.Clamp01(remaining / cooldownDuration);
     }
 
     public void Move(Vector3 direction, bool wantsRun = false) {

@@ -46,6 +46,9 @@ namespace _Root.Scripts.Data
         
         [Tooltip("Dash skill'inin mana maliyeti")]
         public float manaCost = 30f;
+
+        [Tooltip("İmza yeteneği bekleme süresi (saniye) — tank dash, shaman iyileştirme topu vb.")]
+        public float signatureSkillCooldown = 5f;
         
         [Tooltip("Her öldürülen enemy için kazanılan mana")]
         public float manaRegen = 20f;

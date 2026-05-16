@@ -22,8 +22,8 @@ namespace _Root.Scripts.Roles
         public virtual bool CanUseRangedWeapon(NetworkPlayer player) =>
             player != null && player.IsAlive;
 
-        public virtual bool CanJump(NetworkPlayer player) =>
-            player != null && player.IsAlive;
+        /// <summary>Şimdilik tüm rollerde zıplama kapalı. Açmak için: player != null && player.IsAlive</summary>
+        public virtual bool CanJump(NetworkPlayer player) => false;
 
         public virtual bool UsesKeyboardCharacterRotation => false;
 

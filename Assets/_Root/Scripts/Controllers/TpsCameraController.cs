@@ -29,6 +29,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float blockedShakeStrength = 0.8f;
         [SerializeField] private float heavyAttackShakeStrength = 3f;
         [SerializeField] private float doorBreakShakeStrength = 0.8f;
+        [SerializeField] private float healingOrbSpawnShakeStrength = 0.35f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -239,6 +240,17 @@ namespace _Root.Scripts.Controllers
                     )
                     .OnComplete(() => {
                         // Shake bittiğinde rotasyonu sıfırla
+                        if (_cameraTransform != null)
+                            _cameraTransform.localRotation = Quaternion.identity;
+                    });
+                    break;
+
+                case CameraShakeType.HealingOrbSpawn:
+                    _cameraTransform.DOPunchRotation(
+                        new Vector3(healingOrbSpawnShakeStrength, healingOrbSpawnShakeStrength * 0.4f, healingOrbSpawnShakeStrength * 0.25f),
+                        0.1f, 6, 0.6f
+                    )
+                    .OnComplete(() => {
                         if (_cameraTransform != null)
                             _cameraTransform.localRotation = Quaternion.identity;
                     });

@@ -7,6 +7,7 @@ namespace _Root.Scripts.Enums
         DamageTaken,
         DamageBlocked,
         HeavyAttackTaken,
-        DoorBreak
+        DoorBreak,
+        HealingOrbSpawn
     }
 }

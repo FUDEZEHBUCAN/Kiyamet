@@ -24,25 +24,33 @@ namespace _Root.Scripts.Controllers
         [Header("Zamanlama")]
         [Tooltip("Animasyonda fırlatma anına denk gelmesi için saniye — Inspector'dan ayarlayın.")]
         [SerializeField] private float castReleaseDelaySeconds = 0.45f;
-        [SerializeField] private float signatureCooldownSeconds = 5f;
 
         private NetworkPlayer _networkPlayer;
+        private NetworkCharacterControllerCustom _characterController;
         private PlayerAnimationController _animController;
+
+        private float SignatureCooldownSeconds =>
+            _characterController != null ? _characterController.SignatureSkillCooldown : 5f;
 
         [Networked] private TickTimer SignatureCooldownTimer { get; set; }
         [Networked] private TickTimer PendingOrbSpawnTimer { get; set; }
         [Networked] private NetworkBool SignatureCastInProgress { get; set; }
         [Networked] private Vector3 PendingOrbDirection { get; set; }
+        [Networked] private int LastOrbSpawnTick { get; set; }
+
+        private int _lastVisualOrbSpawnTick;
 
         private void Awake()
         {
             _networkPlayer = GetComponent<NetworkPlayer>();
+            _characterController = GetComponent<NetworkCharacterControllerCustom>();
             _animController = GetComponentInChildren<PlayerAnimationController>();
         }
 
         public float GetSignatureCooldownNormalized()
         {
-            if (Object == null || !Object.IsValid || Runner == null || signatureCooldownSeconds <= 0.001f)
+            float cooldownDuration = SignatureCooldownSeconds;
+            if (Object == null || !Object.IsValid || Runner == null || cooldownDuration <= 0.001f)
                 return 0f;
             if (SignatureCooldownTimer.ExpiredOrNotRunning(Runner))
                 return 0f;
@@ -50,7 +58,7 @@ namespace _Root.Scripts.Controllers
             float remaining = SignatureCooldownTimer.RemainingTime(Runner) ?? 0f;
             if (remaining <= 0f)
                 return 0f;
-            return Mathf.Clamp01(remaining / signatureCooldownSeconds);
+            return Mathf.Clamp01(remaining / cooldownDuration);
         }
 
         /// <summary>Sunucu: dash girişi yerine çağrılır.</summary>
@@ -118,7 +126,19 @@ namespace _Root.Scripts.Controllers
             else if (orbNo != null)
                 Runner.Despawn(orbNo);
 
-            SignatureCooldownTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, signatureCooldownSeconds));
+            LastOrbSpawnTick = Runner.Tick;
+            SignatureCooldownTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.1f, SignatureCooldownSeconds));
+        }
+
+        public override void Render()
+        {
+            if (!Object.HasInputAuthority || LastOrbSpawnTick <= _lastVisualOrbSpawnTick || LastOrbSpawnTick <= 0)
+                return;
+
+            _lastVisualOrbSpawnTick = LastOrbSpawnTick;
+
+            if (TpsCameraController.Instance != null)
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.HealingOrbSpawn);
         }
 
         private Vector3 GetFireOrigin()

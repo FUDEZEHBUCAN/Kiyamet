@@ -259,23 +259,6 @@ MonoBehaviour:
   rotationSpeed: 150
   _NetworkedIsRunning:
     _value: 0
---- !u!114 &4728391056283749102
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 476297565452505369}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a38548e6a2345bb87d1c62a675103cc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  healingOrbPrefab: {fileID: 5839021746510976128, guid: bc875fffd8f847fb8ac6b2f1859b9f88, type: 3}
-  staffFirePoint: {fileID: 2446396890388987212}
-  castAnimatorTriggerName: SignatureSkill
-  castReleaseDelaySeconds: 0.45
-  signatureCooldownSeconds: 5
 --- !u!114 &1404457538942026996
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -432,6 +415,22 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   interactionPoint: {fileID: 2446396890388987212}
+--- !u!114 &4728391056283749102
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 476297565452505369}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a38548e6a2345bb87d1c62a675103cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  healingOrbPrefab: {fileID: 5839021746510976128, guid: bc875fffd8f847fb8ac6b2f1859b9f88, type: 3}
+  staffFirePoint: {fileID: 6157996054345988851}
+  castAnimatorTriggerName: SignatureSkill
+  castReleaseDelaySeconds: 1
 --- !u!1 &2862886559042445087
 GameObject:
   m_ObjectHideFlags: 0
@@ -966,6 +965,11 @@ MonoBehaviour:
   animator: {fileID: 8595329099119240352}
   locomotionSmoothTime: 0.1
   directionalMaxSpeed: 6
+--- !u!4 &6157996054345988851 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3186861019485897481, guid: 7af9bf1bad81ad14a847944276ae3ff3, type: 3}
+  m_PrefabInstance: {fileID: 8741374720457554426}
+  m_PrefabAsset: {fileID: 0}
 --- !u!95 &8595329099119240352 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 1010820312694463834, guid: 7af9bf1bad81ad14a847944276ae3ff3, type: 3}
