@@ -226,7 +226,7 @@ namespace _Root.Scripts.Controllers {
         
         if (_networkPlayer != null && _networkPlayer.Object != null && _networkPlayer.Object.HasInputAuthority && TpsCameraController.Instance != null)
         {
-          TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
+          TpsCameraController.Instance.ShakeMeleeDirectional(3, isHit: true);
         }
       }
     }

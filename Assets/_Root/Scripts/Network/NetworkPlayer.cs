@@ -38,6 +38,7 @@ namespace _Root.Scripts.Network
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
         private SupportUltimateController _supportUltimateController;
+        private SupportSignatureSkillController _supportSignatureSkill;
         
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
@@ -69,7 +70,22 @@ namespace _Root.Scripts.Network
         /// Saldırı yapabilir mi? (Hit stun kontrolü)
         /// </summary>
         public bool CanAttack =>
-            HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead && !IsSupportUltimateCastLocked;
+            HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead && !IsSupportUltimateCastLocked
+            && !IsSignatureSkillInputLocked;
+
+        private bool IsSignatureSkillInputLocked
+        {
+            get
+            {
+                if (RoleType != PlayerRoleType.Support)
+                    return false;
+
+                if (_supportSignatureSkill == null)
+                    _supportSignatureSkill = GetComponent<SupportSignatureSkillController>();
+
+                return _supportSignatureSkill != null && _supportSignatureSkill.IsInputLocked;
+            }
+        }
         
         // CharacterData'dan alınan değerler
         public float MaxHealth => characterData != null ? characterData.maxHealth : 100f;

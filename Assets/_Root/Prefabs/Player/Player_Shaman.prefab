@@ -147,12 +147,16 @@ MonoBehaviour:
   meleeRange: 2.79
   meleeRadius: 1.25
   meleeCooldown: 1.25
-  damageDelay: 0.38
-  movementLockDuration: 0.8
+  damageDelay: 0.5
+  movementLockDuration: 1
   meleePoint: {fileID: 0}
   hitLayers:
     serializedVersion: 2
     m_Bits: 8
+  meleeKnockbackHorizontalMin: 2.5
+  meleeKnockbackHorizontalMax: 5.5
+  meleeKnockbackUpwardMin: 0.4
+  meleeKnockbackUpwardMax: 1.8
   meleeEffectPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
   effectSpawnPoint: {fileID: 0}
   animController: {fileID: 4593688707520901893}
@@ -434,7 +438,8 @@ MonoBehaviour:
   healingOrbPrefab: {fileID: 5839021746510976128, guid: bc875fffd8f847fb8ac6b2f1859b9f88, type: 3}
   staffFirePoint: {fileID: 6157996054345988851}
   castAnimatorTriggerName: SignatureSkill
-  castReleaseDelaySeconds: 1
+  castReleaseDelaySeconds: 0.6
+  castInputLockDurationSeconds: 2
 --- !u!114 &8811223344556677881
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -988,7 +993,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 8595329099119240352}
   locomotionSmoothTime: 0.1
-  directionalMaxSpeed: 6
+  directionalMaxSpeed: 7
 --- !u!4 &6157996054345988851 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3186861019485897481, guid: 7af9bf1bad81ad14a847944276ae3ff3, type: 3}

@@ -19,6 +19,12 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float movementLockDuration = 0.8f;
         [SerializeField] private Transform meleePoint;
         [SerializeField] private LayerMask hitLayers = -1;
+
+        [Header("Enemy knockback (elite hariç)")]
+        [SerializeField] private float meleeKnockbackHorizontalMin = 2.5f;
+        [SerializeField] private float meleeKnockbackHorizontalMax = 5.5f;
+        [SerializeField] private float meleeKnockbackUpwardMin = 0.4f;
+        [SerializeField] private float meleeKnockbackUpwardMax = 1.8f;
         
         [Header("Visual Effects")]
         [SerializeField] private GameObject meleeEffectPrefab;
@@ -202,6 +208,10 @@ namespace _Root.Scripts.Controllers
             {
                 if (!MeleeResolveWasHit && animController != null)
                     animController.SetMeleeAttackType(0);
+
+                if (MeleeResolveWasHit)
+                    TriggerMeleeCameraShake(isHit: true);
+
                 _lastVisualMeleeResolveTick = MeleeResolveTick;
             }
             
@@ -234,11 +244,19 @@ namespace _Root.Scripts.Controllers
                 audioController.PlayMeleeSwing();
             }
             
-            // Camera shake (sadece local player için)
-            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
-            {
-                TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackSwing);
-            }
+            TriggerMeleeCameraShake(isHit: false);
+        }
+
+        private void TriggerMeleeCameraShake(bool isHit)
+        {
+            if (!Object.HasInputAuthority || TpsCameraController.Instance == null)
+                return;
+
+            int swingType = ActiveMeleeSwingType;
+            if (swingType < 1 || swingType > 4)
+                swingType = 3;
+
+            TpsCameraController.Instance.ShakeMeleeDirectional(swingType, isHit);
         }
         
         private void SpawnHitEffect()
@@ -293,12 +311,6 @@ namespace _Root.Scripts.Controllers
                     audioController.PlayMeleeHit();
                 }
                 
-                // Camera shake (sadece local player için)
-                if (Object.HasInputAuthority && TpsCameraController.Instance != null)
-                {
-                    TpsCameraController.Instance.ShakeCamera(CameraShakeType.MeleeAttackHit);
-                }
-                
                 NextMeleeAttackType = swingType;
             }
             else
@@ -309,6 +321,32 @@ namespace _Root.Scripts.Controllers
             MeleeResolveTick = Runner.Tick;
             MeleeResolveWasHit = didHit;
             _damageAppliedThisSwing = true;
+        }
+
+        private void ApplyMeleeKnockbackToEnemy(NetworkEnemy enemy, int swingType)
+        {
+            if (!Object.HasStateAuthority || enemy == null || enemy.IsEliteEnemy)
+                return;
+
+            Vector3 direction = GetMeleeKnockbackDirection(swingType);
+            float horizontal = Random.Range(meleeKnockbackHorizontalMin, meleeKnockbackHorizontalMax);
+            float upward = Random.Range(meleeKnockbackUpwardMin, meleeKnockbackUpwardMax);
+            enemy.ApplyKnockback(direction * horizontal + Vector3.up * upward);
+        }
+
+        /// <summary>1=sol, 2=sağ, 3=ileri, 4=geri — melee saldırı yönü.</summary>
+        private Vector3 GetMeleeKnockbackDirection(int swingType)
+        {
+            Vector3 dir = swingType switch
+            {
+                1 => -transform.right,
+                2 => transform.right,
+                4 => -transform.forward,
+                _ => transform.forward,
+            };
+
+            dir.y = 0f;
+            return dir.sqrMagnitude > 0.001f ? dir.normalized : transform.forward;
         }
 
         private static int GetAttackTypeFromMovement(Vector2 movementInput)
@@ -343,7 +381,17 @@ namespace _Root.Scripts.Controllers
                 if (enemy != null && enemy.IsAlive)
                 {
                     bool wasAlive = enemy.IsAlive;
+                    int swingType = ActiveMeleeSwingType;
+                    if (swingType < 1 || swingType > 4)
+                        swingType = NextMeleeAttackType is >= 1 and <= 4 ? NextMeleeAttackType : 3;
+
+                    if (!enemy.IsEliteEnemy)
+                        ApplyMeleeKnockbackToEnemy(enemy, swingType);
+
                     enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
+
+                    if (!enemy.IsEliteEnemy && !enemy.HasActiveKnockback)
+                        ApplyMeleeKnockbackToEnemy(enemy, swingType);
                     
                     if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
                     {

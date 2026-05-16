@@ -31,14 +31,23 @@ namespace _Root.Scripts.Controllers
         public float mouseYSensitivity = 2f;
         public Vector2 pitchLimits = new Vector2(-40f, 80f);
         
-        [Header("Camera Shake")]
-        [SerializeField] private float swingShakeStrength = 0.5f;
-        [SerializeField] private float hitShakeStrength = 1f;
+        [Header("Melee — kılıç savurma arkı")]
+        [Tooltip("Savurma euler genliği (derece ölçeği)")]
+        [SerializeField] private float meleeSwingStrength = 1f;
+        [Tooltip("İsabet anında ek follow-through (0–1)")]
+        [SerializeField] [Range(0f, 1f)] private float meleeHitFollowStrength = 0.38f;
+        [SerializeField] private float meleeSwingWindDuration = 0.09f;
+        [SerializeField] private float meleeSwingStrikeDuration = 0.17f;
+        [SerializeField] private float meleeSwingRecoverDuration = 0.14f;
+        [SerializeField] private float meleeSideSwingScale = 1.2f;
+        [SerializeField] private float meleeBackSwingScale = 1.15f;
         [SerializeField] private float damageTakenShakeStrength = 1.5f;
         [SerializeField] private float blockedShakeStrength = 0.8f;
         [SerializeField] private float heavyAttackShakeStrength = 3f;
         [SerializeField] private float doorBreakShakeStrength = 0.8f;
-        [SerializeField] private float healingOrbSpawnShakeStrength = 0.35f;
+        [Header("Healing orb — pulse ateşleme")]
+        [SerializeField] private float healingOrbPulseStrength = 0.42f;
+        [SerializeField] private float healingOrbPulseRippleScale = 0.45f;
 
         [Header("Support ulti — süzülme (invuln)")]
         [SerializeField] private float supportUltimateFloatPitchAmplitude = 0.4f;
@@ -213,24 +222,11 @@ namespace _Root.Scripts.Controllers
             switch (shakeType)
             {
                 case CameraShakeType.MeleeAttackSwing:
-                    // Hafif swing sarsıntısı
-                    // _cameraTransform.DOPunchRotation(
-                    //     new Vector3(swingShakeStrength, 0f, swingShakeStrength * 0.5f), 
-                    //     0.15f, 6, 0.5f
-                    // );
+                    ShakeMeleeDirectional(3, isHit: false);
                     break;
                     
                 case CameraShakeType.MeleeAttackHit:
-                    // Güçlü vuruş sarsıntısı
-                    _cameraTransform.DOPunchRotation(
-                        new Vector3(hitShakeStrength, hitShakeStrength * 0.5f, hitShakeStrength), 
-                        0.12f, 8, 1f
-                    )
-                    .OnComplete(() => {
-                        // Shake bittiğinde rotasyonu sıfırla
-                        if (_cameraTransform != null)
-                            _cameraTransform.localRotation = Quaternion.identity;
-                    });
+                    ShakeMeleeDirectional(3, isHit: true);
                     break;
                     
                 case CameraShakeType.DamageTaken:
@@ -287,14 +283,7 @@ namespace _Root.Scripts.Controllers
                     break;
 
                 case CameraShakeType.HealingOrbSpawn:
-                    _cameraTransform.DOPunchRotation(
-                        new Vector3(healingOrbSpawnShakeStrength, healingOrbSpawnShakeStrength * 0.4f, healingOrbSpawnShakeStrength * 0.25f),
-                        0.1f, 6, 0.6f
-                    )
-                    .OnComplete(() => {
-                        if (_cameraTransform != null)
-                            _cameraTransform.localRotation = Quaternion.identity;
-                    });
+                    PlayHealingOrbPulseShake();
                     break;
 
                 case CameraShakeType.SupportUltimateFloat:
@@ -303,6 +292,156 @@ namespace _Root.Scripts.Controllers
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// Melee: kılıç savurma hissi — wind-up → strike → recover (1=sol, 2=sağ, 3=ileri, 4=geri).
+        /// </summary>
+        public void ShakeMeleeDirectional(int swingType, bool isHit)
+        {
+            if (_cameraTransform == null || _supportUltimateFloatShaking)
+                return;
+
+            if (isHit)
+                PlayMeleeHitFollowThrough(swingType);
+            else
+                PlayMeleeSwingArc(swingType);
+        }
+
+        private void PlayMeleeSwingArc(int swingType)
+        {
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+
+            float scale = GetMeleeSwingScale(swingType) * meleeSwingStrength;
+            GetMeleeSwingKeyframes(swingType, scale, out Vector3 wind, out Vector3 strike, out Vector3 recover);
+
+            var seq = DOTween.Sequence();
+            seq.Append(_cameraTransform
+                .DOLocalRotate(wind, meleeSwingWindDuration, RotateMode.LocalAxisAdd)
+                .SetEase(Ease.OutQuad));
+            seq.Append(_cameraTransform
+                .DOLocalRotate(strike, meleeSwingStrikeDuration, RotateMode.LocalAxisAdd)
+                .SetEase(Ease.InOutCubic));
+            seq.Append(_cameraTransform
+                .DOLocalRotate(recover, meleeSwingRecoverDuration, RotateMode.LocalAxisAdd)
+                .SetEase(Ease.OutSine));
+            seq.OnComplete(ResetCameraChildRotation);
+        }
+
+        private void PlayMeleeHitFollowThrough(int swingType)
+        {
+            if (meleeHitFollowStrength <= 0.001f)
+                return;
+
+            _cameraTransform.DOKill();
+
+            float scale = GetMeleeSwingScale(swingType) * meleeSwingStrength * meleeHitFollowStrength;
+            Vector3 follow = GetMeleeStrikeFollowEuler(swingType, scale);
+
+            var seq = DOTween.Sequence();
+            seq.Append(_cameraTransform
+                .DOLocalRotate(follow, 0.07f, RotateMode.LocalAxisAdd)
+                .SetEase(Ease.OutQuad));
+            seq.Append(_cameraTransform
+                .DOLocalRotate(Vector3.zero, 0.16f)
+                .SetEase(Ease.InOutSine));
+            seq.OnComplete(ResetCameraChildRotation);
+        }
+
+        private void ResetCameraChildRotation()
+        {
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private float GetMeleeSwingScale(int swingType)
+        {
+            return swingType switch
+            {
+                1 or 2 => meleeSideSwingScale,
+                4 => meleeBackSwingScale,
+                _ => 1f
+            };
+        }
+
+        /// <summary>Wind-up, strike, recover — derece cinsinden local euler (X pitch, Y yaw, Z roll).</summary>
+        private static void GetMeleeSwingKeyframes(
+            int swingType,
+            float scale,
+            out Vector3 wind,
+            out Vector3 strike,
+            out Vector3 recover)
+        {
+            switch (swingType)
+            {
+                case 1:
+                    wind = new Vector3(3f, 10f, 8f) * scale;
+                    strike = new Vector3(-5f, -22f, -18f) * scale;
+                    recover = new Vector3(2f, 12f, 10f) * scale;
+                    break;
+                case 2:
+                    wind = new Vector3(3f, -10f, -8f) * scale;
+                    strike = new Vector3(-5f, 22f, 18f) * scale;
+                    recover = new Vector3(2f, -12f, -10f) * scale;
+                    break;
+                case 4:
+                    wind = new Vector3(-6f, 0f, 2f) * scale;
+                    strike = new Vector3(14f, 4f, -4f) * scale;
+                    recover = new Vector3(-8f, -2f, 2f) * scale;
+                    break;
+                default:
+                    wind = new Vector3(7f, 0f, 2f) * scale;
+                    strike = new Vector3(-16f, 1f, -3f) * scale;
+                    recover = new Vector3(9f, 0f, 1f) * scale;
+                    break;
+            }
+        }
+
+        private static Vector3 GetMeleeStrikeFollowEuler(int swingType, float scale)
+        {
+            return swingType switch
+            {
+                1 => new Vector3(-3f, -8f, -6f) * scale,
+                2 => new Vector3(-3f, 8f, 6f) * scale,
+                4 => new Vector3(5f, 2f, -2f) * scale,
+                _ => new Vector3(-6f, 0f, -1f) * scale,
+            };
+        }
+
+        /// <summary>
+        /// İmza skill top fırlatma: kısa ateşleme darbesi + hafif ripple (pulse).
+        /// </summary>
+        private void PlayHealingOrbPulseShake()
+        {
+            if (_cameraTransform == null)
+                return;
+
+            if (_supportUltimateFloatShaking)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+
+            float s = healingOrbPulseStrength;
+            float ripple = s * healingOrbPulseRippleScale;
+
+            var seq = DOTween.Sequence();
+            seq.Append(_cameraTransform.DOPunchRotation(
+                new Vector3(-s * 1.15f, s * 0.2f, s * 0.12f),
+                0.065f,
+                16,
+                0.08f));
+            seq.Append(_cameraTransform.DOPunchRotation(
+                new Vector3(ripple * 0.9f, -ripple * 0.15f, ripple * 0.1f),
+                0.1f,
+                10,
+                0.65f));
+            seq.OnComplete(() =>
+            {
+                if (_cameraTransform != null)
+                    _cameraTransform.localRotation = Quaternion.identity;
+            });
         }
 
         /// <summary>

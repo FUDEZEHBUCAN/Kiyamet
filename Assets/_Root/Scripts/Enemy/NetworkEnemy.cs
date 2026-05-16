@@ -79,6 +79,9 @@ namespace _Root.Scripts.Enemy
         // Properties
         public bool IsAlive => CurrentHealth > 0f;
         public EnemyState State => CurrentState;
+        public bool IsEliteEnemy => enemyData != null && enemyData.IsElite;
+        public bool HasActiveKnockback =>
+            Object != null && Object.IsValid && Runner != null && IsKnockedBack && KnockbackTimer.IsRunning;
 
         public void SetTimeDistortionSlow(float speedMultiplier)
         {
@@ -239,15 +242,12 @@ namespace _Root.Scripts.Enemy
                 }
             }
             
-            if (!IsAlive)
-            {
-                CurrentState = EnemyState.Dead;
-                return;
-            }
-            
-            // Knockback kontrolü
+            // Knockback — ölü düşmanlarda da (son vuruş savrulması) AI'dan önce işlenir
             if (IsKnockedBack && KnockbackTimer.IsRunning)
             {
+                if (!IsAlive)
+                    CurrentState = EnemyState.Dead;
+
                 if (KnockbackTimer.Expired(Runner))
                 {
                     // Knockback bitti - enemy'yi yere indir
@@ -377,6 +377,12 @@ namespace _Root.Scripts.Enemy
                     }
                 }
                 return; // Knockback sırasında AI mantığını çalıştırma
+            }
+
+            if (!IsAlive)
+            {
+                CurrentState = EnemyState.Dead;
+                return;
             }
             
             // Gecikmeli hasar kontrolü
@@ -926,7 +932,10 @@ namespace _Root.Scripts.Enemy
         /// </summary>
         public void ApplyKnockback(Vector3 knockbackForce)
         {
-            if (!Object.HasStateAuthority || !IsAlive)
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (!IsAlive && !IsKnockedBack)
                 return;
             
             // Y bileşenini maksimum sınırla (çok fazla havaya zıplamasını önle ama görünür olsun)
@@ -972,6 +981,8 @@ namespace _Root.Scripts.Enemy
             // Ölüm animasyonu
             if (animController != null)
                 animController.TriggerDeath();
+
+            _deathAnimTriggered = true;
             
             Invoke(nameof(DespawnEnemy), 3f);
         }

@@ -10,6 +10,8 @@ namespace _Root.Scripts.Enemy
         
         [Header("Animation Settings")]
         [SerializeField] private float locomotionSmoothTime = 0.1f;
+        [SerializeField] private float deathPlaybackSpeedMin = 1f;
+        [SerializeField] private float deathPlaybackSpeedMax = 2f;
         
         // Animator parameter hashes (performans için)
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
@@ -110,14 +112,19 @@ namespace _Root.Scripts.Enemy
         /// </summary>
         public void TriggerDeath()
         {
-            if (animator != null)
-            {
-                animator.SetBool(ParamIsDead, true);
-                animator.SetTrigger(ParamDie);
-                
-                // Hız sıfırla
-                SetSpeedImmediate(0f);
-            }
+            if (animator == null)
+                return;
+
+            float min = Mathf.Min(deathPlaybackSpeedMin, deathPlaybackSpeedMax);
+            float max = Mathf.Max(deathPlaybackSpeedMin, deathPlaybackSpeedMax);
+            float deathSpeed = Random.Range(min, max);
+
+            _playbackSpeed = deathSpeed;
+            animator.speed = deathSpeed;
+
+            animator.SetBool(ParamIsDead, true);
+            animator.SetTrigger(ParamDie);
+            SetSpeedImmediate(0f);
         }
         
         /// <summary>

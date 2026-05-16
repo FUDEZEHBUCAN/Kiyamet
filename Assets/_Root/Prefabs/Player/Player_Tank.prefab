@@ -250,8 +250,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   characterData: {fileID: 11400000, guid: 3485be551dd0e4b5399eab00b30da3a1, type: 2}
-  hitStunDuration: 0.5
+  hitStunDuration: 0.4
   respawnDelay: 5
+  startWithUltimateReadyForTesting: 0
   killsRequiredForUltimate: 3
   ultimateDuration: 10
   ultimateDamageMultiplier: 2
@@ -263,6 +264,7 @@ MonoBehaviour:
     _value: 0
   _IsPushing:
     _value: 0
+  _SupportUltimateFloatOffset: 0
   _IsUltimateActive:
     _value: 0
   _UltimateKillCount: 0
@@ -281,13 +283,17 @@ MonoBehaviour:
   meleeDamage: 25
   meleeRange: 2.79
   meleeRadius: 1.25
-  meleeCooldown: 1.25
-  damageDelay: 0.38
-  movementLockDuration: 0.8
+  meleeCooldown: 1.5
+  damageDelay: 0.5
+  movementLockDuration: 1
   meleePoint: {fileID: 6768759924057309602}
   hitLayers:
     serializedVersion: 2
     m_Bits: 8
+  meleeKnockbackHorizontalMin: 2.5
+  meleeKnockbackHorizontalMax: 5.5
+  meleeKnockbackUpwardMin: 0.4
+  meleeKnockbackUpwardMax: 1.8
   meleeEffectPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
   effectSpawnPoint: {fileID: 6768759924057309602}
   animController: {fileID: 0}
@@ -1058,7 +1064,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 1257096468929952799}
   locomotionSmoothTime: 0.1
-  directionalMaxSpeed: 4
+  directionalMaxSpeed: 6
 --- !u!4 &7016952098865335718 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2412161367050800168, guid: 73a6964ce3c9bbe45b2cb39522f3e2ec, type: 3}

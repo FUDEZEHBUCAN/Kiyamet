@@ -24,6 +24,8 @@ namespace _Root.Scripts.Controllers
         [Header("Zamanlama")]
         [Tooltip("Animasyonda fırlatma anına denk gelmesi için saniye — Inspector'dan ayarlayın.")]
         [SerializeField] private float castReleaseDelaySeconds = 0.45f;
+        [Tooltip("Hareket / saldırı / block kilidi (saniye). Top fırlasa bile animasyon bitene kadar uzatılabilir.")]
+        [SerializeField] private float castInputLockDurationSeconds = 1.15f;
 
         private NetworkPlayer _networkPlayer;
         private NetworkCharacterControllerCustom _characterController;
@@ -34,6 +36,7 @@ namespace _Root.Scripts.Controllers
 
         [Networked] private TickTimer SignatureCooldownTimer { get; set; }
         [Networked] private TickTimer PendingOrbSpawnTimer { get; set; }
+        [Networked] private TickTimer SignatureInputLockTimer { get; set; }
         [Networked] private NetworkBool SignatureCastInProgress { get; set; }
         [Networked] private Vector3 PendingOrbDirection { get; set; }
         [Networked] private int LastOrbSpawnTick { get; set; }
@@ -64,9 +67,12 @@ namespace _Root.Scripts.Controllers
                 SignatureCooldownTimer = TickTimer.CreateFromSeconds(Runner, remaining);
         }
 
-        /// <summary>Cast animasyonu / top fırlatma gecikmesi boyunca hareket kilitli.</summary>
-        public bool IsMovementLocked =>
-            Object != null && Object.IsValid && Runner != null && SignatureCastInProgress;
+        /// <summary>Cast boyunca hareket ve diğer girişler kilitli (top fırlatıldıktan sonra da sürebilir).</summary>
+        public bool IsInputLocked =>
+            Object != null && Object.IsValid && Runner != null
+            && !SignatureInputLockTimer.ExpiredOrNotRunning(Runner);
+
+        public bool IsMovementLocked => IsInputLocked;
 
         public float GetSignatureCooldownNormalized()
         {
@@ -91,7 +97,7 @@ namespace _Root.Scripts.Controllers
             if (_networkPlayer == null || _networkPlayer.RoleType != PlayerRoleType.Support)
                 return;
 
-            if (SignatureCastInProgress)
+            if (SignatureCastInProgress || IsInputLocked)
                 return;
 
             if (!SignatureCooldownTimer.ExpiredOrNotRunning(Runner))
@@ -117,6 +123,8 @@ namespace _Root.Scripts.Controllers
             Vector3 origin = GetFireOrigin();
             PendingOrbDirection = ComputeFireDirection(input, origin);
             SignatureCastInProgress = true;
+            float inputLockDuration = Mathf.Max(castReleaseDelaySeconds, castInputLockDurationSeconds);
+            SignatureInputLockTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, inputLockDuration));
             PendingOrbSpawnTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.02f, castReleaseDelaySeconds));
 
             PlayCastAnimation();
