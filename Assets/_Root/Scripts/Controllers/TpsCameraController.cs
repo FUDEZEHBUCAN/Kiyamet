@@ -513,9 +513,12 @@ namespace _Root.Scripts.Controllers
             bool tankFreeLook = NetworkPlayer.Local != null &&
                                 NetworkPlayer.Local.RoleRules.UsesKeyboardCharacterRotation;
 
-            float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseYSensitivity;
-            _pitch -= mouseY;
-            _pitch  = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
+            if (!_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
+            {
+                float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseYSensitivity;
+                _pitch -= mouseY;
+                _pitch  = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
+            }
 
             if (tankFreeLook)
             {
@@ -525,8 +528,11 @@ namespace _Root.Scripts.Controllers
                     _wasTankFreeLookActive = true;
                 }
 
-                float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseXSensitivity;
-                _tankCameraWorldYaw += mouseX;
+                if (!_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
+                {
+                    float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseXSensitivity;
+                    _tankCameraWorldYaw += mouseX;
+                }
                 _yaw = _tankCameraWorldYaw;
             }
             else
