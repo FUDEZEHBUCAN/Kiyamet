@@ -1,14 +1,28 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 
-
-public class SettingMenuManageer : MonoBehaviour
+public class SettingsPanelManager : MonoBehaviour
 {
-    public void SetVolume (float volume)
+    [Header("Panels")]
+    [SerializeField] private GameObject audioPanel;
+    [SerializeField] private GameObject graphicsPanel;
+    [SerializeField] private GameObject controlsPanel;
+
+    private void Start()
     {
-        Debug.Log(volume);
+        // Open a default panel on load, or close all
+        OpenAudio();
+    }
+
+    public void OpenAudio() => ShowPanel(audioPanel);
+    public void OpenGraphics() => ShowPanel(graphicsPanel);
+    public void OpenControls() => ShowPanel(controlsPanel);
+
+    public void ShowPanel(GameObject target)
+    {
+        audioPanel.SetActive(false);
+        graphicsPanel.SetActive(false);
+        controlsPanel.SetActive(false);
+
+        target.SetActive(true);
     }
 }
