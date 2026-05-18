@@ -2,6 +2,7 @@ using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using _Root.Scripts.Controllers;
+using _Root.Scripts.Enums;
 using _Root.Scripts.Input;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -38,7 +39,18 @@ namespace _Root.Scripts.UI
         [SerializeField] private bool onlyForLocalPlayer = true;
         [SerializeField] private float barFillTweenDuration = 0.3f;
 
+        [Header("Role icons — Tank")]
+        [SerializeField] private Sprite tankUltimateIcon;
+        [SerializeField] private Sprite tankSignatureIcon;
+        [SerializeField] private Sprite tankBasicIcon;
+
+        [Header("Role icons — Support (Shaman)")]
+        [SerializeField] private Sprite supportUltimateIcon;
+        [SerializeField] private Sprite supportSignatureIcon;
+        [SerializeField] private Sprite supportBasicIcon;
+
         private NetworkPlayer _player;
+        private PlayerRoleType? _appliedIconRole;
         private NetworkPlayer _cachedPlayerForControllers;
         private NetworkCharacterControllerCustom _characterController;
         private MeleeController _meleeController;
@@ -86,6 +98,7 @@ namespace _Root.Scripts.UI
                 return;
             }
 
+            TryApplyRoleIcons();
             UpdateUltimateUI(_player);
             RefreshDashAndMeleeCooldownFills();
 
@@ -134,6 +147,7 @@ namespace _Root.Scripts.UI
                 return;
 
             _cachedPlayerForControllers = _player;
+            _appliedIconRole = null;
             if (_player == null)
             {
                 _characterController = null;
@@ -145,6 +159,34 @@ namespace _Root.Scripts.UI
             _characterController = _player.GetComponent<NetworkCharacterControllerCustom>();
             _meleeController = _player.GetComponent<MeleeController>();
             _inputController = _player.GetComponent<CharacterInputController>();
+        }
+
+        private void TryApplyRoleIcons()
+        {
+            if (_player == null)
+                return;
+
+            if (onlyForLocalPlayer && (_player.Object == null || !_player.Object.HasInputAuthority))
+                return;
+
+            var role = _player.RoleType;
+            if (_appliedIconRole.HasValue && _appliedIconRole.Value == role)
+                return;
+
+            _appliedIconRole = role;
+            var isSupport = role == PlayerRoleType.Support;
+            ApplySlotIcon(ultimate, isSupport ? supportUltimateIcon : tankUltimateIcon);
+            ApplySlotIcon(signature, isSupport ? supportSignatureIcon : tankSignatureIcon);
+            ApplySlotIcon(basic, isSupport ? supportBasicIcon : tankBasicIcon);
+        }
+
+        private static void ApplySlotIcon(SkillSlotUI slot, Sprite sprite)
+        {
+            if (sprite == null || slot.iconImage == null)
+                return;
+
+            slot.iconImage.sprite = sprite;
+            slot.iconImage.preserveAspect = true;
         }
 
         /// <summary>Signature = Dash, Basic = Melee; Fusion TickTimer kalan süresinden normalize.</summary>

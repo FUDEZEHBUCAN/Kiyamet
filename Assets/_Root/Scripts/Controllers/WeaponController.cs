@@ -279,7 +279,7 @@ namespace _Root.Scripts.Controllers
                 // Kendine vurma kontrolü
                 if (hitPlayer.Object.InputAuthority != Object.InputAuthority)
                 {
-                    hitPlayer.TakeDamage(BulletDamage);
+                    hitPlayer.TakeDamage(BulletDamage, damageOrigin: hit.point);
                     Debug.Log($"[WeaponController] → Damaged PLAYER");
                 }
                 return;

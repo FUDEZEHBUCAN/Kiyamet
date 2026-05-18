@@ -22,6 +22,11 @@ namespace _Root.Scripts.Data
         [SerializeField] private float attackDamage = 15f;
         [SerializeField] private float attackRange = 2f;
         [SerializeField] private float attackCooldown = 1.5f;
+        [Tooltip("Saldırı aralığı çarpanı (spawn başına). Kalabalık grupların aynı anda vurmasını önler.")]
+        [SerializeField] private float attackCooldownMinScale = 0.72f;
+        [SerializeField] private float attackCooldownMaxScale = 1.38f;
+        [Tooltip("Her saldırı sonrası ek süre jitter (taban cooldown oranı).")]
+        [SerializeField] [Range(0f, 0.5f)] private float attackCooldownJitter = 0.15f;
         
         // Properties
         public bool IsElite => isElite;
@@ -33,5 +38,8 @@ namespace _Root.Scripts.Data
         public float AttackDamage => attackDamage;
         public float AttackRange => attackRange;
         public float AttackCooldown => attackCooldown;
+        public float AttackCooldownMinScale => attackCooldownMinScale;
+        public float AttackCooldownMaxScale => attackCooldownMaxScale;
+        public float AttackCooldownJitter => attackCooldownJitter;
     }
 }

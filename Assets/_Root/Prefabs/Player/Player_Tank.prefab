@@ -160,6 +160,7 @@ GameObject:
   - component: {fileID: 1382108485005427590}
   - component: {fileID: 5647890001390091276}
   - component: {fileID: 1978066652320965982}
+  - component: {fileID: 5033937963766406518}
   m_Layer: 3
   m_Name: Player_Tank
   m_TagString: Untagged
@@ -251,8 +252,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   characterData: {fileID: 11400000, guid: 3485be551dd0e4b5399eab00b30da3a1, type: 2}
   hitStunDuration: 0.4
+  blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
-  startWithUltimateReadyForTesting: 0
+  startWithUltimateReadyForTesting: 1
   killsRequiredForUltimate: 3
   ultimateDuration: 10
   ultimateDamageMultiplier: 2
@@ -528,7 +530,9 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 722249377ff065348bb24dba3056505d, type: 3}
   meleeHitSounds:
   - {fileID: 8300000, guid: a1f7b375e82ca9140b869169c07a5262, type: 3}
-  takeDamageSounds: []
+  takeDamageSounds:
+  - {fileID: 8300000, guid: 9145ae59c72814f83bcc5616edf1d389, type: 3}
+  - {fileID: 8300000, guid: f8e2fb471568e49f6afba934278f8573, type: 3}
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
   blockSounds:
@@ -539,8 +543,11 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
-  pitchVariation: 0.1
+  pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
+  use3DSound: 1
+  minDistance: 1.5
+  maxDistance: 18
 --- !u!114 &1978066652320965982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -558,6 +565,30 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   interactionPoint: {fileID: 4539484540318089427}
+--- !u!114 &5033937963766406518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2992128532372965093}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb6ccc93bd8c740e1a973704c7c86a06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  networkPlayer: {fileID: 5959922504594899774}
+  auraPrefab: {fileID: 8100000000000000001, guid: c4d5e6f7a8b94d0e1f2a3b4c5d6e7f8a, type: 3}
+  localOffset: {x: 0, y: 1.05, z: 0}
+  activateDuration: 0.4
+  deactivateDuration: 0.35
+  outerSpinDegreesPerSecond: 42
+  orbSpinDegreesPerSecond: -65
+  pulseSpeed: 3.2
+  pulseEmissionAmplitude: 0.73
+  baseTint: {r: 0.95, g: 0.42, b: 0.12, a: 0.28}
+  rimTint: {r: 1, g: 0.72, b: 0.22, a: 1}
+  emissionTint: {r: 1, g: 0.55, b: 0.1, a: 1}
 --- !u!1 &3271235896336663337
 GameObject:
   m_ObjectHideFlags: 0

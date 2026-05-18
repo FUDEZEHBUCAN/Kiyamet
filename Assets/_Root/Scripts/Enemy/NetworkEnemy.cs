@@ -61,7 +61,8 @@ namespace _Root.Scripts.Enemy
         
         // Local variables
         private NetworkPlayer _currentTarget;
-        private float _lastAttackTime;
+        private float _attackCooldownMultiplier = 1f;
+        private float _nextAttackAllowedTime;
         private float _targetUpdateTimer;
         private float _lastChaseAttemptTime; // Son chase denemesi zamanı
         private float _lastChaseLogTime; // Son chase log zamanı (tekrar tekrar log basmamak için)
@@ -215,12 +216,43 @@ namespace _Root.Scripts.Enemy
                     }
                 }
                 
+                InitializeAttackTimingVariance();
                 FindAndChaseTarget();
             }
             else
             {
                 agent.enabled = false;
             }
+        }
+
+        private void InitializeAttackTimingVariance()
+        {
+            if (enemyData == null || Runner == null)
+                return;
+
+            float minScale = Mathf.Min(enemyData.AttackCooldownMinScale, enemyData.AttackCooldownMaxScale);
+            float maxScale = Mathf.Max(enemyData.AttackCooldownMinScale, enemyData.AttackCooldownMaxScale);
+            _attackCooldownMultiplier = Random.Range(minScale, maxScale);
+            _nextAttackAllowedTime = Runner.SimulationTime + Random.Range(0f, RollAttackCooldownDuration());
+        }
+
+        private float RollAttackCooldownDuration()
+        {
+            if (enemyData == null)
+                return 1.5f;
+
+            float cooldown = enemyData.AttackCooldown * _attackCooldownMultiplier;
+            float jitter = cooldown * enemyData.AttackCooldownJitter;
+            return cooldown + Random.Range(-jitter, jitter);
+        }
+
+        private void StaggerNextAttackOnEnterCombat()
+        {
+            if (Runner == null || enemyData == null)
+                return;
+
+            float maxFirstStrikeDelay = enemyData.AttackCooldown * _attackCooldownMultiplier * 0.8f;
+            _nextAttackAllowedTime = Runner.SimulationTime + Random.Range(0f, maxFirstStrikeDelay);
         }
 
         public override void FixedUpdateNetwork()
@@ -558,8 +590,11 @@ namespace _Root.Scripts.Enemy
             
             if (distanceToTarget <= enemyData.AttackRange)
             {
+                bool wasAttacking = CurrentState == EnemyState.Attack;
                 CurrentState = EnemyState.Attack;
                 agent.ResetPath();
+                if (!wasAttacking)
+                    StaggerNextAttackOnEnterCombat();
             }
             else
             {
@@ -687,7 +722,7 @@ namespace _Root.Scripts.Enemy
                     enemyData.RotationSpeed * Runner.DeltaTime * 0.1f);
             }
             
-            if (Runner.SimulationTime - _lastAttackTime >= enemyData.AttackCooldown)
+            if (Runner.SimulationTime >= _nextAttackAllowedTime)
             {
                 PerformAttack();
             }
@@ -802,7 +837,7 @@ namespace _Root.Scripts.Enemy
         
         private void PerformAttack()
         {
-            _lastAttackTime = Runner.SimulationTime;
+            _nextAttackAllowedTime = Runner.SimulationTime + RollAttackCooldownDuration();
             
             // Animasyon (hemen başlasın)
             if (animController != null)
@@ -855,7 +890,7 @@ namespace _Root.Scripts.Enemy
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive)
                 {
-                    player.TakeDamage(enemyData.AttackDamage, isElite);
+                    player.TakeDamage(enemyData.AttackDamage, isElite, attackPos);
                     didHit = true;
                 }
             }

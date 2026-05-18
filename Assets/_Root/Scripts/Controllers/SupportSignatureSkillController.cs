@@ -40,8 +40,10 @@ namespace _Root.Scripts.Controllers
         [Networked] private NetworkBool SignatureCastInProgress { get; set; }
         [Networked] private Vector3 PendingOrbDirection { get; set; }
         [Networked] private int LastOrbSpawnTick { get; set; }
+        [Networked] private int CastAnimTick { get; set; }
 
         private int _lastVisualOrbSpawnTick;
+        private int _lastVisualCastAnimTick;
 
         private void Awake()
         {
@@ -126,8 +128,7 @@ namespace _Root.Scripts.Controllers
             float inputLockDuration = Mathf.Max(castReleaseDelaySeconds, castInputLockDurationSeconds);
             SignatureInputLockTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, inputLockDuration));
             PendingOrbSpawnTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.02f, castReleaseDelaySeconds));
-
-            PlayCastAnimation();
+            CastAnimTick = Runner.Tick;
         }
 
         public override void FixedUpdateNetwork()
@@ -162,6 +163,12 @@ namespace _Root.Scripts.Controllers
 
         public override void Render()
         {
+            if (CastAnimTick > _lastVisualCastAnimTick && CastAnimTick > 0)
+            {
+                PlayCastAnimation();
+                _lastVisualCastAnimTick = CastAnimTick;
+            }
+
             if (!Object.HasInputAuthority || LastOrbSpawnTick <= _lastVisualOrbSpawnTick || LastOrbSpawnTick <= 0)
                 return;
 

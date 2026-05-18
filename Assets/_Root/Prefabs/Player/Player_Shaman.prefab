@@ -390,10 +390,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   audioSource: {fileID: 0}
   meleeSwingSounds:
-  - {fileID: 8300000, guid: 722249377ff065348bb24dba3056505d, type: 3}
+  - {fileID: 8300000, guid: 7211929e1067e452f81175b96e4b56b9, type: 3}
+  - {fileID: 8300000, guid: 151e3e3e8ab784a5880cce809eb79209, type: 3}
   meleeHitSounds:
   - {fileID: 8300000, guid: a1f7b375e82ca9140b869169c07a5262, type: 3}
-  takeDamageSounds: []
+  takeDamageSounds:
+  - {fileID: 8300000, guid: 1a3e92106b59843cf877fda278ae1624, type: 3}
+  - {fileID: 8300000, guid: f27b2551b2455452ea9d8474c19591a5, type: 3}
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
   blockSounds:
@@ -404,7 +407,7 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
-  pitchVariation: 0.1
+  pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
 --- !u!114 &1868908445738182960
 MonoBehaviour:
@@ -453,8 +456,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   timeDomePrefab: {fileID: 9011223344556677887, guid: a507d004804940f3aa3bf845e5dd2322, type: 3}
-  ultimateDuration: 13
-  invulnDuration: 3
+  ultimateDuration: 15
+  invulnDuration: 4
   castFloatHeight: 4
   castFloatSmoothTime: 0.65
   castFloatBobAmplitude: 0.25
@@ -643,6 +646,10 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: 21300000, guid: 8c9f18983fad70b45966967e025bc81b, type: 3}
+    - target: {fileID: 1840212485067165715, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_PreserveAspect
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2608998072524037950, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -691,6 +698,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5772998297730954375, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 108990b5f3582214aad8ae851e210393, type: 3}
     - target: {fileID: 5881430845045619099, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_SizeDelta.x
       value: 67.6

@@ -23,9 +23,6 @@ namespace _Root.Scripts.Controllers
         [Networked] private float NetworkedYaw { get; set; }
         [Networked] public NetworkBool NetworkedIsRunning { get; set; }
 
-        private Vector3 _lastPosition;
-        private Vector3 _lastFrameVelocity;
-
         private void Awake()
         {
             _cc = GetComponent<NetworkCharacterControllerCustom>();
@@ -40,8 +37,6 @@ namespace _Root.Scripts.Controllers
         public override void Spawned()
         {
             NetworkedYaw = transform.eulerAngles.y;
-            _lastPosition = transform.position;
-            _lastFrameVelocity = Vector3.zero;
             
             if (Object.HasInputAuthority)
             {
@@ -73,10 +68,7 @@ namespace _Root.Scripts.Controllers
                 if (isAlive && GetInput(out NetworkInputData localInput))
                 {
                     if (_animController != null)
-                    {
-                        _animController.SetBlocking(localInput.IsBlockPressed && !isSupportUltimateCastLocked);
                         _animController.SetRunning(localInput.IsRunning);
-                    }
 
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
                     bool roleMelee = roleRules == null || roleRules.CanMelee(_networkPlayer);
@@ -258,36 +250,25 @@ namespace _Root.Scripts.Controllers
         {
             if (_animController != null)
             {
+                if (_networkPlayer != null && !_networkPlayer.IsAlive)
+                {
+                    _animController.SetSpeedImmediate(0f);
+                    _animController.SetMoveDirection(Vector3.zero, transform);
+                    _animController.SetRunning(false);
+                    _animController.SetPushing(false);
+                    _animController.SetBlocking(false);
+                    return;
+                }
+
                 if (_networkPlayer != null)
                 {
                     _animController.SetPushing(_networkPlayer.IsPushing);
+                    _animController.SetBlocking(_networkPlayer.IsBlocking);
                 }
-                
-                Vector3 velocity;
-                
-                if (Object.HasStateAuthority || Object.HasInputAuthority)
-                {
-                    velocity = _cc.Velocity;
-                }
-                else
-                {
-                    Vector3 currentPosition = transform.position;
-                    float deltaTime = Time.deltaTime;
-                    
-                    if (deltaTime > 0f && _lastPosition != Vector3.zero)
-                    {
-                        Vector3 positionDelta = currentPosition - _lastPosition;
-                        velocity = positionDelta / deltaTime;
-                    }
-                    else
-                    {
-                        velocity = _lastFrameVelocity;
-                    }
-                    
-                    _lastFrameVelocity = velocity;
-                    _lastPosition = currentPosition;
-                }
-                
+
+                // Proxy'lerde transform her Render'da aynı NetworkPosition'a snap edildiği için
+                // pozisyon farkından hız hesaplamak her zaman ~0 verir; replicate olan Velocity kullan.
+                Vector3 velocity = _cc.Velocity;
                 Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
                 float speed = horizontalVelocity.magnitude;
                 

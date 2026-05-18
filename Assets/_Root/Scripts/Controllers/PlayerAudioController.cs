@@ -24,8 +24,14 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private AudioClip[] dashHitSounds;
         
         [Header("Settings")]
-        [SerializeField] private float pitchVariation = 0.1f;
+        [Tooltip("Her çalışmada pitch = 1 ± bu değer (ör. 0.22 → yaklaşık 0.78–1.22).")]
+        [SerializeField] [Range(0f, 0.45f)] private float pitchVariation = 0.22f;
         [SerializeField] private float minTimeBetweenSounds = 0.05f;
+
+        [Header("3D ses")]
+        [SerializeField] private bool use3DSound = true;
+        [SerializeField] private float minDistance = 1.5f;
+        [SerializeField] private float maxDistance = 18f;
         
         private float _lastSoundTime;
         
@@ -33,6 +39,25 @@ namespace _Root.Scripts.Controllers
         {
             if (audioSource == null)
                 audioSource = GetComponent<AudioSource>();
+
+            audioSource.playOnAwake = false;
+            ApplySpatialSettings();
+        }
+
+        private void OnEnable()
+        {
+            ApplySpatialSettings();
+        }
+
+        private void ApplySpatialSettings()
+        {
+            if (audioSource == null)
+                return;
+
+            if (use3DSound)
+                SpatialAudioUtility.ConfigureAs3D(audioSource, minDistance, maxDistance);
+            else
+                SpatialAudioUtility.ConfigureAs2D(audioSource);
         }
         
         public void PlayMeleeSwing()
@@ -87,8 +112,7 @@ namespace _Root.Scripts.Controllers
             if (clip == null)
                 return;
             
-            // Pitch varyasyonu ekle (daha doğal ses için)
-            audioSource.pitch = 1f + Random.Range(-pitchVariation, pitchVariation);
+            audioSource.pitch = SampleRandomPitch();
             audioSource.PlayOneShot(clip);
             
             _lastSoundTime = Time.time;
@@ -99,8 +123,16 @@ namespace _Root.Scripts.Controllers
             if (clip == null || audioSource == null)
                 return;
             
-            audioSource.pitch = 1f + Random.Range(-pitchVariation, pitchVariation);
+            audioSource.pitch = SampleRandomPitch();
             audioSource.PlayOneShot(clip, volumeScale);
+        }
+
+        private float SampleRandomPitch()
+        {
+            if (pitchVariation <= 0.001f)
+                return 1f;
+
+            return Mathf.Clamp(1f + Random.Range(-pitchVariation, pitchVariation), 0.5f, 2f);
         }
     }
 }

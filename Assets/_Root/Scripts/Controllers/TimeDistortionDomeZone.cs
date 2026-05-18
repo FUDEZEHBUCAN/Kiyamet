@@ -41,6 +41,7 @@ namespace _Root.Scripts.Controllers
         private NetworkPlayer _owner;
         private TimeDistortionDomeVisuals _visuals;
         private TimeDistortionDomeConnectionLines _connectionLines;
+        private TimeDistortionDomeAudio _domeAudio;
         private readonly List<NetworkPlayer> _allyBuffer = new List<NetworkPlayer>(8);
         private readonly List<NetworkEnemy> _enemyBuffer = new List<NetworkEnemy>(32);
         private readonly HashSet<NetworkEnemy> _enemiesSlowed = new HashSet<NetworkEnemy>();
@@ -76,6 +77,18 @@ namespace _Root.Scripts.Controllers
         {
             _visuals = GetComponent<TimeDistortionDomeVisuals>();
             _connectionLines = GetComponent<TimeDistortionDomeConnectionLines>();
+            _domeAudio = GetComponent<TimeDistortionDomeAudio>();
+        }
+
+        private void EnsureDomeAudio()
+        {
+            if (_domeAudio == null)
+                _domeAudio = GetComponent<TimeDistortionDomeAudio>();
+
+            if (_domeAudio == null)
+                _domeAudio = gameObject.AddComponent<TimeDistortionDomeAudio>();
+
+            _domeAudio.ApplySpatialSettings();
         }
 
         public void CollectTargetsForVisuals(List<NetworkPlayer> allies, List<NetworkEnemy> enemies)
@@ -95,6 +108,7 @@ namespace _Root.Scripts.Controllers
             EndSimulationTime = Runner.SimulationTime + durationSeconds;
             IsActive = true;
             transform.position = center;
+            EnsureDomeAudio();
             RefreshVisuals(true, true);
         }
 
@@ -103,6 +117,7 @@ namespace _Root.Scripts.Controllers
             if (!ActiveDomes.Contains(this))
                 ActiveDomes.Add(this);
 
+            EnsureDomeAudio();
             RefreshVisuals(IsActive, false);
         }
 

@@ -87,24 +87,77 @@ namespace _Root.Scripts.Controllers {
     [Networked] private Vector3 DashDirection { get; set; }
 
     private CharacterController _controller;
+    private Rigidbody _rigidbody;
     private NetworkPlayer _networkPlayer;
     private PlayerAnimationController _animController;
     private readonly HashSet<ReflectorInteractable> _reflectorsHitThisDash = new HashSet<ReflectorInteractable>();
+    private bool _deathPoseFrozen;
+    private Quaternion _frozenDeathRotation;
     
     void Awake() {
       TryGetComponent(out _controller);
+      TryGetComponent(out _rigidbody);
       TryGetComponent(out _networkPlayer);
       _animController = GetComponentInChildren<PlayerAnimationController>();
     }
 
     public override void Spawned() {
       TryGetComponent(out _controller);
+      TryGetComponent(out _rigidbody);
+      ConfigureRigidbodyForCharacterController();
       
       _controller.enabled = false;
       _controller.enabled = true;
       
       NetworkPosition = transform.position;
       NetworkRotation = transform.rotation;
+    }
+
+    private void ConfigureRigidbodyForCharacterController() {
+      if (_rigidbody == null)
+        return;
+
+      // Hareket CharacterController ile; fizik torku ölümde yerinde dönmeye yol açabiliyordu.
+      _rigidbody.isKinematic = true;
+      _rigidbody.useGravity = false;
+      _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+    }
+
+    public void FreezeDeathPose() {
+      if (!Object.HasStateAuthority)
+        return;
+
+      _deathPoseFrozen = true;
+      _frozenDeathRotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+      Velocity = Vector3.zero;
+      IsDashing = false;
+      DashTimer = TickTimer.None;
+
+      if (_rigidbody != null) {
+        _rigidbody.velocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
+        _rigidbody.isKinematic = true;
+      }
+
+      ApplyFrozenDeathTransform();
+    }
+
+    private void MaintainDeathPose() {
+      if (_rigidbody != null) {
+        _rigidbody.velocity = Vector3.zero;
+        _rigidbody.angularVelocity = Vector3.zero;
+      }
+
+      Velocity = Vector3.zero;
+      ApplyFrozenDeathTransform();
+    }
+
+    private void ApplyFrozenDeathTransform() {
+      _controller.enabled = false;
+      transform.rotation = _frozenDeathRotation;
+      _controller.enabled = true;
+      NetworkPosition = transform.position;
+      NetworkRotation = _frozenDeathRotation;
     }
 
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
@@ -260,6 +313,16 @@ namespace _Root.Scripts.Controllers {
         Debug.LogWarning($"[NetworkCC] Move() called but HasStateAuthority = False! ObjectId: {Object.Id}");
         return;
       }
+
+      if (_networkPlayer != null && !_networkPlayer.IsAlive) {
+        if (!_deathPoseFrozen)
+          FreezeDeathPose();
+        else
+          MaintainDeathPose();
+        return;
+      }
+
+      _deathPoseFrozen = false;
       
       if (IsDashing) {
         return;
@@ -329,6 +392,7 @@ namespace _Root.Scripts.Controllers {
         return;
       }
 
+      _deathPoseFrozen = false;
       Vector3 spawnPosition = Utils.Utils.GetRandomSpawnPoint();
       Quaternion spawnRotation = Utils.Utils.GetRandomSpawnRotation();
       Teleport(spawnPosition, spawnRotation);
@@ -337,6 +401,7 @@ namespace _Root.Scripts.Controllers {
       Grounded = false;
       NetworkPosition = spawnPosition;
       NetworkRotation = spawnRotation;
+      ConfigureRigidbodyForCharacterController();
     }
 
     public override void FixedUpdateNetwork() {
@@ -344,6 +409,9 @@ namespace _Root.Scripts.Controllers {
         Respawn();
         return;
       }
+
+      if (Object.HasStateAuthority && _networkPlayer != null && !_networkPlayer.IsAlive)
+        return;
       
       if (Object.HasStateAuthority && IsDashing) {
         if (DashTimer.Expired(Runner)) {

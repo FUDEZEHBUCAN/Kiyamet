@@ -39,6 +39,7 @@ namespace _Root.Scripts.Controllers
 
         [Header("Pasif iyileştirme")]
         [SerializeField] private float healRadius = 5f;
+        public float HealRadius => healRadius;
         [Tooltip("Yarıçap içindeyken saniyede verilen iyileştirme (max can oranı). Orb yok olana kadar.")]
         [SerializeField] [Range(0f, 2f)] private float passiveHealPerSecondFraction = 0.1f;
         [SerializeField] private bool useHorizontalHealDistance;
@@ -62,11 +63,24 @@ namespace _Root.Scripts.Controllers
         private bool _hasPendingConfigure;
 
         private HealingOrbHealLineVisuals _healLineVisuals;
+        private HealingOrbAudio _orbAudio;
         private readonly List<NetworkPlayer> _playersInHealRadiusBuffer = new List<NetworkPlayer>(8);
 
         private void Awake()
         {
             _healLineVisuals = GetComponent<HealingOrbHealLineVisuals>();
+            _orbAudio = GetComponent<HealingOrbAudio>();
+        }
+
+        private void EnsureOrbAudio()
+        {
+            if (_orbAudio == null)
+                _orbAudio = GetComponent<HealingOrbAudio>();
+
+            if (_orbAudio == null)
+                _orbAudio = gameObject.AddComponent<HealingOrbAudio>();
+
+            _orbAudio.ApplySpatialSettings();
         }
 
         public void ServerConfigure(Vector3 startPosition, Vector3 direction)
@@ -81,6 +95,8 @@ namespace _Root.Scripts.Controllers
 
         public override void Spawned()
         {
+            EnsureOrbAudio();
+
             if (_hasPendingConfigure && Object.HasStateAuthority)
                 ApplyServerConfigure(_pendingStartPosition, _pendingDirection);
         }
@@ -96,6 +112,7 @@ namespace _Root.Scripts.Controllers
             HasExpired = false;
             BounceCount = 0;
             transform.position = startPosition;
+            EnsureOrbAudio();
         }
 
         public override void FixedUpdateNetwork()

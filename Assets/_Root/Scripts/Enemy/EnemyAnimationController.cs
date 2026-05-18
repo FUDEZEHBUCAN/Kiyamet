@@ -5,6 +5,8 @@ namespace _Root.Scripts.Enemy
     [RequireComponent(typeof(Animator))]
     public class EnemyAnimationController : MonoBehaviour
     {
+        public const string LocomotionPlaybackMultParam = "LocomotionPlaybackMult";
+
         [Header("References")]
         [SerializeField] private Animator animator;
         
@@ -20,29 +22,58 @@ namespace _Root.Scripts.Enemy
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
+        private static readonly int ParamLocomotionPlaybackMult = Animator.StringToHash(LocomotionPlaybackMultParam);
         
         // Smoothing için
         private float _currentSpeed;
         private float _speedVelocity;
-        private float _playbackSpeed = 1f;
+        private float _locomotionPlaybackMult = 1f;
+        private bool _usesLocomotionPlaybackParameter;
+        private bool _locomotionPlaybackParameterResolved;
         
         private void Awake()
         {
             if (animator == null)
                 animator = GetComponent<Animator>();
         }
+
+        private void ResolveLocomotionPlaybackParameter()
+        {
+            if (_locomotionPlaybackParameterResolved || animator == null)
+                return;
+
+            _locomotionPlaybackParameterResolved = true;
+            foreach (var param in animator.parameters)
+            {
+                if (param.nameHash != ParamLocomotionPlaybackMult)
+                    continue;
+
+                _usesLocomotionPlaybackParameter = param.type == AnimatorControllerParameterType.Float;
+                break;
+            }
+        }
         
         /// <summary>
-        /// Tüm animasyon kliplerinin oynatma hızı (zaman kubbesi yavaşlatma vb.).
+        /// Base Layer locomotion hız çarpanı (zaman kubbesi). Combat / react katmanları etkilenmez.
         /// </summary>
         public void SetPlaybackSpeed(float multiplier)
         {
-            _playbackSpeed = Mathf.Clamp(multiplier, 0.05f, 2f);
-            if (animator != null)
-                animator.speed = _playbackSpeed;
+            _locomotionPlaybackMult = Mathf.Clamp(multiplier, 0.05f, 2f);
+            if (animator == null)
+                return;
+
+            ResolveLocomotionPlaybackParameter();
+            if (_usesLocomotionPlaybackParameter)
+            {
+                animator.speed = 1f;
+                animator.SetFloat(ParamLocomotionPlaybackMult, _locomotionPlaybackMult);
+                return;
+            }
+
+            animator.speed = _locomotionPlaybackMult;
         }
 
-        public float PlaybackSpeed => _playbackSpeed;
+        public float PlaybackSpeed => _locomotionPlaybackMult;
         
         /// <summary>
         /// Hareket hızını günceller (Idle/Run blend için)
@@ -119,8 +150,9 @@ namespace _Root.Scripts.Enemy
             float max = Mathf.Max(deathPlaybackSpeedMin, deathPlaybackSpeedMax);
             float deathSpeed = Random.Range(min, max);
 
-            _playbackSpeed = deathSpeed;
             animator.speed = deathSpeed;
+            if (_usesLocomotionPlaybackParameter)
+                animator.SetFloat(ParamLocomotionPlaybackMult, 1f);
 
             animator.SetBool(ParamIsDead, true);
             animator.SetTrigger(ParamDie);

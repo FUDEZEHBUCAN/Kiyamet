@@ -31413,13 +31413,13 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 3f4497a87aceb324aaca9128800b3425, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 0.3
+  m_Volume: 0.02
   m_Pitch: 1
   Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 256
+  Priority: 0
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -46499,6 +46499,7 @@ MonoBehaviour:
   supportPlayerPrefab: {fileID: 5959922504594899774, guid: 1c1cdd2fa402a4e7bbf61579d38a99a2, type: 3}
   playerSpawnPoints:
   - {fileID: 925219967}
+  autoCollectSpawnPointsInScene: 1
 --- !u!114 &1436696963
 MonoBehaviour:
   m_ObjectHideFlags: 0
