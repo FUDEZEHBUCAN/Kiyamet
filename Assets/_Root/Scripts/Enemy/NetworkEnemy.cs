@@ -953,8 +953,8 @@ namespace _Root.Scripts.Enemy
             // Agent'ı disable et (knockback sırasında)
             if (agent.enabled)
             {
-                agent.ResetPath();
                 agent.enabled = false;
+                agent.ResetPath();
             }
         }
         

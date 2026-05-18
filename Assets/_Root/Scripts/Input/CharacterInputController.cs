@@ -42,12 +42,11 @@ namespace _Root.Scripts.Input
 
         private void Update()
         {
+            // Camera referansını al (lazy init)
             if (_playerCamera == null)
+            {
                 _playerCamera = Camera.main;
-
-            if (_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
-                return;
-
+            }
             
             // Movement input - son değeri al
             _moveInput.x = UnityEngine.Input.GetAxis("Horizontal");

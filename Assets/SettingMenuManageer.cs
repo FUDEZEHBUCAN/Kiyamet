@@ -25,15 +25,4 @@ public class SettingsPanelManager : MonoBehaviour
 
         target.SetActive(true);
     }
-
-
-    public void Toggle()
-    {
-        gameObject.SetActive(!gameObject.activeSelf);
-    }
-
-    public void Close()
-    {
-        gameObject.SetActive(false);
-    }
 }
