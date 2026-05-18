@@ -16,6 +16,8 @@ namespace _Root.Scripts.Roles
 
         public override bool CanDash(NetworkPlayer player) => false;
 
+        public override bool CanBlock(NetworkPlayer player) => false;
+
         public override bool UsesDashAsSignature => false;
     }
 }

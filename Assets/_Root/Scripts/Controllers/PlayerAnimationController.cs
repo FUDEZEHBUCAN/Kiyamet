@@ -25,6 +25,20 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamShoot = Animator.StringToHash("Shoot");
         private static readonly int ParamMeleeAttack = Animator.StringToHash("MeleeAttack");
         private static readonly int ParamAttackType = Animator.StringToHash("AttackType");
+        // Animator Combat katmanı: 1=Attack1, 2=Attack2, 3=Combo (ileri), 4=Attack4
+        private static readonly int[] MeleeCombatStateHashes =
+        {
+            Animator.StringToHash("Attack1"),
+            Animator.StringToHash("Attack2"),
+            Animator.StringToHash("Combo"),
+            Animator.StringToHash("Attack4"),
+        };
+
+        private const string CombatLayerName = "Combat";
+        private static readonly int EmptyCombatStateHash = Animator.StringToHash("Empty");
+        private const float MeleeChainCrossFadeSeconds = 0.08f;
+        private int _combatLayerIndex = -2;
+        private int _clearAttackTypeAfterFrame = -1;
         private static readonly int ParamDash = Animator.StringToHash("Dash");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamDie = Animator.StringToHash("Die");
@@ -37,6 +51,16 @@ namespace _Root.Scripts.Controllers
         {
             if (animator == null)
                 animator = GetComponent<Animator>();
+        }
+
+        private void LateUpdate()
+        {
+            if (_clearAttackTypeAfterFrame < 0 || Time.frameCount < _clearAttackTypeAfterFrame)
+                return;
+
+            _clearAttackTypeAfterFrame = -1;
+            if (animator != null)
+                animator.SetInteger(ParamAttackType, 0);
         }
         
         #region Locomotion
@@ -114,22 +138,55 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <param name="attackType">1 = sağdan sola, 2 = soldan sağa, 3 = ileri, 4 = geriye</param>
-        /// <remarks>
-        /// Geçişin doğru AttackType ile değerlendirilmesi için int set + trigger sonrası
-        /// <see cref="Animator.Update"/> ile anında işlenir; ardından AttackType 0 yapılır
-        /// (art arda transition / yapışık int koşullarını temizlemek için).
-        /// </remarks>
+        /// <param name="attackType">1 = sağdan sola, 2 = soldan sağa, 3 = ileri (Combo), 4 = geriye</param>
         public void TriggerMeleeAttack(int attackType = 1)
         {
-            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
+            if (animator == null || !animator.enabled || !animator.isActiveAndEnabled)
+                return;
+
+            int type = attackType is >= 1 and <= 4 ? attackType : 3;
+            int targetStateHash = MeleeCombatStateHashes[type - 1];
+            int combatLayer = ResolveCombatLayerIndex();
+
+            animator.SetInteger(ParamAttackType, type);
+
+            if (combatLayer >= 0 && IsMeleeCombatState(animator.GetCurrentAnimatorStateInfo(combatLayer).shortNameHash))
             {
-                int type = attackType is >= 1 and <= 4 ? attackType : 3;
-                animator.SetInteger(ParamAttackType, type);
+                // Play(…, 0f) bu controller'da exit-time ~0 olduğu için klibi anında Empty'ye düşürüyordu.
+                animator.CrossFade(targetStateHash, MeleeChainCrossFadeSeconds, combatLayer, 0f);
+            }
+            else
+            {
                 animator.SetTrigger(ParamMeleeAttack);
                 animator.Update(0f);
-                animator.SetInteger(ParamAttackType, 0);
             }
+
+            ScheduleAttackTypeClear();
+        }
+
+        private int ResolveCombatLayerIndex()
+        {
+            if (_combatLayerIndex == -2 && animator != null)
+                _combatLayerIndex = animator.GetLayerIndex(CombatLayerName);
+
+            return _combatLayerIndex;
+        }
+
+        private static bool IsMeleeCombatState(int stateHash)
+        {
+            for (int i = 0; i < MeleeCombatStateHashes.Length; i++)
+            {
+                if (MeleeCombatStateHashes[i] == stateHash)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void ScheduleAttackTypeClear()
+        {
+            // AttackType en az bir animator güncellemesi boyunca kalsın (Any State geçişi için).
+            _clearAttackTypeAfterFrame = Time.frameCount + 2;
         }
         
         public void SetMeleeAttackType(int attackType)
@@ -158,12 +215,17 @@ namespace _Root.Scripts.Controllers
         
         public void InterruptAttack()
         {
-            if (animator != null)
-            {
-                animator.ResetTrigger(ParamMeleeAttack);
-                animator.ResetTrigger(ParamShoot);
-                animator.SetInteger(ParamAttackType, 0);
-            }
+            if (animator == null)
+                return;
+
+            _clearAttackTypeAfterFrame = -1;
+            animator.ResetTrigger(ParamMeleeAttack);
+            animator.ResetTrigger(ParamShoot);
+            animator.SetInteger(ParamAttackType, 0);
+
+            int combatLayer = ResolveCombatLayerIndex();
+            if (combatLayer >= 0 && IsMeleeCombatState(animator.GetCurrentAnimatorStateInfo(combatLayer).shortNameHash))
+                animator.CrossFade(EmptyCombatStateHash, 0.06f, combatLayer, 0f);
         }
         
         public void SetBlocking(bool isBlocking)

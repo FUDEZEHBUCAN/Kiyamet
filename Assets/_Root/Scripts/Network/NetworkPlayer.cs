@@ -4,6 +4,7 @@ using _Root.Scripts.Data;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
 using _Root.Scripts.Roles;
+using _Root.Scripts.UI;
 
 namespace _Root.Scripts.Network
 {
@@ -17,6 +18,10 @@ namespace _Root.Scripts.Network
         [Header("Hit Stun")]
         [Tooltip("Hasar aldıktan sonra saldıramama süresi (saniye)")]
         [SerializeField] private float hitStunDuration = 0.5f;
+
+        [Header("Block")]
+        [Tooltip("Kalkanın önden koruduğu yarı açı (derece). Arkadan gelen hasar bloklanmaz.")]
+        [SerializeField] private float blockFrontHalfAngleDegrees = 80f;
         
         [Header("Respawn")]
         [Tooltip("Öldükten sonra respawn süresi (saniye)")]
@@ -169,6 +174,11 @@ namespace _Root.Scripts.Network
             if (Object.HasInputAuthority)
             {
                 Local = this;
+                if (GetComponent<RoleSkillCheatsheetOverlay>() == null)
+                    gameObject.AddComponent<RoleSkillCheatsheetOverlay>();
+
+                if (GetComponent<UltimateReadyNotification>() == null)
+                    gameObject.AddComponent<UltimateReadyNotification>();
             }
 
             if (Object.HasStateAuthority)
@@ -285,7 +295,7 @@ namespace _Root.Scripts.Network
             }
         }
         
-        public void TakeDamage(float damage, bool isHeavyAttack = false)
+        public void TakeDamage(float damage, bool isHeavyAttack = false, Vector3? damageOrigin = null)
         {
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
@@ -306,19 +316,8 @@ namespace _Root.Scripts.Network
             if (damage <= 0.001f)
                 return;
             
-            // Block kontrolü - blokluyorsa hasar alma
-            if (IsBlocking)
-            {
-                // Block sesi
-                if (audioController != null)
-                    audioController.PlayBlock();
-                
-                // Camera shake (sadece local player için)
-                if (Object.HasInputAuthority && TpsCameraController.Instance != null)
-                    TpsCameraController.Instance.ShakeCamera(CameraShakeType.DamageBlocked);
-                    
+            if (TryConsumeDirectionalBlock(damageOrigin))
                 return;
-            }
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
             
@@ -358,6 +357,44 @@ namespace _Root.Scripts.Network
             LastHitTick = Runner.Tick;
         }
         
+        private bool TryConsumeDirectionalBlock(Vector3? damageOrigin)
+        {
+            if (!IsBlocking || !RoleRules.CanBlock(this))
+                return false;
+
+            if (!IsIncomingDamageFromFront(damageOrigin))
+                return false;
+
+            if (audioController != null)
+                audioController.PlayBlock();
+
+            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.DamageBlocked);
+
+            return true;
+        }
+
+        private bool IsIncomingDamageFromFront(Vector3? damageOrigin)
+        {
+            if (!damageOrigin.HasValue)
+                return false;
+
+            Vector3 toThreat = damageOrigin.Value - transform.position;
+            toThreat.y = 0f;
+            if (toThreat.sqrMagnitude < 0.0001f)
+                return true;
+
+            toThreat.Normalize();
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f)
+                return false;
+
+            forward.Normalize();
+            float minDot = Mathf.Cos(blockFrontHalfAngleDegrees * Mathf.Deg2Rad);
+            return Vector3.Dot(forward, toThreat) >= minDot;
+        }
+
         /// <summary>
         /// Block durumunu ayarla (CharacterMovementHandler'dan çağrılır)
         /// </summary>
@@ -369,18 +406,7 @@ namespace _Root.Scripts.Network
             if (IsSupportUltimateCastLocked)
                 blocking = false;
             
-            bool wasBlocking = IsBlocking;
             IsBlocking = blocking;
-            
-            // Block bittiğinde basic skill cooldown'u sıfırdan başlat.
-            if (wasBlocking && !blocking && _meleeController != null)
-            {
-                _meleeController.StartCooldownFromNow();
-            }
-            
-            // Animasyon
-            if (animController != null)
-                animController.SetBlocking(blocking);
         }
         
         public void Heal(float amount)
@@ -684,6 +710,10 @@ namespace _Root.Scripts.Network
         {
             IsDead = true;
             DeactivateUltimate();
+            IsPushing = false;
+
+            if (_characterController != null)
+                _characterController.FreezeDeathPose();
             
             // Death sesi
             if (audioController != null)

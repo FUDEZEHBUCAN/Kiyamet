@@ -5,72 +5,116 @@ using UnityEngine.SceneManagement;
 using System.Threading.Tasks;
 using System;
 using System.Linq;
+using _Root.Scripts.Network.Lobby;
+using _Root.Scripts.UI;
 
 namespace _Root.Scripts.Network
 {
     public class NetworkRunnerHandler : MonoBehaviour
     {
-        public NetworkRunner networkRunnerPrefab; 
-        
+        public NetworkRunner networkRunnerPrefab;
+
+        [Tooltip("Kapalıysa PlaytestLobbyController bağlanana kadar bekler.")]
+        [SerializeField] private bool autoConnectOnStart = true;
+
+        [SerializeField] private string autoConnectSessionName = "TestSession";
+
         private NetworkRunner _networkRunner;
-        
-        // Start is called before the first frame update
-        void Start()
+
+        public NetworkRunner Runner => _networkRunner;
+
+        private void Start()
         {
+            if (GetComponent<PlaytestLobbyController>() != null)
+                return;
+
+            if (!autoConnectOnStart)
+                return;
+
+            _ = StartLegacySessionAsync(autoConnectSessionName, connectionToken: null, extraCallbacks: null);
+        }
+
+        /// <summary>Playtest lobisi: rol token'ı ile AutoHostOrClient bağlantısı.</summary>
+        public async Task<NetworkRunner> StartPlaytestSessionAsync(
+            string sessionName,
+            byte[] connectionToken,
+            INetworkRunnerCallbacks extraCallbacks)
+        {
+            return await StartLegacySessionAsync(sessionName, connectionToken, extraCallbacks);
+        }
+
+        private async Task<NetworkRunner> StartLegacySessionAsync(
+            string sessionName,
+            byte[] connectionToken,
+            INetworkRunnerCallbacks extraCallbacks)
+        {
+            if (_networkRunner != null)
+                return _networkRunner;
+
             _networkRunner = Instantiate(networkRunnerPrefab);
             _networkRunner.name = "Network Runner";
-            
-            // Debug UI ekle (runtime'da network durumunu gösterir)
+
             if (gameObject.GetComponent<NetworkDebugUI>() == null)
-            {
                 gameObject.AddComponent<NetworkDebugUI>();
-            }
-            
-            // Spawner'ı bul ve callback olarak ekle
-            var spawner = FindObjectOfType<Spawner>();
+
+            if (gameObject.GetComponent<GameplayPingDisplay>() == null)
+                gameObject.AddComponent<GameplayPingDisplay>();
+
+            if (gameObject.GetComponent<GameplayPauseMenu>() == null)
+                gameObject.AddComponent<GameplayPauseMenu>();
+
+            var spawner = GetComponent<Spawner>() ?? FindObjectOfType<Spawner>();
             if (spawner != null)
-            {
                 _networkRunner.AddCallbacks(spawner);
-            }
             else
-            {
                 Debug.LogError("Spawner bulunamadı! OnInput callback'leri çalışmayacak!");
-            }
-            
-            // Aynı session'ı paylaşmak için session name belirle
-            var sessionName = "TestSession";
-            // Async task'ı await et ve hataları yakala
-            _ = InitializeNetworkRunnerAsync(_networkRunner, GameMode.AutoHostOrClient, NetAddress.Any(),
-                SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex), sessionName);
+
+            if (extraCallbacks != null)
+                _networkRunner.AddCallbacks(extraCallbacks);
+
+            var ok = await InitializeNetworkRunnerAsync(
+                _networkRunner,
+                GameMode.AutoHostOrClient,
+                NetAddress.Any(),
+                SceneRef.FromIndex(SceneManager.GetActiveScene().buildIndex),
+                sessionName,
+                connectionToken);
+
+            return ok ? _networkRunner : null;
         }
         
-        protected virtual async Task InitializeNetworkRunnerAsync(NetworkRunner runner, GameMode gameMode,
-            NetAddress address, SceneRef scene, string sessionName)
+        protected virtual async Task<bool> InitializeNetworkRunnerAsync(
+            NetworkRunner runner,
+            GameMode gameMode,
+            NetAddress address,
+            SceneRef scene,
+            string sessionName,
+            byte[] connectionToken)
         {
             try
-        {
-            var sceneManager = runner.GetComponents(typeof(MonoBehaviour))
-                .OfType<INetworkSceneManager>()
-                .FirstOrDefault();
-
-            if (sceneManager == null) 
-                sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
-
-            runner.ProvideInput = true;
-
-                var startGameArgs = new StartGameArgs()
             {
-                GameMode = gameMode,
-                Address = address, 
-                Scene = scene, 
-                SceneManager = sceneManager
+                var sceneManager = runner.GetComponents(typeof(MonoBehaviour))
+                    .OfType<INetworkSceneManager>()
+                    .FirstOrDefault();
+
+                if (sceneManager == null)
+                    sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+
+                runner.ProvideInput = true;
+
+                var startGameArgs = new StartGameArgs
+                {
+                    GameMode = gameMode,
+                    Address = address,
+                    Scene = scene,
+                    SceneManager = sceneManager
                 };
 
-                // Session name belirle (tüm client'lar aynı session'a bağlanmalı)
                 if (!string.IsNullOrEmpty(sessionName))
-                {
                     startGameArgs.SessionName = sessionName;
-                }
+
+                if (connectionToken != null && connectionToken.Length > 0)
+                    startGameArgs.ConnectionToken = connectionToken;
 
                 Debug.Log($"[NetworkRunnerHandler] Starting network runner with GameMode: {gameMode}, SessionName: {sessionName}");
                 var result = await runner.StartGame(startGameArgs);
@@ -78,15 +122,42 @@ namespace _Root.Scripts.Network
                 if (!result.Ok)
                 {
                     Debug.LogError($"[NetworkRunnerHandler] StartGame failed: {result.ShutdownReason}");
+                    if (runner != null)
+                    {
+                        await runner.Shutdown();
+                        Destroy(runner.gameObject);
+                    }
+
+                    _networkRunner = null;
+                    return false;
                 }
-                else
-                {
-                    Debug.Log($"[NetworkRunnerHandler] Network runner started successfully. IsServer: {runner.IsServer}, IsClient: {runner.IsClient}");
-                }
+
+                Debug.Log($"[NetworkRunnerHandler] Network runner started successfully. IsServer: {runner.IsServer}, IsClient: {runner.IsClient}");
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[NetworkRunnerHandler] Exception during network initialization: {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+        }
+
+        public async Task ShutdownSessionAsync()
+        {
+            if (_networkRunner == null)
+                return;
+
+            var runner = _networkRunner;
+            _networkRunner = null;
+
+            try
+            {
+                await runner.Shutdown();
+            }
+            finally
+            {
+                if (runner != null)
+                    Destroy(runner.gameObject);
             }
         }
     }

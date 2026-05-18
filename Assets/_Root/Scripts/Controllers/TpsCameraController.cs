@@ -1,5 +1,6 @@
 using System;
 using _Root.Scripts.Enums;
+using _Root.Scripts.Network.Lobby;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -49,6 +50,11 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float healingOrbPulseStrength = 0.42f;
         [SerializeField] private float healingOrbPulseRippleScale = 0.45f;
 
+        [Header("Tank ulti — açılış")]
+        [SerializeField] private float tankUltimateActivateShakeStrength = 2.15f;
+        [SerializeField] private float tankUltimateActivateSurgeDuration = 0.14f;
+        [SerializeField] private float tankUltimateActivateSettleDuration = 0.28f;
+
         [Header("Support ulti — süzülme (invuln)")]
         [SerializeField] private float supportUltimateFloatPitchAmplitude = 0.4f;
         [SerializeField] private float supportUltimateFloatRollAmplitude = 0.28f;
@@ -91,9 +97,7 @@ namespace _Root.Scripts.Controllers
             _yaw = angles.y;
             _pitch = angles.x;
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-            
+            ApplyGameplayCursorLock();
             FindDamageVignetteImage();
 
             _smoothedArmLength = distance;
@@ -286,6 +290,10 @@ namespace _Root.Scripts.Controllers
                     PlayHealingOrbPulseShake();
                     break;
 
+                case CameraShakeType.TankUltimateActivate:
+                    PlayTankUltimateActivateShake();
+                    break;
+
                 case CameraShakeType.SupportUltimateFloat:
                     break;
                     
@@ -410,6 +418,40 @@ namespace _Root.Scripts.Controllers
         }
 
         /// <summary>
+        /// Tank ulti: kısa dışa doğru güç darbesi + sönümlü titreşim.
+        /// </summary>
+        private void PlayTankUltimateActivateShake()
+        {
+            if (_cameraTransform == null || _supportUltimateFloatShaking)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+
+            float s = tankUltimateActivateShakeStrength;
+            float surgeDur = Mathf.Max(0.05f, tankUltimateActivateSurgeDuration);
+            float settleDur = Mathf.Max(0.08f, tankUltimateActivateSettleDuration);
+
+            var seq = DOTween.Sequence();
+            seq.Append(_cameraTransform.DOPunchRotation(
+                new Vector3(-s * 0.9f, s * 0.38f, s * 0.42f),
+                surgeDur,
+                18,
+                0.12f));
+            seq.Append(_cameraTransform.DOShakeRotation(
+                settleDur,
+                new Vector3(s * 0.38f, s * 0.22f, s * 0.3f),
+                9,
+                75f,
+                true));
+            seq.OnComplete(() =>
+            {
+                if (_cameraTransform != null)
+                    _cameraTransform.localRotation = Quaternion.identity;
+            });
+        }
+
+        /// <summary>
         /// İmza skill top fırlatma: kısa ateşleme darbesi + hafif ripple (pulse).
         /// </summary>
         private void PlayHealingOrbPulseShake()
@@ -502,6 +544,9 @@ namespace _Root.Scripts.Controllers
         
         private void LateUpdate()
         {
+            if (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive)
+                return;
+
             // Local player spawn olduysa target'ı at
             if (target == null && NetworkPlayer.Local != null)
             {
@@ -550,6 +595,7 @@ namespace _Root.Scripts.Controllers
             transform.position = pivot + direction * finalLength;
 
             ApplySupportUltimateFloatShake();
+            ApplyGameplayCursorLock();
         }
 
         /// <summary>
@@ -626,6 +672,15 @@ namespace _Root.Scripts.Controllers
                 return true;
 
             return false;
+        }
+
+        private static void ApplyGameplayCursorLock()
+        {
+            if (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive)
+                return;
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
     }
 }

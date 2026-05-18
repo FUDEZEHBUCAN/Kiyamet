@@ -39,6 +39,8 @@ namespace _Root.Scripts.Controllers
         [Networked] private TickTimer MovementLockTimer { get; set; }
         [Networked] public NetworkBool PendingDamage { get; set; }
         [Networked] private int LastMeleeAttackTick { get; set; }
+        [Networked] private int MeleeVisualSequence { get; set; }
+        [Networked] private int MeleeResolveSequence { get; set; }
         [Networked] private int LastHitEffectTick { get; set; }
         
         /// <summary>Geriye uyumluluk için tutulan son yön tipi (1-4).</summary>
@@ -49,9 +51,9 @@ namespace _Root.Scripts.Controllers
         [Networked] private NetworkBool MeleeResolveWasHit { get; set; }
         
         private NetworkPlayer _networkPlayer;
-        private int _lastVisualMeleeTick;
+        private int _lastVisualMeleeSequence;
         private int _lastVisualHitEffectTick;
-        private int _lastVisualMeleeResolveTick;
+        private int _lastVisualMeleeResolveSequence;
         private bool _damageAppliedThisSwing;
 
         public bool IsMovementLocked =>
@@ -100,19 +102,6 @@ namespace _Root.Scripts.Controllers
             return Mathf.Clamp01(remaining / meleeCooldown);
         }
         
-        public void StartCooldownFromNow()
-        {
-            if (!Object.HasStateAuthority || Runner == null)
-                return;
-            
-            PendingDamage = false;
-            DamageDelayTimer = TickTimer.None;
-            MovementLockTimer = TickTimer.None;
-            _damageAppliedThisSwing = false;
-            NextMeleeAttackType = 3;
-            MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
-        }
-
         /// <summary>Shaman zaman kubbesi: cooldown kalan süresini hızlandırır (multiplier &gt; 1).</summary>
         public void ApplyCooldownHaste(float hasteMultiplier, float deltaTime)
         {
@@ -172,6 +161,7 @@ namespace _Root.Scripts.Controllers
                     
                     MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
                     LastMeleeAttackTick = Runner.Tick;
+                    MeleeVisualSequence++;
                 }
             }
         }
@@ -198,21 +188,18 @@ namespace _Root.Scripts.Controllers
         {
             // Tüm clientlar için animasyon senkronizasyonu (Render'da - NetworkPlayer/NetworkEnemy pattern'i ile uyumlu)
             // Host oyuncu da dahil (state authority olsa bile animasyonu Render'da görmeli)
-            if (LastMeleeAttackTick > _lastVisualMeleeTick && LastMeleeAttackTick > 0)
+            if (MeleeVisualSequence > _lastVisualMeleeSequence)
             {
                 PlayMeleeVisuals();
-                _lastVisualMeleeTick = LastMeleeAttackTick;
+                _lastVisualMeleeSequence = MeleeVisualSequence;
             }
-            
-            if (MeleeResolveTick > _lastVisualMeleeResolveTick && MeleeResolveTick > 0)
-            {
-                if (!MeleeResolveWasHit && animController != null)
-                    animController.SetMeleeAttackType(0);
 
+            if (MeleeResolveSequence > _lastVisualMeleeResolveSequence)
+            {
                 if (MeleeResolveWasHit)
                     TriggerMeleeCameraShake(isHit: true);
 
-                _lastVisualMeleeResolveTick = MeleeResolveTick;
+                _lastVisualMeleeResolveSequence = MeleeResolveSequence;
             }
             
             // Tüm clientlar için vuruş efekti (hasar anında) - sadece remote clientlar için
@@ -319,6 +306,7 @@ namespace _Root.Scripts.Controllers
             }
             
             MeleeResolveTick = Runner.Tick;
+            MeleeResolveSequence++;
             MeleeResolveWasHit = didHit;
             _damageAppliedThisSwing = true;
         }
@@ -405,7 +393,7 @@ namespace _Root.Scripts.Controllers
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive && player != _networkPlayer)
                 {
-                    player.TakeDamage(finalDamage);
+                    player.TakeDamage(finalDamage, damageOrigin: attackPos);
                     didHit = true;
                 }
             }
