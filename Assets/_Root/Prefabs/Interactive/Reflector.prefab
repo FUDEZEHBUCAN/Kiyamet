@@ -51,7 +51,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -134,7 +134,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -217,7 +217,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -306,6 +306,15 @@ MonoBehaviour:
   maxInteractionDistance: 4
   keepCurrentHeight: 1
   rayObject: {fileID: 6229780932246294343}
+  launchForce: 12
+  launchUpwardForce: 0.15
+  proximityHintRadius: 5
+  showAbilityProximityHint: 1
+  hiddenDoorTrigger: {fileID: 0}
+  alignmentTarget: {fileID: 0}
+  aimDirectionTransform: {fileID: 0}
+  alignmentAngleThreshold: 8
+  requireRayActiveForDoorTrigger: 1
 --- !u!65 &175099678491712891
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5350,7 +5359,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1

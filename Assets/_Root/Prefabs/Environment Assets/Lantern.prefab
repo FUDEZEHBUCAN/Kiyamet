@@ -197,7 +197,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 0.2
+      value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: InitialModule.startSpeed.scalar
@@ -205,6 +205,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: InitialModule.startSize.minScalar
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: InitialModule.startLifetime.scalar
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: InitialModule.startLifetime.minScalar
       value: 0.1
       objectReference: {fileID: 0}
     - target: {fileID: 1010234171858039041, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
@@ -222,6 +230,18 @@ PrefabInstance:
     - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_Range
       value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: m_Color.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: m_Color.g
+      value: 0.5058824
+      objectReference: {fileID: 0}
+    - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: m_Color.r
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_Intensity
