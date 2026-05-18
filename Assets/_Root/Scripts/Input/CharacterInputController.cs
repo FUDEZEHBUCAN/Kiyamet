@@ -63,6 +63,7 @@ namespace _Root.Scripts.Input
 
         private static bool IsInputBlocked() =>
             GameplayPauseMenu.IsOpen
+            || UIElementController.IsAnyPanelOpen
             || (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive);
 
         private static void ApplyGameplayCursorLock()
