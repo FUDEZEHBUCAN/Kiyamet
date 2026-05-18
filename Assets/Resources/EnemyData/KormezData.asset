@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isElite: 0
   maxHealth: 50
-  movementSpeed: 9
+  movementSpeed: 7
   rotationSpeed: 120
   acceleration: 30
   stoppingDistance: 1.5
   attackDamage: 10
-  attackRange: 2
+  attackRange: 1.5
   attackCooldown: 2.5
+  attackCooldownMinScale: 0.72
+  attackCooldownMaxScale: 1.38
+  attackCooldownJitter: 0.15

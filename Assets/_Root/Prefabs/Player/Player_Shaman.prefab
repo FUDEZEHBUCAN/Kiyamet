@@ -114,9 +114,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   characterData: {fileID: 11400000, guid: 231d6f64768ae490d9c20ee0e627bcf3, type: 2}
   hitStunDuration: 0.5
+  blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
-  startWithUltimateReadyForTesting: 1
-  killsRequiredForUltimate: 3
+  startWithUltimateReadyForTesting: 0
+  killsRequiredForUltimate: 5
   ultimateDuration: 10
   ultimateDamageMultiplier: 0
   animController: {fileID: 4593688707520901893}
@@ -243,8 +244,6 @@ MonoBehaviour:
   reflectorLayer:
     serializedVersion: 2
     m_Bits: 256
-  reflectorLaunchForce: 15
-  reflectorUpwardBoost: 0.15
   respawnYThreshold: -10
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
@@ -409,6 +408,9 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
   pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
+  use3DSound: 1
+  minDistance: 1.5
+  maxDistance: 18
 --- !u!114 &1868908445738182960
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,6 +424,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactionRange: 4
+  interactFacingThreshold: 0.55
   interactableLayer:
     serializedVersion: 2
     m_Bits: 4294967295

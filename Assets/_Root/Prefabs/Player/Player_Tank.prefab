@@ -254,8 +254,8 @@ MonoBehaviour:
   hitStunDuration: 0.4
   blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
-  startWithUltimateReadyForTesting: 1
-  killsRequiredForUltimate: 3
+  startWithUltimateReadyForTesting: 0
+  killsRequiredForUltimate: 6
   ultimateDuration: 10
   ultimateDamageMultiplier: 2
   animController: {fileID: 0}
@@ -380,8 +380,6 @@ MonoBehaviour:
   reflectorLayer:
     serializedVersion: 2
     m_Bits: 256
-  reflectorLaunchForce: 15
-  reflectorUpwardBoost: 0.15
   respawnYThreshold: -10
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
@@ -561,6 +559,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactionRange: 4
+  interactFacingThreshold: 0.55
   interactableLayer:
     serializedVersion: 2
     m_Bits: 4294967295
