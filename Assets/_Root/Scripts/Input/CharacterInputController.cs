@@ -11,18 +11,27 @@ namespace _Root.Scripts.Input
         [SerializeField] private float mouseSensitivity = 2f;
         public float MouseSensitivity => mouseSensitivity;
 
+        // Edge-triggered press buffer: press'i yakaladıktan sonra kısa bir pencerede
+        // (≈ 4 frame, 60 FPS'de ~67ms) her OnInput çağrısında true gönderiyoruz.
+        // Bu sayede Fusion aynı tick için OnInput'u yeniden sorgularsa veya tick rate
+        // FPS'den farklıysa press kaybolmaz. Eylemlerin kendi cooldown'ları tekrarları
+        // ezer; gerçek bir "double trigger" yaşanmaz.
+        private const int PressBufferFrames = 4;
+        private const int NoPress = int.MinValue;
+
         private NetworkPlayer _networkPlayer;
 
         private Vector2 _moveInput;
         private float _accumulatedRotation;
-        private bool _jumpPressed;
         private bool _shootPressed;
-        private bool _meleePressed;
         private bool _blockPressed;
-        private bool _dashPressed;
-        private bool _ultimatePressed;
-        private bool _interactPressed;
         private Camera _playerCamera;
+
+        private int _jumpPressFrame = NoPress;
+        private int _meleePressFrame = NoPress;
+        private int _dashPressFrame = NoPress;
+        private int _ultimatePressFrame = NoPress;
+        private int _interactPressFrame = NoPress;
 
         public bool IsRunHeld =>
             UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift);
@@ -67,8 +76,8 @@ namespace _Root.Scripts.Input
 
         /// <summary>
         /// Fusion <see cref="Spawner.OnInput"/> çağrıldığında örneklenir.
-        /// Tek karelik tuşlar <see cref="BufferEdgeTriggeredInput"/> ile biriktirilir;
-        /// OnInput her Unity karesinde çalışmadığı için GetKeyDown yalnızca burada okunmaz.
+        /// Edge-triggered press'ler buffer penceresinde (PressBufferFrames) her tick'e
+        /// teslim edilir; resimulation veya çoklu OnInput çağrıları press'i kaybetmez.
         /// </summary>
         public NetworkInputData GetNetworkInput()
         {
@@ -95,52 +104,74 @@ namespace _Root.Scripts.Input
             if (_networkPlayer != null && _networkPlayer.RoleRules.UsesKeyboardCharacterRotation && _playerCamera != null)
                 movementBasisYawDegrees = _playerCamera.transform.eulerAngles.y;
 
+            int currentFrame = Time.frameCount;
             var networkInputData = new NetworkInputData
             {
                 MovementInput = _moveInput,
                 RotationInput = _accumulatedRotation,
-                IsJumpPressed = _jumpPressed,
+                IsJumpPressed = IsPressActive(_jumpPressFrame, currentFrame),
                 IsShootPressed = _shootPressed,
-                IsMeleePressed = _meleePressed,
+                IsMeleePressed = IsPressActive(_meleePressFrame, currentFrame),
                 IsBlockPressed = _blockPressed,
-                IsDashPressed = _dashPressed,
-                IsUltimatePressed = _ultimatePressed,
-                IsInteractPressed = _interactPressed,
+                IsDashPressed = IsPressActive(_dashPressFrame, currentFrame),
+                IsUltimatePressed = IsPressActive(_ultimatePressFrame, currentFrame),
+                IsInteractPressed = IsPressActive(_interactPressFrame, currentFrame),
                 IsRunning = IsRunHeld,
                 AimPoint = aimPoint,
                 MovementBasisYawDegrees = movementBasisYawDegrees
             };
 
+            ExpireStaleBuffers(currentFrame);
             _accumulatedRotation = 0f;
-            _jumpPressed = false;
-            _meleePressed = false;
-            _dashPressed = false;
-            _ultimatePressed = false;
-            _interactPressed = false;
 
             return networkInputData;
         }
 
         /// <summary>
         /// GetKeyDown / GetMouseButtonDown yalnızca bir Unity karesinde true olur;
-        /// Fusion OnInput her karede çalışmayabileceği için basışları burada biriktiriyoruz.
+        /// press olduğu frame'i kaydedip kısa bir pencerede tetik olarak gönderiyoruz.
         /// </summary>
         private void BufferEdgeTriggeredInput()
         {
+            int frame = Time.frameCount;
+
             if (UnityEngine.Input.GetButtonDown("Jump"))
-                _jumpPressed = true;
+                _jumpPressFrame = frame;
 
             if (UnityEngine.Input.GetMouseButtonDown(0))
-                _meleePressed = true;
+                _meleePressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.E))
-                _dashPressed = true;
+                _dashPressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.X))
-                _ultimatePressed = true;
+                _ultimatePressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.F))
-                _interactPressed = true;
+                _interactPressFrame = frame;
+        }
+
+        private static bool IsPressActive(int pressFrame, int currentFrame)
+        {
+            if (pressFrame == NoPress)
+                return false;
+
+            int age = currentFrame - pressFrame;
+            return age >= 0 && age <= PressBufferFrames;
+        }
+
+        private void ExpireStaleBuffers(int currentFrame)
+        {
+            if (_jumpPressFrame != NoPress && currentFrame - _jumpPressFrame > PressBufferFrames)
+                _jumpPressFrame = NoPress;
+            if (_meleePressFrame != NoPress && currentFrame - _meleePressFrame > PressBufferFrames)
+                _meleePressFrame = NoPress;
+            if (_dashPressFrame != NoPress && currentFrame - _dashPressFrame > PressBufferFrames)
+                _dashPressFrame = NoPress;
+            if (_ultimatePressFrame != NoPress && currentFrame - _ultimatePressFrame > PressBufferFrames)
+                _ultimatePressFrame = NoPress;
+            if (_interactPressFrame != NoPress && currentFrame - _interactPressFrame > PressBufferFrames)
+                _interactPressFrame = NoPress;
         }
 
         private void PollInputThisTick()

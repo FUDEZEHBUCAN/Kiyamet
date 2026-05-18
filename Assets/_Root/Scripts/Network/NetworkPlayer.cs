@@ -179,6 +179,9 @@ namespace _Root.Scripts.Network
 
                 if (GetComponent<UltimateReadyNotification>() == null)
                     gameObject.AddComponent<UltimateReadyNotification>();
+
+                if (GetComponent<GameplayInteractionHints>() == null)
+                    gameObject.AddComponent<GameplayInteractionHints>();
             }
 
             if (Object.HasStateAuthority)

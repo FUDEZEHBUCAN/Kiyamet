@@ -41,6 +41,12 @@ namespace _Root.Scripts.Utils
             }
 
             var spawnPoints = Spawner.Instance.playerSpawnPoints;
+            if (Spawner.Instance.UseSingleSpawnPointDebugMode)
+            {
+                spawnPoint = spawnPoints[0];
+                return spawnPoint != null;
+            }
+
             spawnPoint = spawnPoints[Mathf.Abs(slotIndex) % spawnPoints.Length];
             return spawnPoint != null;
         }

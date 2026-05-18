@@ -1,14 +1,20 @@
-using System.Collections;
-using DG.Tweening;
+using Fusion;
 using UnityEngine;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
-using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Interactable
 {
-    [RequireComponent(typeof(Collider))]
-    public class HiddenDoorTrigger : MonoBehaviour
+    public enum HiddenDoorState : byte
+    {
+        Idle = 0,
+        Countdown = 1,
+        Moving = 2,
+        Complete = 3
+    }
+
+    [RequireComponent(typeof(NetworkObject))]
+    public class HiddenDoorTrigger : NetworkBehaviour
     {
         [Header("References")]
         [SerializeField] private Transform hiddenDoor;
@@ -19,207 +25,190 @@ namespace _Root.Scripts.Interactable
         [Header("Door Move")]
         [SerializeField] private float moveRightDistance = 3f;
         [SerializeField] private float moveDuration = 1.2f;
-        [SerializeField] private Ease moveEase = Ease.OutCubic;
         [SerializeField] private bool triggerOnlyOnce = true;
         [SerializeField] private bool lockDoorAtFinalLocalPosition = true;
-        
+
         [Header("Door Move Events")]
         [SerializeField] private GameObject objectToActivateOnDoorMove;
-        
+
         [Header("Camera Shake")]
         [SerializeField] private bool shakeCameraDuringDoorMove = true;
         [SerializeField] private float shakeInterval = 0.12f;
 
-        private bool _countdownStarted;
-        private bool _doorMoved;
-        private bool _isDoorMoving;
-        private Tween _activeDoorTween;
-        private Vector3 _finalLocalPosition;
-        private bool _hasFinalLocalPosition;
-        private Coroutine _shakeRoutine;
-        private bool _sequenceTriggered;
+        [Networked] private HiddenDoorState DoorState { get; set; }
+        [Networked] private TickTimer CountdownTimer { get; set; }
+        [Networked] private float MoveStartTime { get; set; }
+        [Networked] private Vector3 DoorStartLocalPosition { get; set; }
+        [Networked] private Vector3 DoorTargetLocalPosition { get; set; }
 
-        private void Reset()
+        private HiddenDoorState _lastRenderedDoorState;
+        private bool _moveEffectsStarted;
+        private float _nextShakeTime;
+
+        public void TryTriggerDoorSequence()
         {
-            Collider triggerCollider = GetComponent<Collider>();
-            if (triggerCollider != null)
-                triggerCollider.isTrigger = true;
+            if (Object != null && Object.IsValid && !Object.HasStateAuthority)
+                return;
+
+            if (DoorState == HiddenDoorState.Complete && triggerOnlyOnce)
+                return;
+
+            if (DoorState == HiddenDoorState.Moving)
+                return;
+
+            if (DoorState == HiddenDoorState.Countdown)
+                return;
+
+            if (DoorState != HiddenDoorState.Idle && triggerOnlyOnce)
+                return;
+
+            DoorState = HiddenDoorState.Countdown;
+            CountdownTimer = TickTimer.CreateFromSeconds(Runner, countdownDuration);
         }
 
-        private void OnTriggerEnter(Collider other)
+        public override void FixedUpdateNetwork()
         {
-            Debug.Log($"[HiddenDoorTrigger] OnTriggerEnter: {other.name}");
-            
-            if (_doorMoved && triggerOnlyOnce)
-            {
-                Debug.Log("[HiddenDoorTrigger] Door already moved and triggerOnlyOnce is true. Ignoring.");
+            if (!Object.HasStateAuthority)
                 return;
-            }
-            
-            if (_isDoorMoving)
+
+            if (DoorState == HiddenDoorState.Countdown && CountdownTimer.Expired(Runner))
             {
-                Debug.Log("[HiddenDoorTrigger] Door is already moving. Ignoring.");
-                return;
-            }
-            
-            if (_sequenceTriggered && triggerOnlyOnce)
-            {
-                Debug.Log("[HiddenDoorTrigger] Sequence already triggered once. Ignoring.");
-                return;
+                BeginDoorMoveAuthority();
             }
 
-            if (_countdownStarted)
+            if (DoorState == HiddenDoorState.Moving)
             {
-                Debug.Log("[HiddenDoorTrigger] Countdown already running. Ignoring.");
-                return;
+                float elapsed = Runner.SimulationTime - MoveStartTime;
+                if (elapsed >= moveDuration)
+                    CompleteDoorMoveAuthority();
             }
-
-            NetworkPlayer player = other.GetComponentInParent<NetworkPlayer>();
-            if (player == null || !player.IsAlive)
-            {
-                Debug.Log("[HiddenDoorTrigger] Entered collider is not a live NetworkPlayer.");
-                return;
-            }
-
-            Debug.Log($"[HiddenDoorTrigger] Valid player detected: {player.name}. Countdown starting.");
-            _countdownStarted = true;
-            _sequenceTriggered = true;
-            StartCoroutine(CountdownAndMoveDoor());
         }
 
-        private IEnumerator CountdownAndMoveDoor()
+        public override void Render()
         {
-            Debug.Log($"[HiddenDoorTrigger] Countdown started. Duration: {countdownDuration:F2}s");
-            if (countdownDuration > 0f)
-                yield return new WaitForSeconds(countdownDuration);
-
-            Debug.Log("[HiddenDoorTrigger] Countdown finished. Moving hidden door.");
-            MoveDoorRightInLocal();
-            _countdownStarted = false;
+            ApplyDoorVisuals();
         }
 
-        private void MoveDoorRightInLocal()
+        private void BeginDoorMoveAuthority()
         {
             if (hiddenDoor == null)
             {
                 Debug.LogWarning("[HiddenDoorTrigger] Hidden door reference is missing.");
                 return;
             }
-            
-            Rigidbody doorRb = hiddenDoor.GetComponent<Rigidbody>();
-            if (doorRb != null && !doorRb.isKinematic)
+
+            PrepareDoorRigidbodyForTween();
+
+            DoorStartLocalPosition = hiddenDoor.localPosition;
+            DoorTargetLocalPosition = DoorStartLocalPosition + GetDoorLocalMoveDelta();
+            MoveStartTime = Runner.SimulationTime;
+            DoorState = HiddenDoorState.Moving;
+        }
+
+        private void CompleteDoorMoveAuthority()
+        {
+            if (hiddenDoor != null)
+                hiddenDoor.localPosition = DoorTargetLocalPosition;
+
+            DoorState = HiddenDoorState.Complete;
+        }
+
+        private void ApplyDoorVisuals()
+        {
+            if (hiddenDoor == null)
+                return;
+
+            switch (DoorState)
             {
-                doorRb.isKinematic = true;
-                doorRb.velocity = Vector3.zero;
-                doorRb.angularVelocity = Vector3.zero;
-                Debug.Log("[HiddenDoorTrigger] Door rigidbody was dynamic. Switched to kinematic for tween.");
+                case HiddenDoorState.Moving:
+                    float t = moveDuration > 0.001f
+                        ? Mathf.Clamp01((Runner.SimulationTime - MoveStartTime) / moveDuration)
+                        : 1f;
+                    hiddenDoor.localPosition = Vector3.Lerp(
+                        DoorStartLocalPosition,
+                        DoorTargetLocalPosition,
+                        EaseOutCubic(t));
+                    break;
+
+                case HiddenDoorState.Complete:
+                    if (lockDoorAtFinalLocalPosition)
+                        hiddenDoor.localPosition = DoorTargetLocalPosition;
+                    break;
             }
 
-            Vector3 localLeftDirection;
-            if (hiddenDoor.parent != null)
-            {
-                localLeftDirection = hiddenDoor.parent.InverseTransformDirection(-hiddenDoor.right).normalized;
-            }
-            else
-            {
-                localLeftDirection = (-hiddenDoor.right).normalized;
-            }
-            
-            Vector3 targetLocalPosition = hiddenDoor.localPosition + localLeftDirection * moveRightDistance;
-            Debug.Log($"[HiddenDoorTrigger] Door move start. Current local: {hiddenDoor.localPosition}, Target local: {targetLocalPosition}, Duration: {moveDuration:F2}");
-            
-            if (objectToActivateOnDoorMove != null && !objectToActivateOnDoorMove.activeSelf)
-            {
-                objectToActivateOnDoorMove.SetActive(true);
-                Debug.Log($"[HiddenDoorTrigger] Activated object on move start: {objectToActivateOnDoorMove.name}");
-            }
-            
-            _isDoorMoving = true;
-            StartDoorMoveShake();
+            if (DoorState == HiddenDoorState.Moving && _lastRenderedDoorState != HiddenDoorState.Moving)
+                BeginMoveEffectsClient();
 
-            _activeDoorTween?.Kill();
-            _activeDoorTween = hiddenDoor.DOLocalMove(targetLocalPosition, moveDuration)
-                .SetEase(moveEase)
-                .OnComplete(() =>
-                {
-                    hiddenDoor.localPosition = targetLocalPosition;
-                    _finalLocalPosition = targetLocalPosition;
-                    _hasFinalLocalPosition = true;
-                    _doorMoved = true;
-                    _isDoorMoving = false;
+            if (DoorState != HiddenDoorState.Moving)
+            {
+                _moveEffectsStarted = false;
+                if (_lastRenderedDoorState == HiddenDoorState.Moving)
                     StopDoorMoveShake();
-                    Debug.Log($"[HiddenDoorTrigger] Door move completed. Final local: {hiddenDoor.localPosition}");
-                })
-                .OnKill(() =>
-                {
-                    if (_isDoorMoving)
-                    {
-                        _isDoorMoving = false;
-                        StopDoorMoveShake();
-                    }
-                });
-        }
-        
-        private void LateUpdate()
-        {
-            if (!lockDoorAtFinalLocalPosition || !_doorMoved || !_hasFinalLocalPosition || hiddenDoor == null)
-                return;
-            
-            if (hiddenDoor.localPosition != _finalLocalPosition)
-            {
-                hiddenDoor.localPosition = _finalLocalPosition;
             }
+            else if (_moveEffectsStarted && shakeCameraDuringDoorMove)
+            {
+                UpdateDoorMoveShake();
+            }
+
+            _lastRenderedDoorState = DoorState;
         }
-        
-        private void StartDoorMoveShake()
+
+        private void BeginMoveEffectsClient()
         {
-            if (!shakeCameraDuringDoorMove)
-                return;
-            
-            if (_shakeRoutine != null)
-                StopCoroutine(_shakeRoutine);
-            
-            _shakeRoutine = StartCoroutine(DoorMoveShakeRoutine());
+            _moveEffectsStarted = true;
+            _nextShakeTime = Time.unscaledTime;
+
+            if (objectToActivateOnDoorMove != null && !objectToActivateOnDoorMove.activeSelf)
+                objectToActivateOnDoorMove.SetActive(true);
+
+            if (shakeCameraDuringDoorMove && TpsCameraController.Instance != null)
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.DoorBreak);
         }
-        
+
+        private void UpdateDoorMoveShake()
+        {
+            float interval = Mathf.Max(0.05f, shakeInterval);
+            if (Time.unscaledTime < _nextShakeTime)
+                return;
+
+            _nextShakeTime = Time.unscaledTime + interval;
+            if (TpsCameraController.Instance != null)
+                TpsCameraController.Instance.ShakeCamera(CameraShakeType.DoorBreak);
+        }
+
         private void StopDoorMoveShake()
         {
-            if (_shakeRoutine == null)
-            {
-                if (TpsCameraController.Instance != null)
-                    TpsCameraController.Instance.StopCameraShake();
-                return;
-            }
-            
-            StopCoroutine(_shakeRoutine);
-            _shakeRoutine = null;
-            
             if (TpsCameraController.Instance != null)
                 TpsCameraController.Instance.StopCameraShake();
         }
-        
-        private IEnumerator DoorMoveShakeRoutine()
+
+        private Vector3 GetDoorLocalMoveDelta()
         {
-            float interval = Mathf.Max(0.05f, shakeInterval);
-            
-            while (_isDoorMoving)
-            {
-                if (TpsCameraController.Instance != null)
-                {
-                    TpsCameraController.Instance.ShakeCamera(CameraShakeType.DoorBreak);
-                }
-                
-                yield return new WaitForSeconds(interval);
-            }
-            
-            _shakeRoutine = null;
+            Vector3 localLeftDirection;
+            if (hiddenDoor.parent != null)
+                localLeftDirection = hiddenDoor.parent.InverseTransformDirection(-hiddenDoor.right).normalized;
+            else
+                localLeftDirection = (-hiddenDoor.right).normalized;
+
+            return localLeftDirection * moveRightDistance;
         }
-        
+
+        private void PrepareDoorRigidbodyForTween()
+        {
+            Rigidbody doorRb = hiddenDoor.GetComponent<Rigidbody>();
+            if (doorRb == null || doorRb.isKinematic)
+                return;
+
+            doorRb.isKinematic = true;
+            doorRb.velocity = Vector3.zero;
+            doorRb.angularVelocity = Vector3.zero;
+        }
+
+        private static float EaseOutCubic(float t) => 1f - Mathf.Pow(1f - t, 3f);
+
         private void OnDisable()
         {
-            _isDoorMoving = false;
             StopDoorMoveShake();
-            _activeDoorTween?.Kill();
         }
     }
 }

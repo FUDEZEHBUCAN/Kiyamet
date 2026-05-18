@@ -16,7 +16,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 18
   m_IsActive: 1
 --- !u!4 &5040788063785957669
 Transform:
@@ -99,7 +99,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 18
   m_IsActive: 1
 --- !u!4 &8915302727496797809
 Transform:
@@ -182,7 +182,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 18
   m_IsActive: 1
 --- !u!4 &399206976206680977
 Transform:
@@ -258,11 +258,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5449030099867888227}
-  - component: {fileID: 3404880475110158706}
   - component: {fileID: 8312518459024654663}
   - component: {fileID: 175099678491712891}
   - component: {fileID: 7984727214354293060}
-  - component: {fileID: 4991813874290852563}
   - component: {fileID: 5529273857265259733}
   m_Layer: 8
   m_Name: Reflector
@@ -291,27 +289,6 @@ Transform:
   - {fileID: 6073318728951047572}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &3404880475110158706
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4671649731543904473}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.5, y: 1, z: 0.3}
-  m_Center: {x: 0, y: 0.5, z: 0}
 --- !u!114 &8312518459024654663
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -377,23 +354,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
---- !u!114 &4991813874290852563
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4671649731543904473}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1339670526ac14fff9d378164ee22ac0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  holdDistance: 1.8
-  followSpeed: 20
-  maxInteractionDistance: 4
-  keepCurrentHeight: 0
-  rayObject: {fileID: 6229780932246294343}
 --- !u!114 &5529273857265259733
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -412,7 +372,6 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 8312518459024654663}
-  - {fileID: 4991813874290852563}
   ForceRemoteRenderTimeframe: 0
 --- !u!1 &5427009286195118241
 GameObject:
@@ -5356,7 +5315,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 18
   m_IsActive: 1
 --- !u!4 &1211538305757113794
 Transform:

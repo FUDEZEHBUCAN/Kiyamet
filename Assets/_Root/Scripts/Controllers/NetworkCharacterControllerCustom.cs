@@ -33,8 +33,6 @@ namespace _Root.Scripts.Controllers {
     
     [Header("Dash Reflector Settings")]
     [SerializeField] private LayerMask reflectorLayer = -1;
-    [SerializeField] private float reflectorLaunchForce = 12f;
-    [SerializeField] private float reflectorUpwardBoost = 0.15f;
     
     [Header("Respawn Settings")]
     [SerializeField] private float respawnYThreshold = -10f;
@@ -265,7 +263,7 @@ namespace _Root.Scripts.Controllers {
         if (dot <= 0.5f)
           continue;
         
-        reflector.ActivateByDash(DashDirection, reflectorLaunchForce, reflectorUpwardBoost);
+        reflector.ActivateByExternalLaunch(DashDirection);
         _reflectorsHitThisDash.Add(reflector);
         hitReflector = true;
       }

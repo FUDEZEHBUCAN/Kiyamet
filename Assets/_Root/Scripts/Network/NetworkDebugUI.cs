@@ -48,6 +48,17 @@ namespace _Root.Scripts.Network
             GUI.Label(new Rect(10, y, 600, lineHeight), $"SessionName: {_runner.SessionInfo?.Name ?? "N/A"}", _style);
             y += lineHeight;
 
+            if (Spawner.Instance != null)
+            {
+                var debugSpawnActive = Spawner.Instance.UseSingleSpawnPointDebugMode;
+                _style.normal.textColor = debugSpawnActive ? Color.cyan : Color.gray;
+                GUI.Label(new Rect(10, y, 900, lineHeight),
+                    $"SingleSpawnDebug: {(debugSpawnActive ? "ON (enemy spawn off)" : "off")} | Spawn[0]: {GetSpawnPointLabel()}",
+                    _style);
+                y += lineHeight;
+                _style.normal.textColor = Color.white;
+            }
+
             y += lineHeight; // Boşluk
 
             // Tüm NetworkPlayer'ları listele
@@ -88,6 +99,15 @@ namespace _Root.Scripts.Network
             }
 
             _style.normal.textColor = Color.white;
+        }
+
+        private static string GetSpawnPointLabel()
+        {
+            if (Spawner.Instance?.playerSpawnPoints == null || Spawner.Instance.playerSpawnPoints.Length == 0)
+                return "not set";
+
+            var spawn = Spawner.Instance.playerSpawnPoints[0];
+            return spawn != null ? spawn.name : "null";
         }
     }
 }

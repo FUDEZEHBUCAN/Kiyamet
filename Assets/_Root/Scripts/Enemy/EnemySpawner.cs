@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using System.Collections.Generic;
 using _Root.Scripts.Data;
+using _Root.Scripts.Network;
 
 namespace _Root.Scripts.Enemy
 {
@@ -102,7 +103,7 @@ namespace _Root.Scripts.Enemy
             // Ölü enemy'leri temizle
             CleanupDeadEnemies();
             
-            if (!autoSpawn)
+            if (!autoSpawn || IsEnemySpawnDisabledByDebugMode())
                 return;
             
             // İlk spawn delay kontrolü
@@ -241,6 +242,9 @@ namespace _Root.Scripts.Enemy
         {
             if (!Object.HasStateAuthority)
                 return;
+
+            if (IsEnemySpawnDisabledByDebugMode())
+                return;
             
             if (EnemiesAlive >= maxEnemies)
                 return;
@@ -329,6 +333,12 @@ namespace _Root.Scripts.Enemy
         {
             if (!Object.HasStateAuthority)
                 return;
+
+            if (IsEnemySpawnDisabledByDebugMode())
+            {
+                DespawnAllEnemies();
+                return;
+            }
             
             DespawnAllEnemies();
             CurrentWave = 0;
@@ -338,6 +348,11 @@ namespace _Root.Scripts.Enemy
         #endregion
         
         #region Debug
+
+        private static bool IsEnemySpawnDisabledByDebugMode()
+        {
+            return Spawner.Instance != null && Spawner.Instance.UseSingleSpawnPointDebugMode;
+        }
         
         private void OnDrawGizmos()
         {

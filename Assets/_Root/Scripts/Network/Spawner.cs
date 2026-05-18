@@ -28,6 +28,12 @@ namespace _Root.Scripts.Network
         [Header("Spawn discovery")]
         [SerializeField] private bool autoCollectSpawnPointsInScene = true;
 
+        [Header("Developer Debug")]
+        [Tooltip("Açıkken tüm oyuncular playerSpawnPoints listesindeki ilk Transform'ta doğar; dairesel offset ve sahne taraması yapılmaz.")]
+        [SerializeField] private bool useSingleSpawnPointDebugMode;
+
+        public bool UseSingleSpawnPointDebugMode => useSingleSpawnPointDebugMode;
+
         private CharacterInputController _characterInputController;
         private NetworkRunner _runner;
         private NetworkPlayer _configuredTankPrefab;
@@ -128,6 +134,9 @@ namespace _Root.Scripts.Network
 
         private void EnsurePlayerSpawnPoints()
         {
+            if (useSingleSpawnPointDebugMode)
+                return;
+
             if (!autoCollectSpawnPointsInScene)
                 return;
 
@@ -162,6 +171,9 @@ namespace _Root.Scripts.Network
         private void GetSpawnTransform(NetworkRunner runner, PlayerRef player, out Vector3 spawnPosition,
             out Quaternion spawnRotation)
         {
+            if (TryGetSingleDebugSpawnTransform(out spawnPosition, out spawnRotation))
+                return;
+
             var slot = GetSpawnSlotIndex(runner, player);
             spawnRotation = Utils.Utils.GetSpawnRotationForSlot(slot);
             spawnPosition = Utils.Utils.GetSpawnPositionForSlot(slot);
@@ -169,6 +181,25 @@ namespace _Root.Scripts.Network
             var pointCount = playerSpawnPoints != null ? playerSpawnPoints.Length : 0;
             if (pointCount <= 1 || slot >= pointCount)
                 ApplySharedSpawnOffset(ref spawnPosition, spawnRotation, slot);
+        }
+
+        public bool TryGetSingleDebugSpawnTransform(out Vector3 spawnPosition, out Quaternion spawnRotation)
+        {
+            spawnPosition = default;
+            spawnRotation = Quaternion.identity;
+
+            if (!useSingleSpawnPointDebugMode)
+                return false;
+
+            if (playerSpawnPoints == null || playerSpawnPoints.Length == 0 || playerSpawnPoints[0] == null)
+            {
+                Debug.LogWarning("[Spawner] Single spawn debug mode is on but playerSpawnPoints[0] is not assigned.");
+                return false;
+            }
+
+            spawnPosition = playerSpawnPoints[0].position;
+            spawnRotation = playerSpawnPoints[0].rotation;
+            return true;
         }
 
         private static int GetSpawnSlotIndex(NetworkRunner runner, PlayerRef player)

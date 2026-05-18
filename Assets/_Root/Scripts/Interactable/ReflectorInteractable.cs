@@ -16,6 +16,22 @@ namespace _Root.Scripts.Interactable
         [Header("Ray Settings")]
         [SerializeField] private GameObject rayObject;
 
+        [Header("External Launch")]
+        [Tooltip("Tank dash ve Shaman heal orb ile fırlatılırken uygulanan kuvvet.")]
+        [SerializeField] private float launchForce = 12f;
+        [SerializeField] private float launchUpwardForce = 0.15f;
+
+        [Header("Proximity Hints")]
+        [SerializeField] private float proximityHintRadius = 5f;
+        [SerializeField] private bool showAbilityProximityHint = true;
+
+        [Header("Hidden Door Alignment")]
+        [SerializeField] private HiddenDoorTrigger hiddenDoorTrigger;
+        [SerializeField] private Transform alignmentTarget;
+        [SerializeField] private Transform aimDirectionTransform;
+        [SerializeField, Range(1f, 45f)] private float alignmentAngleThreshold = 8f;
+        [SerializeField] private bool requireRayActiveForDoorTrigger = true;
+
         private Rigidbody _rb;
         private Collider[] _selfColliders;
         private Transform _currentInteractor;
@@ -23,6 +39,14 @@ namespace _Root.Scripts.Interactable
         private readonly List<Collider> _ignoredInteractorColliders = new List<Collider>();
         [Networked] private NetworkBool IsUnlockedByDash { get; set; }
         [Networked] private NetworkBool IsRayActivated { get; set; }
+        [Networked] private Vector3 NetPosition { get; set; }
+        [Networked] private float NetYaw { get; set; }
+        [Networked] private NetworkBool IsBeingDraggedNetworked { get; set; }
+
+        public float ProximityHintRadius => proximityHintRadius;
+        public bool IsUnlockedForInteraction => IsUnlockedByDash;
+        public bool ShouldShowAbilityProximityHint =>
+            showAbilityProximityHint && Object != null && Object.IsValid && !IsUnlockedByDash;
 
         private void Awake()
         {
@@ -34,10 +58,11 @@ namespace _Root.Scripts.Interactable
         
         public override void Spawned()
         {
+            NetPosition = transform.position;
+            NetYaw = transform.eulerAngles.y;
+
             if (IsRayActivated)
-            {
                 ApplyRayObjectState(true);
-            }
         }
 
         public void OnInteractStart(Transform interactor)
@@ -47,6 +72,7 @@ namespace _Root.Scripts.Interactable
 
             _currentInteractor = interactor;
             _isBeingDragged = true;
+            IsBeingDraggedNetworked = true;
             _rb.velocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
             _rb.isKinematic = true;
@@ -68,6 +94,8 @@ namespace _Root.Scripts.Interactable
             SetCollisionWithInteractor(interactor != null ? interactor : _currentInteractor, false);
             _currentInteractor = null;
             _isBeingDragged = false;
+            IsBeingDraggedNetworked = false;
+            SyncNetworkTransformFromTransform();
             _rb.isKinematic = false;
         }
 
@@ -89,6 +117,8 @@ namespace _Root.Scripts.Interactable
             );
             
             SetRotationToInteractorYaw(_currentInteractor);
+            SyncNetworkTransformFromTransform();
+            TryTriggerHiddenDoorWhenAligned();
             
             if (IsRayActivated && rayObject != null && !rayObject.activeSelf)
             {
@@ -125,17 +155,31 @@ namespace _Root.Scripts.Interactable
 
             if (_isBeingDragged)
                 return;
+
+            if (!_rb.isKinematic)
+                SyncNetworkTransformFromTransform();
         }
         
         public override void Render()
         {
             ApplyRayObjectState(IsRayActivated);
+            ApplyNetworkTransformToVisual();
         }
         
-        public void ActivateByDash(Vector3 dashDirection, float launchForce, float upwardForce)
+        public bool TryActivateByExternalLaunch(Vector3 launchDirection)
+        {
+            return ActivateByDash(launchDirection, launchForce, launchUpwardForce);
+        }
+
+        public void ActivateByExternalLaunch(Vector3 launchDirection)
+        {
+            TryActivateByExternalLaunch(launchDirection);
+        }
+
+        public bool ActivateByDash(Vector3 dashDirection, float launchForceOverride, float upwardForceOverride)
         {
             if (!Object.HasStateAuthority)
-                return;
+                return false;
             
             IsUnlockedByDash = true;
             
@@ -152,8 +196,32 @@ namespace _Root.Scripts.Interactable
             launchDirection.y = 0f;
             launchDirection = launchDirection.sqrMagnitude > 0.001f ? launchDirection.normalized : transform.forward;
             
-            Vector3 launchVelocity = launchDirection * launchForce + Vector3.up * upwardForce;
+            Vector3 launchVelocity = launchDirection * launchForceOverride + Vector3.up * upwardForceOverride;
             _rb.AddForce(launchVelocity, ForceMode.Impulse);
+            SyncNetworkTransformFromTransform();
+            return true;
+        }
+
+        private void SyncNetworkTransformFromTransform()
+        {
+            NetPosition = transform.position;
+            NetYaw = transform.eulerAngles.y;
+        }
+
+        private void ApplyNetworkTransformToVisual()
+        {
+            if (Object == null || !Object.IsValid || Object.HasStateAuthority)
+                return;
+
+            var targetRotation = Quaternion.Euler(0f, NetYaw, 0f);
+            if (IsBeingDraggedNetworked)
+            {
+                transform.SetPositionAndRotation(NetPosition, targetRotation);
+                return;
+            }
+
+            transform.position = Vector3.Lerp(transform.position, NetPosition, 0.35f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 0.35f);
         }
         
         private void SetCollisionWithInteractor(Transform interactor, bool ignore)
@@ -197,6 +265,29 @@ namespace _Root.Scripts.Interactable
                 return;
             
             transform.rotation = Quaternion.Euler(0f, interactor.eulerAngles.y, 0f);
+        }
+
+        private void TryTriggerHiddenDoorWhenAligned()
+        {
+            if (hiddenDoorTrigger == null || alignmentTarget == null)
+                return;
+
+            if (requireRayActiveForDoorTrigger && !IsRayActivated)
+                return;
+
+            Transform aim = aimDirectionTransform != null ? aimDirectionTransform : transform;
+            Vector3 forward = aim.forward;
+            Vector3 toTarget = alignmentTarget.position - aim.position;
+            forward.y = 0f;
+            toTarget.y = 0f;
+
+            if (forward.sqrMagnitude < 0.0001f || toTarget.sqrMagnitude < 0.0001f)
+                return;
+
+            if (Vector3.Angle(forward, toTarget) <= alignmentAngleThreshold)
+            {
+                hiddenDoorTrigger.TryTriggerDoorSequence();
+            }
         }
         
         private void ApplyRayObjectState(bool isActive)

@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Enemy;
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Network;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -30,6 +31,11 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private int maxCollisionResolvePerTick = 4;
         [Tooltip("Kapalıysa oyuncu ve düşman collider'larından geçer, duvar/zemin gibi yüzeylerden seker.")]
         [SerializeField] private bool bounceOffCharacters = true;
+
+        [Header("Reflector launch")]
+        [Tooltip("Tank dash ile aynı etki: ReflectorInteractable üzerindeki Launch ayarları kullanılır.")]
+        [SerializeField] private bool launchReflectorsOnHit = true;
+        [SerializeField] private float reflectorOverlapProbeRadius = 0.45f;
 
         [Header("Floating")]
         [SerializeField] private float floatDuration = 1.5f;
@@ -65,6 +71,7 @@ namespace _Root.Scripts.Controllers
         private HealingOrbHealLineVisuals _healLineVisuals;
         private HealingOrbAudio _orbAudio;
         private readonly List<NetworkPlayer> _playersInHealRadiusBuffer = new List<NetworkPlayer>(8);
+        private readonly HashSet<ReflectorInteractable> _reflectorsLaunchedThisOrb = new HashSet<ReflectorInteractable>();
 
         private void Awake()
         {
@@ -111,6 +118,7 @@ namespace _Root.Scripts.Controllers
             IsFloating = false;
             HasExpired = false;
             BounceCount = 0;
+            _reflectorsLaunchedThisOrb.Clear();
             transform.position = startPosition;
             EnsureOrbAudio();
         }
@@ -142,7 +150,20 @@ namespace _Root.Scripts.Controllers
             if (stepDistance > distanceRemaining)
                 stepDistance = distanceRemaining;
 
+            if (TryLaunchReflectorsOverlapping(NetPosition, reflectorOverlapProbeRadius))
+            {
+                DespawnOrb();
+                return;
+            }
+
             AdvanceTravelWithBounces(stepDistance);
+
+            if (TryLaunchReflectorsOverlapping(NetPosition, reflectorOverlapProbeRadius))
+            {
+                DespawnOrb();
+                return;
+            }
+
             CurrentTravelSpeed = Mathf.Max(0f, CurrentTravelSpeed - deceleration * dt);
 
             ApplyPassiveHealInRadius(NetPosition, dt);
@@ -173,9 +194,29 @@ namespace _Root.Scripts.Controllers
                         out RaycastHit hit,
                         remaining,
                         bounceLayers,
-                        QueryTriggerInteraction.Ignore)
-                    && ShouldBounceOff(hit.collider))
+                        QueryTriggerInteraction.Ignore))
                 {
+                    var reflector = hit.collider.GetComponentInParent<ReflectorInteractable>();
+                    if (launchReflectorsOnHit && reflector != null)
+                    {
+                        if (TryLaunchReflector(reflector, direction))
+                        {
+                            DespawnOrb();
+                            return;
+                        }
+
+                        ConsumeHitContact(hit, direction, ref remaining);
+                        DespawnOrb();
+                        return;
+                    }
+
+                    if (!ShouldBounceOff(hit.collider))
+                    {
+                        NetPosition += direction * remaining;
+                        remaining = 0f;
+                        continue;
+                    }
+
                     float travelToContact = Mathf.Max(0f, hit.distance - surfaceSkinOffset);
                     NetPosition += direction * travelToContact;
                     remaining -= travelToContact;
@@ -195,9 +236,77 @@ namespace _Root.Scripts.Controllers
             }
         }
 
+        private bool TryLaunchReflectorsOverlapping(Vector3 position, float probeRadius)
+        {
+            if (!launchReflectorsOnHit)
+                return false;
+
+            Collider[] overlaps = Physics.OverlapSphere(
+                position,
+                probeRadius,
+                bounceLayers,
+                QueryTriggerInteraction.Ignore);
+
+            foreach (var col in overlaps)
+            {
+                if (col == null)
+                    continue;
+
+                var reflector = col.GetComponentInParent<ReflectorInteractable>();
+                if (reflector == null)
+                    continue;
+
+                if (TryLaunchReflector(reflector, MoveDirection))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool TryLaunchReflector(ReflectorInteractable reflector, Vector3 travelDirection)
+        {
+            if (!launchReflectorsOnHit || reflector == null || _reflectorsLaunchedThisOrb.Contains(reflector))
+                return false;
+
+            Vector3 launchDirection = ResolveReflectorLaunchDirection(travelDirection, reflector);
+            if (!reflector.TryActivateByExternalLaunch(launchDirection))
+                return false;
+
+            _reflectorsLaunchedThisOrb.Add(reflector);
+            return true;
+        }
+
+        private Vector3 ResolveReflectorLaunchDirection(Vector3 travelDirection, ReflectorInteractable reflector)
+        {
+            Vector3 dir = travelDirection;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f)
+                return dir.normalized;
+
+            dir = MoveDirection;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.0001f)
+                return dir.normalized;
+
+            dir = reflector.transform.position - NetPosition;
+            dir.y = 0f;
+            return dir.sqrMagnitude > 0.0001f ? dir.normalized : reflector.transform.forward;
+        }
+
+        private void ConsumeHitContact(RaycastHit hit, Vector3 direction, ref float remaining)
+        {
+            float travelToContact = Mathf.Max(0f, hit.distance - surfaceSkinOffset);
+            NetPosition += direction * travelToContact;
+            remaining -= travelToContact;
+            NetPosition = hit.point + hit.normal * (collisionRadius + surfaceSkinOffset);
+        }
+
         private bool ShouldBounceOff(Collider col)
         {
             if (col == null || col.isTrigger)
+                return false;
+
+            if (launchReflectorsOnHit && col.GetComponentInParent<ReflectorInteractable>() != null)
                 return false;
 
             if (!bounceOffCharacters)
