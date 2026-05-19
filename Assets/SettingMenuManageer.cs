@@ -7,9 +7,8 @@ public class SettingsPanelManager : MonoBehaviour
     [SerializeField] private GameObject graphicsPanel;
     [SerializeField] private GameObject controlsPanel;
 
-    private void Start()
+    private void OnEnable()
     {
-        // Open a default panel on load, or close all
         OpenAudio();
     }
 
@@ -19,9 +18,15 @@ public class SettingsPanelManager : MonoBehaviour
 
     public void ShowPanel(GameObject target)
     {
-        audioPanel.SetActive(false);
-        graphicsPanel.SetActive(false);
-        controlsPanel.SetActive(false);
+        if (target == null)
+            return;
+
+        if (audioPanel != null)
+            audioPanel.SetActive(false);
+        if (graphicsPanel != null)
+            graphicsPanel.SetActive(false);
+        if (controlsPanel != null)
+            controlsPanel.SetActive(false);
 
         target.SetActive(true);
     }

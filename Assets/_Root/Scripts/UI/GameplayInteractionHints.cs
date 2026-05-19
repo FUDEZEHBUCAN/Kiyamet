@@ -79,7 +79,7 @@ namespace _Root.Scripts.UI
             if (!_player.IsAlive)
                 return false;
 
-            if (GameplayPauseMenu.IsOpen)
+            if (GameplayPauseMenu.IsOpen || UIElementController.IsAnyPanelOpen)
                 return false;
 
             if (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive)

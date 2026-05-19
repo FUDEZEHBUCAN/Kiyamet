@@ -49,13 +49,19 @@ namespace _Root.Scripts.UI
                 if (_isLeaving)
                     return;
 
+                if (IsOptionsPanelVisible())
+                {
+                    CloseOptionsPanel();
+                    return;
+                }
+
                 SetMenuOpen(!_menuOpen);
             }
         }
 
         private void LateUpdate()
         {
-            if (!_menuOpen || _isLeaving)
+            if ((!_menuOpen && !IsOptionsPanelVisible()) || _isLeaving)
                 return;
 
             Cursor.lockState = CursorLockMode.None;
@@ -67,16 +73,17 @@ namespace _Root.Scripts.UI
             if (!_menuOpen || _isLeaving)
                 return;
 
+            // Options canvas açıkken IMGUI çizme: full-screen GUI tıklamaları uGUI'ye ulaşmaz.
+            if (IsOptionsPanelVisible())
+                return;
+
             var scale = GetUiScale();
             EnsureStyles(scale);
 
-            var dimColor = new Color(0f, 0f, 0f, 0.65f);
-            GUI.color = dimColor;
-            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            DrawPauseDim();
 
             const float panelWidth = 420f;
-            const float panelHeight = 280f;
+            const float panelHeight = 352f;
             var panelX = (Screen.width - panelWidth * scale) * 0.5f;
             var panelY = (Screen.height - panelHeight * scale) * 0.5f;
 
@@ -86,13 +93,47 @@ namespace _Root.Scripts.UI
             GUI.Box(new Rect(0f, 0f, panelWidth, panelHeight), GUIContent.none);
             GUI.Label(new Rect(0f, 28f, panelWidth, 40f), "Paused", _titleStyle);
 
-            if (GUI.Button(new Rect(60f, 100f, panelWidth - 120f, 52f), "Resume", _buttonStyle))
+            if (GUI.Button(new Rect(60f, 88f, panelWidth - 120f, 52f), "Resume", _buttonStyle))
                 SetMenuOpen(false);
 
-            if (GUI.Button(new Rect(60f, 168f, panelWidth - 120f, 52f), "Leave Game", _leaveButtonStyle))
+            if (GUI.Button(new Rect(60f, 152f, panelWidth - 120f, 52f), "Options", _buttonStyle))
+                OpenOptionsPanel();
+
+            if (GUI.Button(new Rect(60f, 216f, panelWidth - 120f, 52f), "Leave Game", _leaveButtonStyle))
                 _ = LeaveGameAsync();
 
             GUI.matrix = matrix;
+        }
+
+        private void OpenOptionsPanel()
+        {
+            var options = UIElementController.LocalInstance;
+            if (options == null)
+            {
+                Debug.LogWarning("[GameplayPauseMenu] Options panel not found on local player HUD.");
+                return;
+            }
+
+            options.Open();
+        }
+
+        private void CloseOptionsPanel()
+        {
+            if (!IsOptionsPanelVisible())
+                return;
+
+            UIElementController.LocalInstance.Close();
+        }
+
+        private static bool IsOptionsPanelVisible() =>
+            UIElementController.LocalInstance != null && UIElementController.LocalInstance.IsPanelOpen;
+
+        private static void DrawPauseDim()
+        {
+            var dimColor = new Color(0f, 0f, 0f, 0.65f);
+            GUI.color = dimColor;
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
         }
 
         private async Task LeaveGameAsync()
@@ -116,6 +157,9 @@ namespace _Root.Scripts.UI
 
         private void SetMenuOpen(bool open)
         {
+            if (!open)
+                CloseOptionsPanel();
+
             _menuOpen = open;
             IsOpen = open;
 
@@ -129,6 +173,13 @@ namespace _Root.Scripts.UI
         public void ForceClose()
         {
             _isLeaving = false;
+            CloseOptionsPanel();
+            SetMenuOpen(false);
+        }
+
+        /// <summary>Options UI Back: hem options hem pause menüsünü kapatır.</summary>
+        public void CloseMenuAndResume()
+        {
             SetMenuOpen(false);
         }
 
