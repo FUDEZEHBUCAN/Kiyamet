@@ -13,8 +13,6 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_NONE
-  - TCP2_OUTLINE_CONST_SIZE
-  - TCP2_ZSMOOTH_ON
   m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
@@ -69,9 +67,9 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendOutline: 0
-    - _EnableConstSizeOutline: 1
+    - _EnableConstSizeOutline: 0
     - _EnableTexturedOutline: 0
-    - _EnableZSmooth: 1
+    - _EnableZSmooth: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.105
     - _GlossyReflections: 1
@@ -80,7 +78,7 @@ Material:
     - _OcclusionStrength: 1
     - _Offset1: 0
     - _Offset2: 0
-    - _Outline: 2
+    - _Outline: 0
     - _Parallax: 0.02
     - _RampSmooth: 0.188
     - _RampSmoothAdd: 0.41
@@ -97,7 +95,7 @@ Material:
     - _StencilRef: 10
     - _TexLod: 10
     - _UVSec: 0
-    - _ZSmooth: 3
+    - _ZSmooth: -2.06
     - _ZWrite: 1
     - __dummy__: 0
     - __outline_gui_dummy__: 0

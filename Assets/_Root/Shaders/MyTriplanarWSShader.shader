@@ -5,13 +5,6 @@ Shader "MyTriplanarWSShader"
 {
 	Properties
 	{
-		[Enum(Front, 2, Back, 1, Both, 0)] _Cull ("Render Face", Float) = 2.0
-		[TCP2ToggleNoKeyword] _ZWrite ("Depth Write", Float) = 1.0
-		[HideInInspector] _RenderingMode ("rendering mode", Float) = 0.0
-		[HideInInspector] _SrcBlend ("blending source", Float) = 1.0
-		[HideInInspector] _DstBlend ("blending destination", Float) = 0.0
-		[TCP2Separator]
-
 		[TCP2HeaderHelp(Base)]
 		_Color ("Color", Color) = (1,1,1,1)
 		[TCP2ColorNoAlpha] _HColor ("Highlight Color", Color) = (0.75,0.75,0.75,1)
@@ -53,12 +46,6 @@ Shader "MyTriplanarWSShader"
 		[NoScaleOffset] _DiffuseTintMask ("Diffuse Tint Mask", 2D) = "white" {}
 		[TCP2Separator]
 		
-		[TCP2HeaderHelp(Vertical Fog)]
-		[Toggle(TCP2_VERTICAL_FOG)] _UseVerticalFog ("Enable Vertical Fog", Float) = 0
-		_VerticalFogThreshold ("Y Threshold", Float) = 0
-		_VerticalFogSmoothness ("Smoothness", Float) = 0.5
-		[TCP2Separator]
-		
 		[TCP2HeaderHelp(Outline)]
 		_OutlineWidth ("Width", Range(0.1,4)) = 1
 		_OutlineMinWidth ("Min Width", Range(0,20)) = 1
@@ -70,8 +57,6 @@ Shader "MyTriplanarWSShader"
 		[TCP2MaterialKeywordEnumNoPrefix(Full XYZ, TCP2_UV_NORMALS_FULL, Compressed XY, _, Compressed ZW, TCP2_UV_NORMALS_ZW)]
 		_NormalsUVType ("UV Data Type", Float) = 0
 		[TCP2Separator]
-		
-		[MainTexture] _MainTex ("Albedo", 2D) = "white" {}
 
 		// Avoid compile error if the properties are ending with a drawer
 		[HideInInspector] __dummy__ ("unused", Float) = 0
@@ -101,15 +86,12 @@ Shader "MyTriplanarWSShader"
 		TCP2_TEX2D_NO_SAMPLER(_TriGroundBump);
 		TCP2_TEX2D_WITH_SAMPLER(_TriSideBump);
 		TCP2_TEX2D_WITH_SAMPLER(_DiffuseTintMask);
-		TCP2_TEX2D_WITH_SAMPLER(_MainTex);
 		
 		// Shader Properties
 		float _OutlineMinWidth;
 		float _OutlineWidth;
 		float _OutlineMaxWidth;
 		fixed4 _OutlineColorVertex;
-		float _VerticalFogThreshold;
-		float _VerticalFogSmoothness;
 		float4 _TriGround_ST;
 		float4 _TriSide_ST;
 		float4 _TriplanarBlendStrength;
@@ -129,7 +111,6 @@ Shader "MyTriplanarWSShader"
 		float _RimMin;
 		float _RimMax;
 		fixed4 _RimColor;
-		float4 _MainTex_ST;
 
 		//--------------------------------
 		// HSV HELPERS
@@ -308,25 +289,9 @@ Shader "MyTriplanarWSShader"
 
 			// Shader Properties Sampling
 			float4 __outlineColor = ( float4(1,1,1,1) );
-			float __verticalFogThreshold = ( _VerticalFogThreshold );
-			float __verticalFogSmoothness = ( _VerticalFogSmoothness );
 
 			half4 outlineColor = __outlineColor * input.vcolor.xyzw;
 
-			// Vertical Fog
-			#if defined(TCP2_VERTICAL_FOG)
-			half vertFogThreshold = input.pack2.xyz.y;
-			half verticalFogThreshold = __verticalFogThreshold;
-			half verticalFogSmooothness = __verticalFogSmoothness;
-			half verticalFogMin = verticalFogThreshold - verticalFogSmooothness;
-			half verticalFogMax = verticalFogThreshold + verticalFogSmooothness;
-			half4 fogColor = unity_FogColor;
-			#if defined(UNITY_PASS_FORWARDADD)
-				fogColor.rgb = half3(0, 0, 0);
-			#endif
-			half vertFogFactor = 1 - saturate((vertFogThreshold - verticalFogMin) / (verticalFogMax - verticalFogMin));
-			outlineColor.rgb = lerp(outlineColor.rgb, fogColor.rgb, vertFogFactor);
-			#endif
 			UNITY_APPLY_FOG(input.fogCoord, outlineColor);
 
 			return outlineColor;
@@ -335,21 +300,16 @@ Shader "MyTriplanarWSShader"
 		ENDCG
 		// Outline Include End
 		// Main Surface Shader
-		Blend [_SrcBlend] [_DstBlend]
-		Cull [_Cull]
-		ZWrite [_ZWrite]
 
 		CGPROGRAM
 
-		#pragma surface surf ToonyColorsCustom vertex:vertex_surface exclude_path:deferred exclude_path:prepass keepalpha fullforwardshadows addshadow nolppv keepalpha
+		#pragma surface surf ToonyColorsCustom vertex:vertex_surface exclude_path:deferred exclude_path:prepass keepalpha nolightmap nolppv
 		#pragma target 3.0
 
 		//================================================================
 		// SHADER KEYWORDS
 
 		#pragma shader_feature_local_fragment TCP2_RIM_LIGHTING
-		#pragma shader_feature_local _ _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-		#pragma shader_feature_local_fragment TCP2_VERTICAL_FOG
 
 		//================================================================
 		// STRUCTS
@@ -410,8 +370,6 @@ Shader "MyTriplanarWSShader"
 			float __rimMax;
 			float3 __rimColor;
 			float __rimStrength;
-			float __verticalFogThreshold;
-			float __verticalFogSmoothness;
 		};
 
 		//================================================================
@@ -456,8 +414,6 @@ Shader "MyTriplanarWSShader"
 			output.__rimMax = ( _RimMax );
 			output.__rimColor = ( _RimColor.rgb );
 			output.__rimStrength = ( 1.0 );
-			output.__verticalFogThreshold = ( _VerticalFogThreshold );
-			output.__verticalFogSmoothness = ( _VerticalFogSmoothness );
 
 			output.input = input;
 
@@ -582,11 +538,6 @@ Shader "MyTriplanarWSShader"
 				color.rgb += ambient;
 			#endif
 
-			// Premultiply blending
-			#if defined(_ALPHAPREMULTIPLY_ON)
-				color.rgb *= color.a;
-			#endif
-
 			// Rim Lighting
 			#if defined(TCP2_RIM_LIGHTING)
 			#if !defined(UNITY_PASS_FORWARDADD)
@@ -601,107 +552,7 @@ Shader "MyTriplanarWSShader"
 			#endif
 			#endif
 
-			// Vertical Fog
-			#if defined(TCP2_VERTICAL_FOG)
-			half vertFogThreshold = surface.input.worldPos.y;
-			half verticalFogThreshold = surface.__verticalFogThreshold;
-			half verticalFogSmooothness = surface.__verticalFogSmoothness;
-			half verticalFogMin = verticalFogThreshold - verticalFogSmooothness;
-			half verticalFogMax = verticalFogThreshold + verticalFogSmooothness;
-			half4 fogColor = unity_FogColor;
-			#if defined(UNITY_PASS_FORWARDADD)
-				fogColor.rgb = half3(0, 0, 0);
-			#endif
-			half vertFogFactor = 1 - saturate((vertFogThreshold - verticalFogMin) / (verticalFogMax - verticalFogMin));
-			color.rgb = lerp(color.rgb, fogColor.rgb, vertFogFactor);
-			#endif
-
-			// Apply alpha to Forward Add passes
-			#if defined(_ALPHABLEND_ON) && defined(UNITY_PASS_FORWARDADD)
-				color.rgb *= color.a;
-			#endif
-
 			return color;
-		}
-
-		// Same as UnityGI_Base but with attenuation extraction that works with lightmaps
-		inline UnityGI UnityGI_Base_TCP2(UnityGIInput data, half occlusion, half3 normalWorld, out half tcp2_atten)
-		{
-			UnityGI o_gi;
-			ResetUnityGI(o_gi);
-
-			// Base pass with Lightmap support is responsible for handling ShadowMask / blending here for performance reason
-			#if defined(HANDLE_SHADOWS_BLENDING_IN_GI)
-				half bakedAtten = UnitySampleBakedOcclusion(data.lightmapUV.xy, data.worldPos);
-				float zDist = dot(_WorldSpaceCameraPos - data.worldPos, UNITY_MATRIX_V[2].xyz);
-				float fadeDist = UnityComputeShadowFadeDistance(data.worldPos, zDist);
-				data.atten = UnityMixRealtimeAndBakedShadows(data.atten, bakedAtten, UnityComputeShadowFade(fadeDist));
-			#endif
-
-			o_gi.light = data.light;
-
-			// TCP2: don't apply attenuation to light color
-			// o_gi.light.color *= data.atten;
-
-			// TCP2: extract attenuation
-			tcp2_atten = data.atten;
-
-			#if UNITY_SHOULD_SAMPLE_SH
-				o_gi.indirect.diffuse = ShadeSHPerPixel(normalWorld, data.ambient, data.worldPos);
-			#endif
-
-			#if defined(LIGHTMAP_ON)
-				// Baked lightmaps
-				half4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, data.lightmapUV.xy);
-				half3 bakedColor = DecodeLightmap(bakedColorTex);
-
-				#ifdef DIRLIGHTMAP_COMBINED
-					fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
-					o_gi.indirect.diffuse += DecodeDirectionalLightmap (bakedColor, bakedDirTex, normalWorld);
-
-					#if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-						ResetUnityLight(o_gi.light);
-						o_gi.indirect.diffuse = SubtractMainLightWithRealtimeAttenuationFromLightmap (o_gi.indirect.diffuse, data.atten, bakedColorTex, normalWorld);
-					#endif
-
-				#else // not directional lightmap
-					o_gi.indirect.diffuse += bakedColor;
-
-					#if defined(LIGHTMAP_SHADOW_MIXING) && !defined(SHADOWS_SHADOWMASK) && defined(SHADOWS_SCREEN)
-						ResetUnityLight(o_gi.light);
-						o_gi.indirect.diffuse = SubtractMainLightWithRealtimeAttenuationFromLightmap(o_gi.indirect.diffuse, data.atten, bakedColorTex, normalWorld);
-					#endif
-
-				#endif
-			#endif
-
-			#ifdef DYNAMICLIGHTMAP_ON
-				// Dynamic lightmaps
-				fixed4 realtimeColorTex = UNITY_SAMPLE_TEX2D(unity_DynamicLightmap, data.lightmapUV.zw);
-				half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
-
-				#ifdef DIRLIGHTMAP_COMBINED
-					half4 realtimeDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicDirectionality, unity_DynamicLightmap, data.lightmapUV.zw);
-					o_gi.indirect.diffuse += DecodeDirectionalLightmap (realtimeColor, realtimeDirTex, normalWorld);
-				#else
-					o_gi.indirect.diffuse += realtimeColor;
-				#endif
-			#endif
-
-			o_gi.indirect.diffuse *= occlusion;
-			return o_gi;
-		}
-
-		inline UnityGI UnityGlobalIllumination_TCP2 (UnityGIInput data, half occlusion, half3 normalWorld, out half tcp2_atten)
-		{
-			return UnityGI_Base_TCP2(data, occlusion, normalWorld, tcp2_atten);
-		}
-
-		inline UnityGI UnityGlobalIllumination_TCP2 (UnityGIInput data, half occlusion, half3 normalWorld, Unity_GlossyEnvironmentData glossIn, out half tcp2_atten)
-		{
-			UnityGI o_gi = UnityGI_Base_TCP2(data, occlusion, normalWorld, tcp2_atten);
-			o_gi.indirect.specular = UnityGI_IndirectSpecular(data, occlusion, glossIn);
-			return o_gi;
 		}
 
 		void LightingToonyColorsCustom_GI(inout SurfaceOutputCustom surface, UnityGIInput data, inout UnityGI gi)
@@ -709,10 +560,10 @@ Shader "MyTriplanarWSShader"
 			half3 normal = surface.NormalCustom.xyz;
 
 			// GI without reflection probes
-			half tcp2_atten;
-			gi = UnityGlobalIllumination_TCP2(data, 1.0, normal, tcp2_atten); // occlusion is applied in the lighting function, if necessary
+			gi = UnityGlobalIllumination(data, 1.0, normal); // occlusion is applied in the lighting function, if necessary
 
-			surface.atten = tcp2_atten; // transfer attenuation to lighting function
+			surface.atten = data.atten; // transfer attenuation to lighting function
+			gi.light.color = _LightColor0.rgb; // remove attenuation
 
 		}
 
@@ -737,178 +588,11 @@ Shader "MyTriplanarWSShader"
 			#pragma multi_compile_instancing
 			ENDCG
 		}
-		//================================================================
-		// SHADOW CASTER PASS
-
-		// Shadow Caster (for shadows and depth texture)
-		Pass
-		{
-			Name "ShadowCaster"
-			Tags
-			{
-				"LightMode" = "ShadowCaster"
-			}
-			ZWrite On
-			Blend Off
-
-			CGPROGRAM
-
-			#define SHADOWCASTER_PASS
-
-			#pragma vertex vertex_shadowcaster
-			#pragma fragment fragment_shadowcaster
-			#pragma multi_compile_shadowcaster
-			#pragma multi_compile_instancing
-
-			// half _Cutoff;
-			sampler3D	_DitherMaskLOD;
-
-			struct appdata_shadowcaster
-			{
-				float4 vertex : POSITION;
-				float3 normal : NORMAL;
-				float4 texcoord0 : TEXCOORD0;
-			#if TCP2_COLORS_AS_NORMALS
-				float4 vertexColor : COLOR;
-			#endif
-			// TODO: need a way to know if texcoord1 is used in the Shader Properties
-			#if TCP2_UV2_AS_NORMALS
-				float2 uv2 : TEXCOORD1;
-			#endif
-			#if TCP2_TANGENT_AS_NORMALS
-				float4 tangent : TANGENT;
-			#endif
-				UNITY_VERTEX_INPUT_INSTANCE_ID
-			};
-
-			struct v2f_shadowcaster
-			{
-				V2F_SHADOW_CASTER_NOPOS
-				float4 vcolor : TEXCOORD1;
-				float3 pack1 : TEXCOORD2; /* pack1.xyz = worldPos */
-				float3 pack2 : TEXCOORD3; /* pack2.xyz = worldNormal */
-				float2 pack3 : TEXCOORD4; /* pack3.xy = texcoord0 */
-				UNITY_VERTEX_OUTPUT_STEREO
-			};
-
-			void vertex_shadowcaster (appdata_shadowcaster v, out v2f_shadowcaster output, out float4 opos : SV_POSITION)
-			{
-				UNITY_INITIALIZE_OUTPUT(v2f_shadowcaster, output);
-				UNITY_SETUP_INSTANCE_ID(v);
-				UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-
-				float3 worldNormalUv = mul(unity_ObjectToWorld, float4(v.normal, 1.0)).xyz;
-				// Texture Coordinates
-				output.pack3.xy.xy = v.texcoord0.xy * _MainTex_ST.xy + _MainTex_ST.zw;
-				// Shader Properties Sampling
-				float __outlineMinWidth = ( _OutlineMinWidth );
-				float __outlineWidth = ( _OutlineWidth );
-				float __outlineMaxWidth = ( _OutlineMaxWidth );
-				float4 __outlineColorVertex = ( _OutlineColorVertex.rgba );
-
-				float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-				output.pack1.xyz = worldPos;
-				output.pack2.xyz = worldNormalUv;
-			
-			#ifdef TCP2_COLORS_AS_NORMALS
-				//Vertex Color for Normals
-				float3 normal = (v.vertexColor.xyz*2) - 1;
-			#elif TCP2_TANGENT_AS_NORMALS
-				//Tangent for Normals
-				float3 normal = v.tangent.xyz;
-			#elif TCP2_UV1_AS_NORMALS || TCP2_UV2_AS_NORMALS || TCP2_UV3_AS_NORMALS || TCP2_UV4_AS_NORMALS
-				#if TCP2_UV1_AS_NORMALS
-					#define uvChannel texcoord0
-				#elif TCP2_UV2_AS_NORMALS
-					#define uvChannel texcoord1
-				#elif TCP2_UV3_AS_NORMALS
-					#define uvChannel texcoord2
-				#elif TCP2_UV4_AS_NORMALS
-					#define uvChannel texcoord3
-				#endif
-			
-				#if TCP2_UV_NORMALS_FULL
-				//UV for Normals, full
-				float3 normal = v.uvChannel.xyz;
-				#else
-				//UV for Normals, compressed
-				#if TCP2_UV_NORMALS_ZW
-					#define ch1 z
-					#define ch2 w
-				#else
-					#define ch1 x
-					#define ch2 y
-				#endif
-				float3 n;
-				//unpack uvs
-				v.uvChannel.ch1 = v.uvChannel.ch1 * 255.0/16.0;
-				n.x = floor(v.uvChannel.ch1) / 15.0;
-				n.y = frac(v.uvChannel.ch1) * 16.0 / 15.0;
-				//- get z
-				n.z = v.uvChannel.ch2;
-				//- transform
-				n = n*2 - 1;
-				float3 normal = n;
-				#endif
-			#else
-				float3 normal = v.normal;
-			#endif
-			
-			#if TCP2_ZSMOOTH_ON
-				//Correct Z artefacts
-				normal = UnityObjectToViewPos(normal);
-				normal.z = -_ZSmooth;
-			#endif
-				float size = 1;
-			
-			#if !defined(SHADOWCASTER_PASS)
-				output.vertex = UnityObjectToClipPos(v.vertex.xyz);
-				normal = mul(unity_ObjectToWorld, float4(normal, 0)).xyz;
-				float2 clipNormals = normalize(mul(UNITY_MATRIX_VP, float4(normal,0)).xy);
-				half2 screenRatio = half2(1.0, _ScreenParams.x / _ScreenParams.y);
-				half2 outlineWidth = max(
-					(__outlineMinWidth * output.vertex.w) / (_ScreenParams.xy / 2.0),
-					(__outlineWidth / 100) * screenRatio
-				);
-				outlineWidth = min(
-					(__outlineMaxWidth * output.vertex.w) / (_ScreenParams.xy / 2.0),
-					outlineWidth
-				);
-				output.vertex.xy += clipNormals.xy * outlineWidth;
-				
-			#else
-				v.vertex = v.vertex + float4(normal,0) * __outlineWidth * size * 0.01;
-			#endif
-			
-				output.vcolor.xyzw = __outlineColorVertex;
-
-				TRANSFER_SHADOW_CASTER_NOPOS(output,opos)
-			}
-
-			half4 fragment_shadowcaster(v2f_shadowcaster input, UNITY_VPOS_TYPE vpos : VPOS) : SV_Target
-			{
-
-				// Shader Properties Sampling
-				float4 __albedo = ( TCP2_TEX2D_SAMPLE(_MainTex, _MainTex, input.pack3.xy).rgba );
-				float4 __mainColor = ( _Color.rgba );
-				float __alpha = ( __albedo.a * __mainColor.a );
-
-				// Use dither mask for alpha blended shadows, based on pixel position xy
-				// and alpha level. Our dither texture is 4x4x16.
-				half alpha = ;
-				half alphaRef = tex3D(_DitherMaskLOD, float3(vpos.xy*0.25,alpha*0.9375)).a;
-				clip (alphaRef - 0.01);
-
-				SHADOW_CASTER_FRAGMENT(input)
-			}
-
-			ENDCG
-		}
 	}
 
 	Fallback "Diffuse"
 	CustomEditor "ToonyColorsPro.ShaderGenerator.MaterialInspector_SG2"
 }
 
-/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","TRIPLANAR","TRIPLANAR_BUMP","TT_SHADER_FEATURE","DIFFUSE_TINT","DIFFUSE_TINT_MASK","OUTLINE","AUTO_TRANSPARENT_BLENDING","TRIPLANAR_BUMP_SCALE","OUTLINE_MIN_WIDTH","OUTLINE_MAX_WIDTH","SKETCH_AMBIENT","SKETCH_SHADER_FEATURE","SKETCH_PROGRESSIVE_SMOOTH","ALBEDO_HSV","RAMP_BANDS","RIM_SHADER_FEATURE","RIM","MATCAP_SHADER_FEATURE","OUTLINE_CLIP_SPACE","VERTICAL_FOG","VERTICAL_FOG_SHADER_FEATURE","VERTICAL_FOG_COLOR","ENABLE_FOG","ENABLE_LIGHTMAPS","DITHERED_SHADOWS"];flags:list["fullforwardshadows","addshadow"];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0",RIM_LABEL="Rim Lighting"];shaderProperties:list[,,,,,,,,,,,,,,,,sp(name:"Ground Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriGround";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e57446d3-b1ef-40e6-b3f6-38c9b42b2ef0";op:Multiply;lbl:"Ground";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSide";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"72b6f4eb-1979-43b0-9a30-e7abed958748";op:Multiply;lbl:"Walls";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeiling";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0d293c1e-c425-4e35-a4d6-28e00db46427";op:Multiply;lbl:"Ceiling";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Ground Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriGround_ST";tov_lbl:"_TriGround_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:"_TriGround";prop:"_TriGroundBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"df40221d-83dc-4360-bdfb-c3142433381b";op:Multiply;lbl:"Ground Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriSide_ST";tov_lbl:"_TriSide_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSideBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"c136113f-35c0-41c7-94a8-42f564b5d3e7";op:Multiply;lbl:"Walls Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriCeiling_ST";tov_lbl:"_TriCeiling_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeilingBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0fc6564a-0974-4a0f-8c69-ac1d93da1fef";op:Multiply;lbl:"Ceiling Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,,,,,,,,,,,,,,,,,sp(name:"Normal Map";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:False;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_BumpMap";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"85e48721-41ba-486d-bf84-95733a7c811d";op:Multiply;lbl:"Normal Map";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
-/* TCP_HASH 7085567683617126627a3ce6f25372ca */
+/* TCP_DATA u config(ver:"2.9.2";unity:"2022.3.62f3";tmplt:"SG2_Template_Default";features:list["UNITY_5_4","UNITY_5_5","UNITY_5_6","UNITY_2017_1","UNITY_2018_1","UNITY_2018_2","UNITY_2018_3","UNITY_2019_1","UNITY_2019_2","UNITY_2019_3","UNITY_2019_4","UNITY_2020_1","UNITY_2021_1","TT_SHADER_FEATURE","DIFFUSE_TINT","DIFFUSE_TINT_MASK","OUTLINE","TRIPLANAR_BUMP_SCALE","OUTLINE_MIN_WIDTH","OUTLINE_MAX_WIDTH","SKETCH_AMBIENT","SKETCH_SHADER_FEATURE","SKETCH_PROGRESSIVE_SMOOTH","RIM_SHADER_FEATURE","MATCAP_SHADER_FEATURE","OUTLINE_CLIP_SPACE","VERTICAL_FOG_SHADER_FEATURE","VERTICAL_FOG_COLOR","RAMP_BANDS","RIM","ALBEDO_HSV","TRIPLANAR","TRIPLANAR_BUMP","ENABLE_FOG"];flags:list[];flags_extra:dict[];keywords:dict[RENDER_TYPE="Opaque",RampTextureDrawer="[TCP2Gradient]",RampTextureLabel="Ramp Texture",SHADER_TARGET="3.0",RIM_LABEL="Rim Lighting"];shaderProperties:list[,,,,,,,,,,,,,,,,sp(name:"Ground Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriGround";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"e57446d3-b1ef-40e6-b3f6-38c9b42b2ef0";op:Multiply;lbl:"Ground";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSide";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"72b6f4eb-1979-43b0-9a30-e7abed958748";op:Multiply;lbl:"Walls";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,sp(name:"Ground Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriGround_ST";tov_lbl:"_TriGround_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:"_TriGround";prop:"_TriGroundBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"df40221d-83dc-4360-bdfb-c3142433381b";op:Multiply;lbl:"Ground Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Walls Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriSide_ST";tov_lbl:"_TriSide_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriSideBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"c136113f-35c0-41c7-94a8-42f564b5d3e7";op:Multiply;lbl:"Walls Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),,,,,,,,,,,,,,,,,,,,,,,sp(name:"Ceiling Texture";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"white";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeiling";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0d293c1e-c425-4e35-a4d6-28e00db46427";op:Multiply;lbl:"Ceiling";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Ceiling Texture Normal Map";imps:list[imp_mp_texture(uto:True;tov:"_TriCeiling_ST";tov_lbl:"_TriCeiling_ST";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:True;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_TriCeilingBump";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"0fc6564a-0974-4a0f-8c69-ac1d93da1fef";op:Multiply;lbl:"Ceiling Normal Map";gpu_inst:False;locked:True;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False),sp(name:"Normal Map";imps:list[imp_mp_texture(uto:True;tov:"";tov_lbl:"";gto:False;sbt:False;scr:False;scv:"";scv_lbl:"";gsc:False;roff:False;goff:False;sin_anm:False;sin_anmv:"";sin_anmv_lbl:"";gsin:False;notile:False;triplanar_local:False;def:"bump";locked_uv:False;uv:0;cc:4;chan:"RGBA";mip:-1;mipprop:False;ssuv_vert:False;ssuv_obj:False;uv_type:Texcoord;uv_chan:"XZ";tpln_scale:1;uv_shaderproperty:__NULL__;uv_cmp:__NULL__;sep_sampler:__NULL__;prop:"_BumpMap";md:"";gbv:False;custom:False;refs:"";pnlock:False;guid:"85e48721-41ba-486d-bf84-95733a7c811d";op:Multiply;lbl:"Normal Map";gpu_inst:False;locked:False;impl_index:0)];layers:list[];unlocked:list[];clones:dict[];isClone:False)];customTextures:list[];codeInjection:codeInjection(injectedFiles:list[];mark:False);matLayers:list[]) */
+/* TCP_HASH f3c2b8e9ec9ec858e39515825bcbd27c */
