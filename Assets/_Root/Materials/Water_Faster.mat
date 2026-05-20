@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: WaterTestMat
+  m_Name: Water_Faster
   m_Shader: {fileID: 4800000, guid: 585366621acbcfc43805e78785fb85b8, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -53,7 +53,7 @@ Material:
     - _AbsorbtionHeight: 0
     - _AbsorbtionStrength: 1
     - _AbsorptionColorStrength: 1
-    - _AbsorptionDepth: 0.19
+    - _AbsorptionDepth: 0.222
     - _AbsorptionHeight: 3.79
     - _AbsorptionMaxHeight: 32
     - _AbsorptionStrength: 1
@@ -61,7 +61,7 @@ Material:
     - _BumpParallax: 0.3
     - _CausticMode: 0
     - _CausticsEnabled: 0
-    - _CausticsScale: 1.29
+    - _CausticsScale: 5.33
     - _CausticsSelfDistortion: 0.2
     - _CausticsSpeed: 5
     - _CausticsTiling: -0.4
@@ -75,16 +75,16 @@ Material:
     - _DetailDistance: 200
     - _DetailFadeRange: 100
     - _FinalFogDensity: 0
-    - _FoamCaps: 0.7
+    - _FoamCaps: 0.83
     - _FoamEnabled: 1
     - _FoamFinalErosion: 0.485
     - _FoamNormalMaskScale: 0
     - _FoamNormalScale: 0.5
-    - _FoamParallax: 0.0922
+    - _FoamParallax: 0
     - _FoamScale: 9.5
     - _FoamSmoothness: 0.375
     - _FoamSoftIntersectionFactor: 1.14
-    - _FoamSpeed: 0.5
+    - _FoamSpeed: 5
     - _FoamTiling: 1
     - _FoamTranslucencyIntensity: 0
     - _FogAbsorptionCancellation: 0.808
@@ -129,7 +129,7 @@ Material:
     - _ScatterOcclusion: 0.001
     - _ScatteringNormalInfluence: 0.01
     - _ScatteringPower: 0.1
-    - _SlopeAwareFoam: 6.86
+    - _SlopeAwareFoam: 20
     - _SlopeToMask: 6.34
     - _Tess: 1.3
     - _TessMaxDisp: 2
