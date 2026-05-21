@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 4fd78e57121828f42b957f78d4e2f7ea
+guid: 1a9a745f712a63040a119ffaf4f498f5
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -7,8 +7,8 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
-      name: KormezNew_MAT
-    second: {fileID: 2100000, guid: 68d9092c375b62f45b7b3c4c79dd41c6, type: 2}
+      name: Forged Iron
+    second: {fileID: 2100000, guid: 33e6720be89626148ba30de20ec12173, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -29,7 +29,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 3
+    animationCompression: 1
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -83,7 +83,7 @@ ModelImporter:
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
   referencedClips: []
-  importAnimation: 0
+  importAnimation: 1
   humanDescription:
     serializedVersion: 3
     human: []
@@ -98,13 +98,13 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 1
+    hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 3
+  animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 1
+  avatarSetup: 0
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   importBlendShapeDeformPercent: 1
   remapMaterialsIfMaterialImportModeIsNone: 0
