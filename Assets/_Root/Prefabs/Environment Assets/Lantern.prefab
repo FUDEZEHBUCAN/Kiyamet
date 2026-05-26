@@ -229,7 +229,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_Range
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_Color.b
@@ -246,6 +246,14 @@ PrefabInstance:
     - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_Intensity
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: m_Shadows.m_Type
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3854690271098256658, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
+      propertyPath: m_Shadows.m_Resolution
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6006364279972679726, guid: ccb693dbd60c82a4dac945de1a4cc442, type: 3}
       propertyPath: m_IsActive
