@@ -12,18 +12,17 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - TCP2_DISABLE_WRAPPED_LIGHT
   - TCP2_UV_NORMALS_FULL
-  - TCP2_ZSMOOTH_ON
-  - _METALLICGLOSSMAP
   - _NORMALMAP
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 1
+  m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties: _TCP2_ZSMOOTH_ON
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -52,11 +51,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
-        m_Texture: {fileID: 2800000, guid: 77eb63a4240ffd84cb8f7bc50e95a94e, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
-        m_Texture: {fileID: 2800000, guid: 77eb63a4240ffd84cb8f7bc50e95a94e, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
@@ -75,10 +74,10 @@ Material:
     - _DstBlend: 0
     - _DstBlendOutline: 10
     - _EnableOutline: 1
-    - _GlossMapScale: 0
-    - _Glossiness: 0.5
+    - _GlossMapScale: 1
+    - _Glossiness: 0.109
     - _GlossyReflections: 1
-    - _Metallic: 1
+    - _Metallic: 0
     - _Mode: 0
     - _NormalsSource: 0
     - _NormalsUVType: 0
@@ -86,35 +85,35 @@ Material:
     - _Offset1: 0
     - _Offset2: 0
     - _Outline: 1
-    - _Parallax: 0.005
-    - _RampSmooth: 0.388
-    - _RampSmoothAdd: 0.389
-    - _RampThreshold: 0.664
-    - _RimMax: 0.539
-    - _RimMin: 0.484
-    - _RimStrength: 0.005
+    - _Parallax: 0.02
+    - _RampSmooth: 0.2
+    - _RampSmoothAdd: 0.018
+    - _RampThreshold: 0.5
+    - _RimMax: 0.85
+    - _RimMin: 0.6
+    - _RimStrength: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecBlend: 1
-    - _SpecSmooth: 0.44
+    - _SpecSmooth: 1
     - _SpecularHighlights: 1
     - _SrcBlend: 1
-    - _SrcBlendOutline: 0
-    - _TCP2_DISABLE_WRAPPED_LIGHT: 0
+    - _SrcBlendOutline: 5
+    - _TCP2_DISABLE_WRAPPED_LIGHT: 1
     - _TCP2_OUTLINE_CONST_SIZE: 0
     - _TCP2_OUTLINE_TEXTURED: 0
     - _TCP2_RAMPTEXT: 0
     - _TCP2_SPEC_TOON: 0
     - _TCP2_STYLIZED_FRESNEL: 0
-    - _TCP2_ZSMOOTH_ON: 1
-    - _TexLod: 2.74
+    - _TCP2_ZSMOOTH_ON: 0
+    - _TexLod: 5
     - _UVSec: 0
-    - _ZSmooth: 0
+    - _ZSmooth: -0.5
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 0.6320754, g: 0.6320754, b: 0.6320754, a: 1}
+    - _Color: {r: 0.58632964, g: 0.6626532, b: 0.6792453, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HColor: {r: 0.8301887, g: 0.8301887, b: 0.8301887, a: 1}
+    - _HColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 0.8, g: 0.8, b: 0.8, a: 0.6}
-    - _SColor: {r: 0.735849, g: 0.735849, b: 0.735849, a: 1}
+    - _SColor: {r: 0.24999997, g: 0.24999997, b: 0.24999997, a: 1}
   m_BuildTextureStacks: []

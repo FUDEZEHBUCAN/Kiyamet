@@ -8,13 +8,13 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ShamanMat
-  m_Shader: {fileID: 4800000, guid: 80412fe88398cd147be3aacebe2c3fe3, type: 3}
+  m_Shader: {fileID: 4800000, guid: f8d49205b3b0a644195633020367689d, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_DISABLE_WRAPPED_LIGHT
   - TCP2_SPEC_TOON
-  - TCP2_UV_NORMALS_FULL
+  - _GLOSSYREFLECTIONS_OFF
   - _METALLICGLOSSMAP
   - _NORMALMAP
   m_InvalidKeywords:
@@ -24,6 +24,7 @@ Material:
   - TCP2_SHADOW_LIGHT_COLOR
   - TCP2_SPECULAR
   - TCP2_SPECULAR_STYLIZED
+  - TCP2_UV_NORMALS_FULL
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -80,15 +81,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BumpScale: 1
+    - _BumpScale: 0.5
     - _Cutoff: 0.108
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendOutline: 10
-    - _EnableOutline: 1
-    - _GlossMapScale: 0.261
+    - _EnableOutline: 0
+    - _GlossMapScale: 0.132
     - _Glossiness: 0.444
-    - _GlossyReflections: 1
+    - _GlossyReflections: 0
     - _Metallic: 0
     - _Mode: 0
     - _NormalsSource: 0
@@ -96,17 +97,17 @@ Material:
     - _OcclusionStrength: 1
     - _Offset1: 0
     - _Offset2: 0
-    - _Outline: 1
+    - _Outline: 0.2
     - _Parallax: 0.02
-    - _RampSmooth: 0.077
-    - _RampSmoothAdd: 0.411
-    - _RampThreshold: 0.08
+    - _RampSmooth: 1
+    - _RampSmoothAdd: 1
+    - _RampThreshold: 0.147
     - _RimMax: 2
     - _RimMin: 0.502
     - _RimStrength: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecBlend: 1
-    - _SpecSmooth: 0.117
+    - _SpecSmooth: 0.225
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendOutline: 5
@@ -124,9 +125,9 @@ Material:
     m_Colors:
     - _Color: {r: 0.9063317, g: 0.9063317, b: 0.9063317, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
-    - _HColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HColor: {r: 0.9339623, g: 0.9339623, b: 0.9339623, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 0.9622642, g: 0.9622642, b: 0.9622642, a: 0.6}
-    - _SColor: {r: 0.3018868, g: 0.3018868, b: 0.3018868, a: 1}
+    - _SColor: {r: 0.6132076, g: 0.6132076, b: 0.6132076, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
