@@ -20,8 +20,6 @@ namespace _Root.Scripts.Controllers {
 
     [Header("Character Controller Settings")]
     public float gravity = -20.0f;
-    public float acceleration = 10.0f;
-    public float braking = 10.0f;
     
     [Header("Dash Settings")]
     [SerializeField] private float dashSpeed = 15f;
@@ -350,11 +348,7 @@ namespace _Root.Scripts.Controllers {
       var horizontalVel = new Vector3(moveVelocity.x, 0, moveVelocity.z);
       float maxSpeed = GetMaxSpeed(wantsRun);
 
-      if (direction == Vector3.zero) {
-        horizontalVel = Vector3.Lerp(horizontalVel, Vector3.zero, braking * deltaTime);
-      } else {
-        horizontalVel = Vector3.ClampMagnitude(horizontalVel + direction * acceleration * deltaTime, maxSpeed);
-      }
+      horizontalVel = direction == Vector3.zero ? Vector3.zero : direction * maxSpeed;
 
       moveVelocity.x = horizontalVel.x;
       moveVelocity.z = horizontalVel.z;

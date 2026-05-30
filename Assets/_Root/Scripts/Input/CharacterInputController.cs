@@ -1,6 +1,7 @@
 using _Root.Scripts.Network;
 using _Root.Scripts.Network.Lobby;
 using _Root.Scripts.UI;
+using _Root.Scripts.Controllers;
 using UnityEngine;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -101,9 +102,7 @@ namespace _Root.Scripts.Input
                     aimPoint = ray.origin + ray.direction * 500f;
             }
 
-            float movementBasisYawDegrees = 0f;
-            if (_networkPlayer != null && _networkPlayer.RoleRules.UsesKeyboardCharacterRotation && _playerCamera != null)
-                movementBasisYawDegrees = _playerCamera.transform.eulerAngles.y;
+            float movementBasisYawDegrees = ResolveMovementBasisYawDegrees();
 
             int currentFrame = Time.frameCount;
             var networkInputData = new NetworkInputData
@@ -126,6 +125,30 @@ namespace _Root.Scripts.Input
             _accumulatedRotation = 0f;
 
             return networkInputData;
+        }
+
+        private float ResolveMovementBasisYawDegrees()
+        {
+            if (TpsCameraController.Instance != null)
+                return TpsCameraController.Instance.HorizontalLookYawDegrees;
+
+            if (_playerCamera == null)
+                _playerCamera = Camera.main;
+
+            return _playerCamera != null
+                ? GetHorizontalLookYaw(_playerCamera.transform)
+                : 0f;
+        }
+
+        private static float GetHorizontalLookYaw(Transform reference)
+        {
+            Vector3 forward = reference.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f)
+                return reference.eulerAngles.y;
+
+            forward.Normalize();
+            return Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
         }
 
         /// <summary>

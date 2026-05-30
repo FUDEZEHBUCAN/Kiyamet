@@ -150,6 +150,8 @@ MonoBehaviour:
   meleeCooldown: 1.25
   damageDelay: 0.5
   movementLockDuration: 1
+  comboChainResetSeconds: 1.5
+  attackFacingRotationSpeed: 540
   meleePoint: {fileID: 0}
   hitLayers:
     serializedVersion: 2
@@ -164,8 +166,8 @@ MonoBehaviour:
   audioController: {fileID: 0}
   _PendingDamage:
     _value: 0
-  _NextMeleeAttackType: 0
   _ActiveMeleeSwingType: 0
+  _ActiveMeleeAttackYaw: 0
 --- !u!114 &5528760391886604145
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -231,8 +233,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   characterData: {fileID: 11400000, guid: 231d6f64768ae490d9c20ee0e627bcf3, type: 2}
   gravity: -20
-  acceleration: 50
-  braking: 10
   dashSpeed: 30
   dashDuration: 0.5
   dashCooldown: 5
@@ -717,10 +717,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2630991128559638663, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3064311463978926921, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_SizeDelta.x
       value: 71.63
       objectReference: {fileID: 0}
+    - target: {fileID: 3617917780316458649, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 8c9f18983fad70b45966967e025bc81b, type: 3}
     - target: {fileID: 3726705002025561273, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
@@ -745,6 +753,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4447265639149042348, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: eb51d04b36693b9418c9386c4593b1a1, type: 3}
     - target: {fileID: 5772998297730954375, guid: d9039ec4f1cbbdc4cb8f8de01e114918, type: 3}
       propertyPath: m_Sprite
       value: 

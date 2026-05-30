@@ -17,6 +17,8 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float meleeCooldown = 0.8f;
         [SerializeField] private float damageDelay = 0.3f;
         [SerializeField] private float movementLockDuration = 0.8f;
+        [SerializeField] private float comboChainResetSeconds = 1.5f;
+        [SerializeField] private float attackFacingRotationSpeed = 540f;
         [SerializeField] private Transform meleePoint;
         [SerializeField] private LayerMask hitLayers = -1;
 
@@ -42,11 +44,13 @@ namespace _Root.Scripts.Controllers
         [Networked] private int MeleeVisualSequence { get; set; }
         [Networked] private int MeleeResolveSequence { get; set; }
         [Networked] private int LastHitEffectTick { get; set; }
+        [Networked] private int LastComboAttackType { get; set; }
+        [Networked] private TickTimer ComboResetTimer { get; set; }
         
-        /// <summary>Geriye uyumluluk için tutulan son yön tipi (1-4).</summary>
-        [Networked] public int NextMeleeAttackType { get; set; }
-        /// <summary>O anki saldırı başladığında dondurulan yön tipi (animasyon + hasar).</summary>
+        /// <summary>Combo sırasındaki animasyon adımı (1–4).</summary>
         [Networked] public int ActiveMeleeSwingType { get; set; }
+        /// <summary>Saldırı başladığında kameradan dondurulan dünya Y açısı (°).</summary>
+        [Networked] public float ActiveMeleeAttackYaw { get; private set; }
         [Networked] private int MeleeResolveTick { get; set; }
         [Networked] private NetworkBool MeleeResolveWasHit { get; set; }
         
@@ -58,6 +62,8 @@ namespace _Root.Scripts.Controllers
 
         public bool IsMovementLocked =>
             Runner != null && !MovementLockTimer.ExpiredOrNotRunning(Runner);
+
+        public float AttackFacingRotationSpeed => attackFacingRotationSpeed;
         
         /// <summary>
         /// Saldırıyı iptal et (hasar aldığında çağrılır)
@@ -70,7 +76,8 @@ namespace _Root.Scripts.Controllers
                 // Cooldown'ı da sıfırla ki tekrar saldırabilsin
                 MeleeCooldownTimer = TickTimer.None;
                 MovementLockTimer = TickTimer.None;
-                NextMeleeAttackType = 3;
+                ComboResetTimer = TickTimer.None;
+                LastComboAttackType = 0;
                 _damageAppliedThisSwing = false;
             }
         }
@@ -122,9 +129,6 @@ namespace _Root.Scripts.Controllers
         
         public override void Spawned()
         {
-            if (NextMeleeAttackType < 1 || NextMeleeAttackType > 4)
-                NextMeleeAttackType = 3;
-            
             if (meleePoint == null)
             {
                 // Varsayılan: Karakterin önünde
@@ -136,9 +140,10 @@ namespace _Root.Scripts.Controllers
         }
         
         /// <summary>
-        /// Melee saldırı girişi - CharacterMovementHandler'dan çağrılır
+        /// Melee saldırı girişi - CharacterMovementHandler'dan çağrılır.
+        /// Animasyon combo sırasıyla ilerler; saldırı yönü kamera yaw'ına göre belirlenir.
         /// </summary>
-        public void TryMeleeAttack(Vector2 movementInput)
+        public void TryMeleeAttack(float attackYawDegrees)
         {
             // Ölü oyuncular saldıramaz
             if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
@@ -149,12 +154,13 @@ namespace _Root.Scripts.Controllers
             {
                 if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
                 {
-                    int attackType = GetAttackTypeFromMovement(movementInput);
+                    int attackType = GetNextComboAttackType();
                     ActiveMeleeSwingType = attackType;
-                    NextMeleeAttackType = attackType;
+                    LastComboAttackType = attackType;
+                    ActiveMeleeAttackYaw = attackYawDegrees;
                     _damageAppliedThisSwing = false;
                     
-                    // Hasar için timer başlat (animasyonun ortasında)
+                    ComboResetTimer = TickTimer.CreateFromSeconds(Runner, comboChainResetSeconds);
                     DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
                     MovementLockTimer = TickTimer.CreateFromSeconds(Runner, movementLockDuration);
                     PendingDamage = true;
@@ -168,7 +174,33 @@ namespace _Root.Scripts.Controllers
 
         public void TryMeleeAttack()
         {
-            TryMeleeAttack(Vector2.up);
+            TryMeleeAttack(transform.eulerAngles.y);
+        }
+
+        private int GetNextComboAttackType()
+        {
+            if (ComboResetTimer.ExpiredOrNotRunning(Runner) || LastComboAttackType < 1 || LastComboAttackType > 4)
+                return 1;
+
+            return LastComboAttackType >= 4 ? 1 : LastComboAttackType + 1;
+        }
+
+        /// <summary>CharacterMovementHandler saldırı sırasında gövdeyi saldırı yönüne çevirir.</summary>
+        public bool TryRotateTowardAttackFacing(ref float networkedYaw, float deltaTime)
+        {
+            if (!IsMovementLocked)
+                return false;
+
+            float delta = Mathf.DeltaAngle(networkedYaw, ActiveMeleeAttackYaw);
+            if (Mathf.Abs(delta) <= 0.05f)
+            {
+                networkedYaw = ActiveMeleeAttackYaw;
+                return true;
+            }
+
+            float maxStep = attackFacingRotationSpeed * deltaTime;
+            networkedYaw += Mathf.Clamp(delta, -maxStep, maxStep);
+            return true;
         }
         
         public override void FixedUpdateNetwork()
@@ -280,29 +312,15 @@ namespace _Root.Scripts.Controllers
             if (_damageAppliedThisSwing)
                 return;
             
-            int swingType = ActiveMeleeSwingType;
-            if (swingType < 1 || swingType > 4)
-                swingType = NextMeleeAttackType is >= 1 and <= 4 ? NextMeleeAttackType : 3;
-            
             bool didHit = ApplyMeleeDamageTick();
             
-            // Sadece hasar verildiyse efekt, ses ve camera shake
             if (didHit)
             {
                 SpawnHitEffect();
                 LastHitEffectTick = Runner.Tick;
                 
-                // Hit sesi
                 if (audioController != null)
-                {
                     audioController.PlayMeleeHit();
-                }
-                
-                NextMeleeAttackType = swingType;
-            }
-            else
-            {
-                NextMeleeAttackType = 3;
             }
             
             MeleeResolveTick = Runner.Tick;
@@ -311,43 +329,22 @@ namespace _Root.Scripts.Controllers
             _damageAppliedThisSwing = true;
         }
 
-        private void ApplyMeleeKnockbackToEnemy(NetworkEnemy enemy, int swingType)
+        private void ApplyMeleeKnockbackToEnemy(NetworkEnemy enemy)
         {
             if (!Object.HasStateAuthority || enemy == null || enemy.IsEliteEnemy)
                 return;
 
-            Vector3 direction = GetMeleeKnockbackDirection(swingType);
+            Vector3 direction = GetMeleeKnockbackDirection();
             float horizontal = Random.Range(meleeKnockbackHorizontalMin, meleeKnockbackHorizontalMax);
             float upward = Random.Range(meleeKnockbackUpwardMin, meleeKnockbackUpwardMax);
             enemy.ApplyKnockback(direction * horizontal + Vector3.up * upward);
         }
 
-        /// <summary>1=sol, 2=sağ, 3=ileri, 4=geri — melee saldırı yönü.</summary>
-        private Vector3 GetMeleeKnockbackDirection(int swingType)
+        private Vector3 GetMeleeKnockbackDirection()
         {
-            Vector3 dir = swingType switch
-            {
-                1 => -transform.right,
-                2 => transform.right,
-                4 => -transform.forward,
-                _ => transform.forward,
-            };
-
+            Vector3 dir = Quaternion.Euler(0f, ActiveMeleeAttackYaw, 0f) * Vector3.forward;
             dir.y = 0f;
             return dir.sqrMagnitude > 0.001f ? dir.normalized : transform.forward;
-        }
-
-        private static int GetAttackTypeFromMovement(Vector2 movementInput)
-        {
-            const float inputDeadZone = 0.1f;
-
-            if (Mathf.Abs(movementInput.x) > inputDeadZone)
-                return movementInput.x < 0f ? 1 : 2;
-
-            if (Mathf.Abs(movementInput.y) > inputDeadZone)
-                return movementInput.y > 0f ? 3 : 4;
-
-            return 3;
         }
         
         private bool ApplyMeleeDamageTick()
@@ -369,17 +366,14 @@ namespace _Root.Scripts.Controllers
                 if (enemy != null && enemy.IsAlive)
                 {
                     bool wasAlive = enemy.IsAlive;
-                    int swingType = ActiveMeleeSwingType;
-                    if (swingType < 1 || swingType > 4)
-                        swingType = NextMeleeAttackType is >= 1 and <= 4 ? NextMeleeAttackType : 3;
 
                     if (!enemy.IsEliteEnemy)
-                        ApplyMeleeKnockbackToEnemy(enemy, swingType);
+                        ApplyMeleeKnockbackToEnemy(enemy);
 
                     enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
 
                     if (!enemy.IsEliteEnemy && !enemy.HasActiveKnockback)
-                        ApplyMeleeKnockbackToEnemy(enemy, swingType);
+                        ApplyMeleeKnockbackToEnemy(enemy);
                     
                     if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
                     {

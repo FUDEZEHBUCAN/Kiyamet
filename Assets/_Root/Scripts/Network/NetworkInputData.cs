@@ -18,8 +18,7 @@ namespace _Root.Scripts.Network
         public Vector3 AimPoint;
 
         /// <summary>
-        /// Tank / klavye-free look modunda WASD için referans: yerel oyuncunun kameranın dünya Y açısı (°).
-        /// Diğer rollerde kullanılmaz (0 bırakılabilir).
+        /// Kameranın yatay bakış açısı (°). WASD hareketi ve melee saldırı yönü bu referansa göre hesaplanır.
         /// </summary>
         public float MovementBasisYawDegrees;
     }

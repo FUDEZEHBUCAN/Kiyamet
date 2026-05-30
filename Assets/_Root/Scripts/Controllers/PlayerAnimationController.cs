@@ -138,7 +138,7 @@ namespace _Root.Scripts.Controllers
             }
         }
         
-        /// <param name="attackType">1 = sağdan sola, 2 = soldan sağa, 3 = ileri (Combo), 4 = geriye</param>
+        /// <param name="attackType">Combo adımı: 1 = Attack1, 2 = Attack2, 3 = Combo, 4 = Attack4</param>
         public void TriggerMeleeAttack(int attackType = 1)
         {
             if (animator == null || !animator.enabled || !animator.isActiveAndEnabled)

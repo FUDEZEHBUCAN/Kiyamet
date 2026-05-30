@@ -80,6 +80,9 @@ namespace _Root.Scripts.Controllers
         private float _armLengthVelocity;
         private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
 
+        /// <summary>Kameranın yatay bakış açısı (°). Hareket ve melee yönü için kullanılır.</summary>
+        public float HorizontalLookYawDegrees => _yaw;
+
         private void Awake()
         {
             Instance = this;

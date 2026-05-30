@@ -82,7 +82,7 @@ namespace _Root.Scripts.Controllers
 
                         if (_meleeController != null && localInput.IsMeleePressed && roleMelee)
                         {
-                            _meleeController.TryMeleeAttack(localInput.MovementInput);
+                            _meleeController.TryMeleeAttack(localInput.MovementBasisYawDegrees);
                         }
                     }
                 }
@@ -110,29 +110,21 @@ namespace _Root.Scripts.Controllers
                 bool isSignatureCastMovementLocked = _supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked;
                 bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked || isSignatureCastMovementLocked;
 
+                float yaw = NetworkedYaw;
+
                 if (!isMovementLocked && !keyboardTurnBody)
                 {
                     if (Mathf.Abs(input.RotationInput) > 0.001f)
                     {
-                        NetworkedYaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
+                        yaw += input.RotationInput * rotationSpeed * Runner.DeltaTime;
                     }
                 }
 
                 Quaternion cameraBasisYaw = Quaternion.Euler(0f, input.MovementBasisYawDegrees, 0f);
-                Quaternion bodyYawQuat = Quaternion.Euler(0f, NetworkedYaw, 0f);
+                Vector3 camForward = cameraBasisYaw * Vector3.forward;
+                Vector3 camRight = cameraBasisYaw * Vector3.right;
 
-                Vector3 moveDir;
-                if (keyboardTurnBody)
-                {
-                    Vector3 camForward = cameraBasisYaw * Vector3.forward;
-                    Vector3 camRight = cameraBasisYaw * Vector3.right;
-                    moveDir = camForward * input.MovementInput.y + camRight * input.MovementInput.x;
-                }
-                else
-                {
-                    moveDir = bodyYawQuat * Vector3.forward * input.MovementInput.y +
-                              bodyYawQuat * Vector3.right * input.MovementInput.x;
-                }
+                Vector3 moveDir = camForward * input.MovementInput.y + camRight * input.MovementInput.x;
 
                 if (moveDir.sqrMagnitude > 0.01f)
                     moveDir.Normalize();
@@ -142,17 +134,20 @@ namespace _Root.Scripts.Controllers
                 if (isMovementLocked)
                     moveDir = Vector3.zero;
 
+                _meleeController?.TryRotateTowardAttackFacing(ref yaw, Runner.DeltaTime);
+
                 if (!isMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
                 {
                     Vector3 faceDir = cameraBasisYaw * Vector3.forward;
                     float targetYawDeg = Mathf.Atan2(faceDir.x, faceDir.z) * Mathf.Rad2Deg;
                     float yawRate = _networkPlayer != null ? _networkPlayer.TankYawDegreesPerSecond : 120f;
-                    float delta = Mathf.DeltaAngle(NetworkedYaw, targetYawDeg);
+                    float delta = Mathf.DeltaAngle(yaw, targetYawDeg);
                     float maxStep = yawRate * Runner.DeltaTime;
-                    NetworkedYaw += Mathf.Clamp(delta, -maxStep, maxStep);
+                    yaw += Mathf.Clamp(delta, -maxStep, maxStep);
                 }
 
-                Quaternion newRotation = Quaternion.Euler(0f, NetworkedYaw, 0f);
+                NetworkedYaw = yaw;
+                Quaternion newRotation = Quaternion.Euler(0f, yaw, 0f);
                 transform.rotation = newRotation;
                 _cc.SetNetworkRotation(newRotation);
 
@@ -236,7 +231,7 @@ namespace _Root.Scripts.Controllers
                     
                     if (_meleeController != null && input.IsMeleePressed && roleMeleeAuth)
                     {
-                        _meleeController.TryMeleeAttack(input.MovementInput);
+                        _meleeController.TryMeleeAttack(input.MovementBasisYawDegrees);
                     }
                 }
             }
@@ -276,7 +271,7 @@ namespace _Root.Scripts.Controllers
                     speed = 0f;
                 
                 _animController.SetMoveDirection(horizontalVelocity, transform);
-                _animController.SetSpeed(speed);
+                _animController.SetSpeedImmediate(speed);
                 
                 bool isRunningForAnim = Object.HasInputAuthority && _inputController != null
                     ? _inputController.IsRunHeld
