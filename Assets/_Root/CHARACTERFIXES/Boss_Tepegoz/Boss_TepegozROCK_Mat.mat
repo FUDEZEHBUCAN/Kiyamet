@@ -1,0 +1,178 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Boss_TepegozROCK_Mat
+  m_Shader: {fileID: 4800000, guid: a6027a748677cea4599e869991821fec, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - TCP2_UV_NORMALS_FULL
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DiffuseTintMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MatCapTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ProgressiveSketchTexture:
+        m_Texture: {fileID: 2800000, guid: b1b62855ddf91f140a6b405c3037c38d, type: 3}
+        m_Scale: {x: 5, y: 5}
+        m_Offset: {x: 0, y: 0}
+    - _Ramp:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _StylizedThreshold:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 0.2, y: 0.2}
+        m_Offset: {x: 0, y: 0}
+    - _TriCeiling:
+        m_Texture: {fileID: 2800000, guid: 049d5c15a7dcda44184fc4509321f1db, type: 3}
+        m_Scale: {x: 0.08, y: 0.08}
+        m_Offset: {x: 0, y: 0}
+    - _TriCeilingBump:
+        m_Texture: {fileID: 2800000, guid: 46d68311f2f53fd49bfd378832ece900, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TriGround:
+        m_Texture: {fileID: 2800000, guid: 049d5c15a7dcda44184fc4509321f1db, type: 3}
+        m_Scale: {x: 0.2, y: 0.2}
+        m_Offset: {x: 0, y: 0}
+    - _TriGroundBump:
+        m_Texture: {fileID: 2800000, guid: 46d68311f2f53fd49bfd378832ece900, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _TriSide:
+        m_Texture: {fileID: 2800000, guid: 049d5c15a7dcda44184fc4509321f1db, type: 3}
+        m_Scale: {x: 0.2, y: 0.2}
+        m_Offset: {x: 0, y: 0}
+    - _TriSideBump:
+        m_Texture: {fileID: 2800000, guid: 46d68311f2f53fd49bfd378832ece900, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BandsCount: 4
+    - _BandsSmoothing: 0.462
+    - _BumpScale: 1
+    - _CeilingMax: 136.3
+    - _CeilingMin: 4.9
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _GlossMapScale: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _HSV_H: 0
+    - _HSV_S: -0.16
+    - _HSV_V: 0
+    - _Metallic: 0
+    - _Mode: 0
+    - _NormalsSource: 0
+    - _NormalsUVType: 0
+    - _OcclusionStrength: 1
+    - _OutlineMaxWidth: 1
+    - _OutlineMinWidth: 1
+    - _OutlineWidth: 4
+    - _OutlineZSmooth: -0.28
+    - _Parallax: 0.02
+    - _ProgressiveSketchSmoothness: 0.435
+    - _RampSmoothing: 0.368
+    - _RampThreshold: 0.17
+    - _RenderingMode: 0
+    - _RimMax: 1.49
+    - _RimMin: 0.73
+    - _ShadowLineSmoothing: 0.1
+    - _ShadowLineStrength: 150
+    - _ShadowLineThreshold: 0.48
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _TriCeilingBumpScale: 1.17
+    - _TriGroundBumpScale: 1
+    - _TriSideBumpScale: 1.25
+    - _TriplanarHeightOffset: 0
+    - _TriplanarHeightSmooth: 0.1
+    - _UVSec: 0
+    - _UseMatCap: 0
+    - _UseRim: 0
+    - _UseSketch: 0
+    - _UseTexturedThreshold: 0
+    - _UseVerticalFog: 0
+    - _VerticalFogSmoothness: -18.3
+    - _VerticalFogThreshold: 60.8
+    - _ZWrite: 1
+    - __BeginGroup_AlbedoHSV: 1
+    - __BeginGroup_ShadowHSV: 1
+    - __EndGroup: 0
+    - __dummy__: 0
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _DiffuseTint: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _HColor: {r: 0.9716981, g: 0.9716981, b: 0.9716981, a: 1}
+    - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColorVertex: {r: 0, g: 0, b: 0, a: 1}
+    - _RimColor: {r: 0.7775454, g: 0.88271624, b: 0.9528302, a: 0.5}
+    - _RimDir: {r: -1.89, g: -5.07, b: 1.49, a: 1.25}
+    - _SColor: {r: 0.19344074, g: 0.22067462, b: 0.254717, a: 1}
+    - _ShadowLineColor: {r: 0, g: 0, b: 0, a: 0}
+    - _SilhouetteColor: {r: 1, g: 1, b: 1, a: 0.02745098}
+    - _TriplanarBlendStrength: {r: 16, g: 8.7, b: 6.5, a: 1}
+    - _VerticalFogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_BuildTextureStacks: []
