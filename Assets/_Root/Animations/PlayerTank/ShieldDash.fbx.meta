@@ -17,7 +17,14 @@ ModelImporter:
     removeConstantScaleCurves: 0
     motionNodeName: 
     rigImportErrors: 
-    rigImportWarnings: 
+    rigImportWarnings: "Copied Avatar Rig Configuration mis-match. Bone length in
+      copied configuration does not match position in animation file:\n\t'mixamorig:LeftUpLeg'
+      : position error = 36.830254 mm\n\t'mixamorig:LeftLeg' : position error = 7.693674
+      mm\n\t'mixamorig:LeftFoot' : position error = 16.529690 mm\n\t'mixamorig:LeftToeBase'
+      : position error = 13.720678 mm\n\t'mixamorig:RightUpLeg' : position error
+      = 48.482876 mm\n\t'mixamorig:RightLeg' : position error = 8.098161 mm\n\t'mixamorig:RightFoot'
+      : position error = 17.926834 mm\n\t'mixamorig:RightToeBase' : position error
+      = 10.397101 mm\n"
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -46,13 +53,13 @@ ModelImporter:
       hasAdditiveReferencePose: 0
       loopTime: 0
       loopBlend: 0
-      loopBlendOrientation: 0
-      loopBlendPositionY: 0
-      loopBlendPositionXZ: 0
-      keepOriginalOrientation: 0
-      keepOriginalPositionY: 1
-      keepOriginalPositionXZ: 0
-      heightFromFeet: 0
+      loopBlendOrientation: 1
+      loopBlendPositionY: 1
+      loopBlendPositionXZ: 1
+      keepOriginalOrientation: 1
+      keepOriginalPositionY: 0
+      keepOriginalPositionXZ: 1
+      heightFromFeet: 1
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
