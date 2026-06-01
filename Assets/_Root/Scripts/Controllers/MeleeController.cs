@@ -19,6 +19,8 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float movementLockDuration = 0.8f;
         [SerializeField] private float comboChainResetSeconds = 1.5f;
         [SerializeField] private float attackFacingRotationSpeed = 540f;
+        [Tooltip("Hasar uygulandıktan sonra bu süre boyunca gelen saldırı komutları queue'ya alınır (son komut geçerli).")]
+        [SerializeField] private float queueWindowAfterDamage = 0.2f;
         [SerializeField] private Transform meleePoint;
         [SerializeField] private LayerMask hitLayers = -1;
 
@@ -35,6 +37,7 @@ namespace _Root.Scripts.Controllers
         [Header("References")]
         [SerializeField] private PlayerAnimationController animController;
         [SerializeField] private PlayerAudioController audioController;
+        [SerializeField] private MeleeWeaponTipGlow weaponTipGlow;
         
         [Networked] private TickTimer MeleeCooldownTimer { get; set; }
         [Networked] private TickTimer DamageDelayTimer { get; set; }
@@ -46,6 +49,8 @@ namespace _Root.Scripts.Controllers
         [Networked] private int LastHitEffectTick { get; set; }
         [Networked] private int LastComboAttackType { get; set; }
         [Networked] private TickTimer ComboResetTimer { get; set; }
+        [Networked] private TickTimer PostDamageQueueWindowTimer { get; set; }
+        [Networked] private NetworkBool PostDamageQueueWindowActive { get; set; }
         
         /// <summary>Combo sırasındaki animasyon adımı (1–4).</summary>
         [Networked] public int ActiveMeleeSwingType { get; set; }
@@ -53,6 +58,29 @@ namespace _Root.Scripts.Controllers
         [Networked] public float ActiveMeleeAttackYaw { get; private set; }
         [Networked] private int MeleeResolveTick { get; set; }
         [Networked] private NetworkBool MeleeResolveWasHit { get; set; }
+        [Networked] public NetworkBool HasQueuedMeleeAttack { get; private set; }
+        [Networked] private float QueuedMeleeAttackYaw { get; set; }
+
+        [Networked] public int HudFeedbackSequence { get; private set; }
+        [Networked] private byte LastHudFeedbackEventByte { get; set; }
+
+        public enum MeleeHudFeedbackEvent : byte
+        {
+            None = 0,
+            WindowOpened = 1,
+            Queued = 2,
+            ChainStarted = 3
+        }
+
+        public MeleeHudFeedbackEvent LastHudFeedbackEvent =>
+            (MeleeHudFeedbackEvent)LastHudFeedbackEventByte;
+
+        public bool IsPostDamageQueueWindowOpen => IsInMeleeQueueWindow();
+
+        public bool HasQueuedMelee => HasQueuedMeleeAttack;
+
+        /// <summary>En son çözümlenen melee vuruşu bir hedefe isabet etti mi (queue penceresi bununla açılır).</summary>
+        public bool LastMeleeSwingWasHit => MeleeResolveWasHit;
         
         private NetworkPlayer _networkPlayer;
         private int _lastVisualMeleeSequence;
@@ -70,16 +98,19 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void InterruptAttack()
         {
-            if (PendingDamage)
-            {
-                PendingDamage = false;
-                // Cooldown'ı da sıfırla ki tekrar saldırabilsin
-                MeleeCooldownTimer = TickTimer.None;
-                MovementLockTimer = TickTimer.None;
-                ComboResetTimer = TickTimer.None;
-                LastComboAttackType = 0;
-                _damageAppliedThisSwing = false;
-            }
+            ClearQueuedMeleeAttack();
+            PostDamageQueueWindowTimer = TickTimer.None;
+            PostDamageQueueWindowActive = false;
+
+            if (!PendingDamage)
+                return;
+
+            PendingDamage = false;
+            MeleeCooldownTimer = TickTimer.None;
+            MovementLockTimer = TickTimer.None;
+            ComboResetTimer = TickTimer.None;
+            LastComboAttackType = 0;
+            _damageAppliedThisSwing = false;
         }
         
         private void Awake()
@@ -91,6 +122,16 @@ namespace _Root.Scripts.Controllers
             
             if (audioController == null)
                 audioController = GetComponentInChildren<PlayerAudioController>();
+
+            if (weaponTipGlow == null)
+                weaponTipGlow = GetComponentInChildren<MeleeWeaponTipGlow>();
+
+            if (weaponTipGlow == null && meleePoint != null)
+            {
+                weaponTipGlow = meleePoint.GetComponent<MeleeWeaponTipGlow>();
+                if (weaponTipGlow == null)
+                    weaponTipGlow = meleePoint.gameObject.AddComponent<MeleeWeaponTipGlow>();
+            }
         }
         
         /// <summary>
@@ -145,31 +186,123 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void TryMeleeAttack(float attackYawDegrees)
         {
-            // Ölü oyuncular saldıramaz
             if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
                 return;
-            
-            // Server authority - hasar gecikmeli olarak verilecek
-            if (Object.HasStateAuthority)
+
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (IsInMeleeQueueWindow())
             {
-                if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
-                {
-                    int attackType = GetNextComboAttackType();
-                    ActiveMeleeSwingType = attackType;
-                    LastComboAttackType = attackType;
-                    ActiveMeleeAttackYaw = attackYawDegrees;
-                    _damageAppliedThisSwing = false;
-                    
-                    ComboResetTimer = TickTimer.CreateFromSeconds(Runner, comboChainResetSeconds);
-                    DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
-                    MovementLockTimer = TickTimer.CreateFromSeconds(Runner, movementLockDuration);
-                    PendingDamage = true;
-                    
-                    MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
-                    LastMeleeAttackTick = Runner.Tick;
-                    MeleeVisualSequence++;
-                }
+                QueueMeleeAttack(attackYawDegrees);
+                return;
             }
+
+            if (MeleeCooldownTimer.ExpiredOrNotRunning(Runner) && !PendingDamage)
+                StartMeleeSwing(attackYawDegrees);
+        }
+
+        private void StartMeleeSwing(float attackYawDegrees)
+        {
+            int attackType = GetNextComboAttackType();
+            ActiveMeleeSwingType = attackType;
+            LastComboAttackType = attackType;
+            ActiveMeleeAttackYaw = attackYawDegrees;
+            _damageAppliedThisSwing = false;
+
+            ComboResetTimer = TickTimer.CreateFromSeconds(Runner, comboChainResetSeconds);
+            DamageDelayTimer = TickTimer.CreateFromSeconds(Runner, damageDelay);
+            MovementLockTimer = TickTimer.CreateFromSeconds(Runner, movementLockDuration);
+            PendingDamage = true;
+
+            MeleeCooldownTimer = TickTimer.CreateFromSeconds(Runner, meleeCooldown);
+            LastMeleeAttackTick = Runner.Tick;
+            MeleeVisualSequence++;
+            PostDamageQueueWindowTimer = TickTimer.None;
+            PostDamageQueueWindowActive = false;
+        }
+
+        private void QueueMeleeAttack(float attackYawDegrees)
+        {
+            bool firstQueueThisWindow = !HasQueuedMeleeAttack;
+            HasQueuedMeleeAttack = true;
+            QueuedMeleeAttackYaw = attackYawDegrees;
+
+            // Aynı pencerede tekrar LMB yalnızca yönü günceller; ses/COMBO bir kez.
+            if (firstQueueThisWindow)
+                RaiseHudFeedback(MeleeHudFeedbackEvent.Queued);
+        }
+
+        private void ClearQueuedMeleeAttack()
+        {
+            HasQueuedMeleeAttack = false;
+            QueuedMeleeAttackYaw = 0f;
+        }
+
+        private bool IsInMeleeQueueWindow()
+        {
+            if (Runner == null || !PostDamageQueueWindowActive)
+                return false;
+
+            return !PostDamageQueueWindowTimer.Expired(Runner);
+        }
+
+        private void ResolveMeleeDamageAndChain()
+        {
+            if (!PendingDamage || _damageAppliedThisSwing)
+                return;
+
+            PerformMeleeAttack();
+            PendingDamage = false;
+            PostDamageQueueWindowActive = true;
+            PostDamageQueueWindowTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.01f, queueWindowAfterDamage));
+            RaiseHudFeedback(MeleeHudFeedbackEvent.WindowOpened);
+        }
+
+        private void RaiseHudFeedback(MeleeHudFeedbackEvent evt)
+        {
+            if (!Object.HasStateAuthority || evt == MeleeHudFeedbackEvent.None)
+                return;
+
+            LastHudFeedbackEventByte = (byte)evt;
+            HudFeedbackSequence++;
+        }
+
+        private void TryFinishPostDamageQueueWindow()
+        {
+            if (Runner == null || !PostDamageQueueWindowActive)
+                return;
+
+            if (!PostDamageQueueWindowTimer.Expired(Runner))
+                return;
+
+            PostDamageQueueWindowActive = false;
+            PostDamageQueueWindowTimer = TickTimer.None;
+            TryConsumeQueuedMeleeAttack();
+        }
+
+        private void TryConsumeQueuedMeleeAttack()
+        {
+            if (!HasQueuedMeleeAttack || Runner == null)
+                return;
+
+            // Queue penceresi kapanana kadar bekle (son komut alınsın).
+            if (PostDamageQueueWindowActive)
+                return;
+
+            // Iska: önceki saldırının cooldown'ı bitene kadar zincir başlamaz.
+            if (!MeleeResolveWasHit && !MeleeCooldownTimer.ExpiredOrNotRunning(Runner))
+                return;
+
+            float yaw = QueuedMeleeAttackYaw;
+            ClearQueuedMeleeAttack();
+
+            // Başarılı vuruş: zincir saldırı cooldown bekletmez.
+            if (MeleeResolveWasHit)
+                MeleeCooldownTimer = TickTimer.None;
+
+            RaiseHudFeedback(MeleeHudFeedbackEvent.ChainStarted);
+            StartMeleeSwing(yaw);
         }
 
         public void TryMeleeAttack()
@@ -205,19 +338,19 @@ namespace _Root.Scripts.Controllers
         
         public override void FixedUpdateNetwork()
         {
-            // Server: Gecikmeli hasar kontrolü
-            if (Object.HasStateAuthority && PendingDamage)
-            {
-                if (DamageDelayTimer.Expired(Runner))
-                {
-                    PerformMeleeAttack();
-                    PendingDamage = false;
-                }
-            }
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (PendingDamage && DamageDelayTimer.Expired(Runner))
+                ResolveMeleeDamageAndChain();
+
+            TryFinishPostDamageQueueWindow();
+            TryConsumeQueuedMeleeAttack();
         }
         
         public override void Render()
         {
+            UpdateWeaponTipGlowVisual();
             // Tüm clientlar için animasyon senkronizasyonu (Render'da - NetworkPlayer/NetworkEnemy pattern'i ile uyumlu)
             // Host oyuncu da dahil (state authority olsa bile animasyonu Render'da görmeli)
             if (MeleeVisualSequence > _lastVisualMeleeSequence)
@@ -395,13 +528,39 @@ namespace _Root.Scripts.Controllers
             return didHit;
         }
         
+        private void UpdateWeaponTipGlowVisual()
+        {
+            if (weaponTipGlow == null)
+                return;
+
+            if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
+            {
+                weaponTipGlow.SetState(MeleeWeaponTipGlow.GlowState.Off);
+                return;
+            }
+
+            // Glow yalnızca hasar sonrası queue penceresi süresince; pencere kapanınca söner
+            // (cooldown bekleyen queue dahil — oyun hissiyatı input anına bağlı).
+            if (!PostDamageQueueWindowActive)
+            {
+                weaponTipGlow.SetState(MeleeWeaponTipGlow.GlowState.Off);
+                return;
+            }
+
+            if (HasQueuedMeleeAttack)
+            {
+                weaponTipGlow.SetState(MeleeWeaponTipGlow.GlowState.Queued);
+                return;
+            }
+
+            weaponTipGlow.SetState(MeleeWeaponTipGlow.GlowState.QueueWindow);
+        }
+
         // Animation Event - Animasyonun vuruş anında hasar vermek için
         public void OnMeleeHit()
         {
-            if (Object.HasStateAuthority && PendingDamage && !_damageAppliedThisSwing)
-            {
-                PerformMeleeAttack();
-            }
+            if (Object.HasStateAuthority)
+                ResolveMeleeDamageAndChain();
         }
         
         #region Debug

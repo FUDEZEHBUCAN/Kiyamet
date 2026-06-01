@@ -2847,6 +2847,7 @@ GameObject:
   - component: {fileID: 2608998072524037950}
   - component: {fileID: 2522917946290833232}
   - component: {fileID: 8085542975210628646}
+  - component: {fileID: 8039468002871760492}
   m_Layer: 0
   m_Name: Gameplay_HUID
   m_TagString: Untagged
@@ -2922,6 +2923,36 @@ MonoBehaviour:
   backButton: {fileID: 1716719620857861568}
   listenForKey: 0
   toggleKey: 27
+--- !u!114 &8039468002871760492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6449105282416596975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6910b93f21bf4f1bbb641cdc4449b75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  comboCalloutTopMargin: 400
+  comboCalloutWidth: 420
+  comboCalloutHeight: 48
+  comboCalloutFontSize: 28
+  comboCalloutDisplayDuration: 2
+  comboCalloutPopInDuration: 0.22
+  comboCalloutFadeOutDuration: 0.4
+  comboCalloutPopFromScale: 0.45
+  comboCalloutHoldPulseScale: 1.5
+  queueWindowOutlineColor: {r: 0.35, g: 0.78, b: 1, a: 0.95}
+  queuedOutlineColor: {r: 1, g: 0.85, b: 0.25, a: 0.98}
+  queuedTickColor: {r: 1, g: 0.92, b: 0.35, a: 1}
+  outlineDistance: {x: 5, y: 5}
+  outlinePulseScale: 2
+  outlinePulseDuration: 0.45
+  queuedBadgeSize: 15
+  queuedBadgeInset: {x: 8, y: 8}
+  queuedBadgeSortingOrder: 300
 --- !u!1 &6499205459904761647
 GameObject:
   m_ObjectHideFlags: 0
@@ -4625,6 +4656,10 @@ PrefabInstance:
     - target: {fileID: 897737180602588564, guid: 35dd729a8d342aa4aa6e4c96114ec597, type: 3}
       propertyPath: m_AnchoredPosition.y
       value: -40
+      objectReference: {fileID: 0}
+    - target: {fileID: 913675251714347966, guid: 35dd729a8d342aa4aa6e4c96114ec597, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 51.056152
       objectReference: {fileID: 0}
     - target: {fileID: 927826864798180831, guid: 35dd729a8d342aa4aa6e4c96114ec597, type: 3}
       propertyPath: m_AnchorMax.y

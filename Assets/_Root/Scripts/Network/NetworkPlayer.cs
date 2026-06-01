@@ -182,6 +182,10 @@ namespace _Root.Scripts.Network
 
                 if (GetComponent<GameplayInteractionHints>() == null)
                     gameObject.AddComponent<GameplayInteractionHints>();
+
+                var skillHud = GetComponentInChildren<PlayerSkillUIController>(true);
+                if (skillHud != null && skillHud.GetComponent<MeleeQueueHudFeedback>() == null)
+                    skillHud.gameObject.AddComponent<MeleeQueueHudFeedback>();
             }
 
             if (Object.HasStateAuthority)

@@ -49,6 +49,8 @@ namespace _Root.Scripts.UI
         [SerializeField] private Sprite supportSignatureIcon;
         [SerializeField] private Sprite supportBasicIcon;
 
+        public Image BasicSkillIcon => basic.iconImage;
+
         private NetworkPlayer _player;
         private PlayerRoleType? _appliedIconRole;
         private NetworkPlayer _cachedPlayerForControllers;

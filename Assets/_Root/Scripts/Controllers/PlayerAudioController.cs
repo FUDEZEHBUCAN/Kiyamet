@@ -22,6 +22,11 @@ namespace _Root.Scripts.Controllers
         [Header("Dash Sounds")]
         [SerializeField] private AudioClip[] dashSounds;
         [SerializeField] private AudioClip[] dashHitSounds;
+
+        [Header("Melee Queue (HUD)")]
+        [SerializeField] private AudioClip[] meleeQueueWindowOpenSounds;
+        [SerializeField] private AudioClip[] meleeQueueAcceptedSounds;
+        [SerializeField] private AudioClip[] meleeQueueChainStartSounds;
         
         [Header("Settings")]
         [Tooltip("Her çalışmada pitch = 1 ± bu değer (ör. 0.22 → yaklaşık 0.78–1.22).")]
@@ -34,6 +39,7 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float maxDistance = 18f;
         
         private float _lastSoundTime;
+        private float _lastQueueSoundTime;
         
         private void Awake()
         {
@@ -94,6 +100,12 @@ namespace _Root.Scripts.Controllers
         {
             PlayRandomSound(dashHitSounds);
         }
+
+        public void PlayMeleeQueueWindowOpen() => PlayQueueSound(meleeQueueWindowOpenSounds);
+
+        public void PlayMeleeQueueAccepted() => PlayQueueSound(meleeQueueAcceptedSounds);
+
+        public void PlayMeleeQueueChainStart() => PlayQueueSound(meleeQueueChainStartSounds);
         
         private void PlayRandomSound(AudioClip[] clips)
         {
@@ -116,6 +128,23 @@ namespace _Root.Scripts.Controllers
             audioSource.PlayOneShot(clip);
             
             _lastSoundTime = Time.time;
+        }
+
+        private void PlayQueueSound(AudioClip[] clips)
+        {
+            if (clips == null || clips.Length == 0 || audioSource == null)
+                return;
+
+            if (Time.time - _lastQueueSoundTime < minTimeBetweenSounds)
+                return;
+
+            AudioClip clip = clips[Random.Range(0, clips.Length)];
+            if (clip == null)
+                return;
+
+            audioSource.pitch = SampleRandomPitch();
+            audioSource.PlayOneShot(clip);
+            _lastQueueSoundTime = Time.time;
         }
         
         public void PlaySound(AudioClip clip, float volumeScale = 1f)

@@ -35,6 +35,8 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private LayerMask obstacleLayer = -1; // Duvarlar için layer mask
         
         [Header("Awareness")]
+        [Tooltip("Kapalıysa oyuncu taraması yapılmaz; guard pozisyonunda bekler (aggro trigger ile açılabilir).")]
+        [SerializeField] private bool startWithPlayerDetectionEnabled = true;
         [SerializeField] private float detectionRange = 12f;
         [SerializeField] private float disengageRangeMultiplier = 1.25f;
         
@@ -58,6 +60,7 @@ namespace _Root.Scripts.Enemy
         [Networked] private Vector3 KnockbackVelocity { get; set; }
         [Networked] private TickTimer KnockbackTimer { get; set; }
         [Networked] private float TimeDistortionSpeedMultiplier { get; set; }
+        [Networked] public NetworkBool PlayerDetectionEnabled { get; private set; }
         
         // Local variables
         private NetworkPlayer _currentTarget;
@@ -83,6 +86,25 @@ namespace _Root.Scripts.Enemy
         public bool IsEliteEnemy => enemyData != null && enemyData.IsElite;
         public bool HasActiveKnockback =>
             Object != null && Object.IsValid && Runner != null && IsKnockedBack && KnockbackTimer.IsRunning;
+
+        public bool IsPlayerDetectionEnabled => PlayerDetectionEnabled;
+
+        /// <summary>Oyuncu taramasını aç/kapat (yalnızca state authority).</summary>
+        public void SetPlayerDetectionEnabled(bool enabled)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (PlayerDetectionEnabled == enabled)
+                return;
+
+            PlayerDetectionEnabled = enabled;
+
+            if (!enabled)
+                ReturnToGuardAndIdle();
+            else if (IsAlive && CurrentState == EnemyState.Idle)
+                FindAndChaseTarget();
+        }
 
         public void SetTimeDistortionSlow(float speedMultiplier)
         {
@@ -134,6 +156,7 @@ namespace _Root.Scripts.Enemy
             _lastChaseAttemptTime = 0f;
             _lastChaseLogTime = 0f;
             detectionRange = Mathf.Max(detectionRange, enemyData.AttackRange + 0.5f);
+            PlayerDetectionEnabled = startWithPlayerDetectionEnabled;
             
             if (Object.HasStateAuthority)
             {
@@ -217,7 +240,8 @@ namespace _Root.Scripts.Enemy
                 }
                 
                 InitializeAttackTimingVariance();
-                FindAndChaseTarget();
+                if (PlayerDetectionEnabled)
+                    FindAndChaseTarget();
             }
             else
             {
@@ -424,6 +448,15 @@ namespace _Root.Scripts.Enemy
                 PendingDamage = false;
             }
             
+            if (!PlayerDetectionEnabled)
+            {
+                if (CurrentState != EnemyState.Idle || _currentTarget != null || HasTarget)
+                    ReturnToGuardAndIdle();
+                else
+                    ReturnToGuardPositionIfNeeded();
+                return;
+            }
+
             _targetUpdateTimer += Runner.DeltaTime;
             if (_targetUpdateTimer >= TARGET_UPDATE_INTERVAL)
             {
@@ -553,6 +586,9 @@ namespace _Root.Scripts.Enemy
         private void UpdateIdle()
         {
             ReturnToGuardPositionIfNeeded();
+
+            if (!PlayerDetectionEnabled)
+                return;
             
             // Cooldown kontrolü - path bulunamazsa sürekli deneme yapma
             if (Runner.SimulationTime - _lastChaseAttemptTime < CHASE_RETRY_COOLDOWN)
@@ -763,6 +799,12 @@ namespace _Root.Scripts.Enemy
                 agent.ResetPath();
             }
         }
+
+        private void ReturnToGuardAndIdle()
+        {
+            LoseTarget();
+            ReturnToGuardPositionIfNeeded();
+        }
         
         private void ReturnToGuardPositionIfNeeded()
         {
@@ -787,6 +829,9 @@ namespace _Root.Scripts.Enemy
         
         private void UpdateTarget()
         {
+            if (!PlayerDetectionEnabled)
+                return;
+
             if (_currentTarget != null && _currentTarget.IsAlive)
             {
                 NetworkPlayer closestPlayer = FindClosestPlayer();
@@ -809,6 +854,9 @@ namespace _Root.Scripts.Enemy
         
         private NetworkPlayer FindClosestPlayer()
         {
+            if (!PlayerDetectionEnabled)
+                return null;
+
             NetworkPlayer closest = null;
             float closestDistance = float.MaxValue;
             
