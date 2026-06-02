@@ -18,6 +18,7 @@ namespace _Root.Scripts.Enemy
         // Animator parameter hashes (performans için)
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
         private static readonly int ParamAttack = Animator.StringToHash("Attack");
+        private static readonly int ParamLeap = Animator.StringToHash("Leap");
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
@@ -115,6 +116,12 @@ namespace _Root.Scripts.Enemy
                 animator.SetTrigger(ParamAttack);
             }
         }
+
+        public void TriggerLeap()
+        {
+            if (animator != null)
+                animator.SetTrigger(ParamLeap);
+        }
         
         /// <summary>
         /// Saldırı animasyonunu iptal et (hasar aldığında)
@@ -124,6 +131,7 @@ namespace _Root.Scripts.Enemy
             if (animator != null)
             {
                 animator.ResetTrigger(ParamAttack);
+                animator.ResetTrigger(ParamLeap);
             }
         }
         

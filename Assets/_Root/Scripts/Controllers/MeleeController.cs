@@ -83,6 +83,7 @@ namespace _Root.Scripts.Controllers
         public bool LastMeleeSwingWasHit => MeleeResolveWasHit;
         
         private NetworkPlayer _networkPlayer;
+        private NetworkCharacterControllerCustom _characterController;
         private int _lastVisualMeleeSequence;
         private int _lastVisualHitEffectTick;
         private int _lastVisualMeleeResolveSequence;
@@ -94,7 +95,7 @@ namespace _Root.Scripts.Controllers
         public float AttackFacingRotationSpeed => attackFacingRotationSpeed;
         
         /// <summary>
-        /// Saldırıyı iptal et (hasar aldığında çağrılır)
+        /// Aktif melee saldırısını tamamen iptal eder (hasar, queue, kilit, animasyon).
         /// </summary>
         public void InterruptAttack()
         {
@@ -102,20 +103,37 @@ namespace _Root.Scripts.Controllers
             PostDamageQueueWindowTimer = TickTimer.None;
             PostDamageQueueWindowActive = false;
 
-            if (!PendingDamage)
-                return;
+            bool hadActiveMelee = PendingDamage || IsMovementLocked || ActiveMeleeSwingType > 0;
 
             PendingDamage = false;
-            MeleeCooldownTimer = TickTimer.None;
+            DamageDelayTimer = TickTimer.None;
             MovementLockTimer = TickTimer.None;
             ComboResetTimer = TickTimer.None;
             LastComboAttackType = 0;
+            ActiveMeleeSwingType = 0;
             _damageAppliedThisSwing = false;
+
+            if (hadActiveMelee)
+                MeleeCooldownTimer = TickTimer.None;
+
+            animController?.InterruptAttack();
         }
         
+        private bool IsDodgeBlockingMelee()
+        {
+            if (_characterController == null)
+                _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+            return _characterController != null
+                && _characterController.Object != null
+                && _characterController.Object.IsValid
+                && _characterController.BlocksAttacksFromDodge;
+        }
+
         private void Awake()
         {
             _networkPlayer = GetComponent<NetworkPlayer>();
+            _characterController = GetComponent<NetworkCharacterControllerCustom>();
             
             if (animController == null)
                 animController = GetComponentInChildren<PlayerAnimationController>();
@@ -187,6 +205,9 @@ namespace _Root.Scripts.Controllers
         public void TryMeleeAttack(float attackYawDegrees)
         {
             if (_networkPlayer != null && (!_networkPlayer.IsAlive || !_networkPlayer.CanAttack))
+                return;
+
+            if (IsDodgeBlockingMelee())
                 return;
 
             if (!Object.HasStateAuthority)

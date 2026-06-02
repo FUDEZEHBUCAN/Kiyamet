@@ -7,6 +7,7 @@ using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Controllers
 {
+    [DefaultExecutionOrder(-50)]
     public class CharacterMovementHandler : NetworkBehaviour
     {
         [SerializeField] private float rotationSpeed = 150f;
@@ -73,7 +74,8 @@ namespace _Root.Scripts.Controllers
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
                     bool roleMelee = roleRules == null || roleRules.CanMelee(_networkPlayer);
                     bool roleRanged = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
-                    if (!localInput.IsBlockPressed && canAttack)
+                    bool blockAttackForDodge = _cc.BlocksAttacksFromDodge || localInput.IsDodgePressed;
+                    if (!localInput.IsBlockPressed && canAttack && !blockAttackForDodge)
                     {
                         if (_weaponController != null && localInput.IsShootPressed && roleRanged)
                         {
@@ -102,13 +104,16 @@ namespace _Root.Scripts.Controllers
 
             if (GetInput(out NetworkInputData input))
             {
-                NetworkedIsRunning = input.IsRunning;
-
                 bool keyboardTurnBody = roleRules != null && roleRules.UsesKeyboardCharacterRotation;
                 bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
                 isSupportUltimateCastLocked = _networkPlayer != null && _networkPlayer.IsSupportUltimateCastLocked;
                 bool isSignatureCastMovementLocked = _supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked;
-                bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked || isSignatureCastMovementLocked;
+                bool isDodging = _cc.IsDodging;
+                bool isDodgeRollBlockingMovement = _cc.BlocksMovementFromDodge;
+                bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked
+                    || isSignatureCastMovementLocked || isDodgeRollBlockingMovement;
+
+                NetworkedIsRunning = input.IsRunning && !isMovementLocked;
 
                 float yaw = NetworkedYaw;
 
@@ -134,7 +139,8 @@ namespace _Root.Scripts.Controllers
                 if (isMovementLocked)
                     moveDir = Vector3.zero;
 
-                _meleeController?.TryRotateTowardAttackFacing(ref yaw, Runner.DeltaTime);
+                if (!isDodging)
+                    _meleeController?.TryRotateTowardAttackFacing(ref yaw, Runner.DeltaTime);
 
                 if (!isMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
                 {
@@ -146,9 +152,35 @@ namespace _Root.Scripts.Controllers
                     yaw += Mathf.Clamp(delta, -maxStep, maxStep);
                 }
 
+                bool canDodge = !isDodgeRollBlockingMovement
+                    && !isSupportUltimateCastLocked
+                    && !isSignatureCastMovementLocked
+                    && (_networkPlayer == null || !_networkPlayer.IsPushing)
+                    && (roleRules == null || roleRules.CanDodge(_networkPlayer));
+
+                if (input.IsDodgePressed && canDodge)
+                {
+                    Vector3 dodgeDir = camForward * input.MovementInput.y + camRight * input.MovementInput.x;
+                    float dodgeYaw;
+                    if (dodgeDir.sqrMagnitude > 0.01f)
+                    {
+                        dodgeDir.Normalize();
+                        dodgeYaw = Mathf.Atan2(dodgeDir.x, dodgeDir.z) * Mathf.Rad2Deg;
+                    }
+                    else
+                    {
+                        dodgeDir = -camForward;
+                        dodgeYaw = Mathf.Atan2(dodgeDir.x, dodgeDir.z) * Mathf.Rad2Deg;
+                    }
+
+                    if (_cc.TryDodge(dodgeDir, dodgeYaw))
+                        yaw = dodgeYaw;
+                }
+
                 NetworkedYaw = yaw;
-                Quaternion newRotation = Quaternion.Euler(0f, yaw, 0f);
-                transform.rotation = newRotation;
+                var newRotation = Quaternion.Euler(0f, yaw, 0f);
+                if (!_cc.IsDodging)
+                    transform.rotation = newRotation;
                 _cc.SetNetworkRotation(newRotation);
 
                 _cc.Move(moveDir, input.IsRunning && !isMovementLocked);
@@ -220,9 +252,10 @@ namespace _Root.Scripts.Controllers
                 }
                 
                 bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack && !_networkPlayer.IsPushing;
+                bool blockAttackForDodge = _cc.BlocksAttacksFromDodge || input.IsDodgePressed;
                 bool roleMeleeAuth = roleRules == null || roleRules.CanMelee(_networkPlayer);
                 bool roleRangedAuth = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
-                if (!input.IsBlockPressed && canAttack)
+                if (!input.IsBlockPressed && canAttack && !blockAttackForDodge)
                 {
                     if (_weaponController != null && input.IsShootPressed && roleRangedAuth)
                     {
@@ -255,6 +288,13 @@ namespace _Root.Scripts.Controllers
                     return;
                 }
 
+                if (_cc.BlocksMovementFromDodge)
+                {
+                    _animController.SetSpeedImmediate(0f);
+                    _animController.SetMoveDirection(Vector3.zero, transform);
+                    _animController.SetRunning(false);
+                }
+
                 if (_networkPlayer != null)
                 {
                     _animController.SetPushing(_networkPlayer.IsPushing);
@@ -265,11 +305,14 @@ namespace _Root.Scripts.Controllers
                 // pozisyon farkından hız hesaplamak her zaman ~0 verir; replicate olan Velocity kullan.
                 Vector3 velocity = _cc.Velocity;
                 Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
-                float speed = horizontalVelocity.magnitude;
+                float speed = _cc.BlocksMovementFromDodge ? 0f : horizontalVelocity.magnitude;
                 
                 if (speed < 0.1f)
                     speed = 0f;
                 
+                if (_cc.BlocksMovementFromDodge)
+                    horizontalVelocity = Vector3.zero;
+
                 _animController.SetMoveDirection(horizontalVelocity, transform);
                 _animController.SetSpeedImmediate(speed);
                 

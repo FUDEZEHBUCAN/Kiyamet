@@ -12,6 +12,7 @@ namespace _Root.Scripts.Network
         public NetworkBool IsMeleePressed;
         public NetworkBool IsBlockPressed;
         public NetworkBool IsDashPressed;
+        public NetworkBool IsDodgePressed;
         public NetworkBool IsUltimatePressed;
         public NetworkBool IsInteractPressed;
         public NetworkBool IsRunning;

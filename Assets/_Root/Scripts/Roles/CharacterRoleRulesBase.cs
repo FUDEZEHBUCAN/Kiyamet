@@ -13,6 +13,9 @@ namespace _Root.Scripts.Roles
         public virtual bool CanDash(NetworkPlayer player) =>
             player != null && player.IsAlive;
 
+        public virtual bool CanDodge(NetworkPlayer player) =>
+            player != null && player.IsAlive;
+
         public virtual bool CanBlock(NetworkPlayer player) =>
             player != null && player.IsAlive;
 

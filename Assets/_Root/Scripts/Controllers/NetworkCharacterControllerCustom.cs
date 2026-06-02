@@ -28,6 +28,15 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float dashKnockbackForce = 10f;
     [SerializeField] private float dashRange = 5f;
     [SerializeField] private LayerMask enemyLayer = -1;
+
+    [Header("Dodge Settings")]
+    [SerializeField] private float dodgeSpeed = 14f;
+    [SerializeField] private float dodgeDuration = 0.38f;
+    [SerializeField] private float dodgeCooldown = 1.1f;
+
+    [Header("Dodge Attack Lock")]
+    [Tooltip("Roll bittikten sonra hareket + saldırı komutlarının kilitli kalacağı süre (saniye).")]
+    [SerializeField] private float dodgeAttackLockAfterRoll = 0.28f;
     
     [Header("Dash Reflector Settings")]
     [SerializeField] private LayerMask reflectorLayer = -1;
@@ -82,6 +91,19 @@ namespace _Root.Scripts.Controllers {
     [Networked] private TickTimer DashCooldownTimer { get; set; }
     [Networked] private Vector3 DashDirection { get; set; }
 
+    [Networked] public NetworkBool IsDodging { get; private set; }
+    [Networked] private TickTimer DodgeTimer { get; set; }
+    [Networked] private TickTimer DodgeCooldownTimer { get; set; }
+    [Networked] private TickTimer PostDodgeAttackLockTimer { get; set; }
+    [Networked] private Vector3 DodgeDirection { get; set; }
+
+    public bool IsPostDodgeAttackLocked =>
+        Runner != null && !PostDodgeAttackLockTimer.ExpiredOrNotRunning(Runner);
+
+    public bool BlocksAttacksFromDodge => IsDodging || IsPostDodgeAttackLocked;
+
+    public bool BlocksMovementFromDodge => BlocksAttacksFromDodge;
+
     private CharacterController _controller;
     private Rigidbody _rigidbody;
     private NetworkPlayer _networkPlayer;
@@ -89,6 +111,7 @@ namespace _Root.Scripts.Controllers {
     private readonly HashSet<ReflectorInteractable> _reflectorsHitThisDash = new HashSet<ReflectorInteractable>();
     private bool _deathPoseFrozen;
     private Quaternion _frozenDeathRotation;
+    private bool _wasDodgingForAnim;
     
     void Awake() {
       TryGetComponent(out _controller);
@@ -128,6 +151,9 @@ namespace _Root.Scripts.Controllers {
       Velocity = Vector3.zero;
       IsDashing = false;
       DashTimer = TickTimer.None;
+      IsDodging = false;
+      DodgeTimer = TickTimer.None;
+      PostDodgeAttackLockTimer = TickTimer.None;
 
       if (_rigidbody != null) {
         _rigidbody.velocity = Vector3.zero;
@@ -173,7 +199,7 @@ namespace _Root.Scripts.Controllers {
         return;
       }
       
-      if (IsDashing) {
+      if (IsDashing || IsDodging) {
         return;
       }
 
@@ -206,6 +232,51 @@ namespace _Root.Scripts.Controllers {
       {
         _networkPlayer.AudioController.PlayDash();
       }
+    }
+
+    /// <summary>
+    /// WASD yönünde hızlı dodge (Left Alt). worldDirection yatay ve normalize edilmiş olmalı.
+    /// </summary>
+    public bool TryDodge(Vector3 worldDirection, float facingYawDegrees)
+    {
+      if (!Object.HasStateAuthority)
+        return false;
+
+      if (!DodgeCooldownTimer.ExpiredOrNotRunning(Runner))
+        return false;
+
+      if (IsDodging || IsDashing)
+        return false;
+
+      if (_networkPlayer != null && (!_networkPlayer.IsAlive || _networkPlayer.IsSupportUltimateCastLocked))
+        return false;
+
+      if (_networkPlayer != null && !_networkPlayer.RoleRules.CanDodge(_networkPlayer))
+        return false;
+
+      worldDirection.y = 0f;
+      if (worldDirection.sqrMagnitude < 0.0001f)
+        worldDirection = transform.forward;
+      else
+        worldDirection.Normalize();
+
+      var facingRotation = Quaternion.Euler(0f, facingYawDegrees, 0f);
+      _controller.enabled = false;
+      transform.rotation = facingRotation;
+      _controller.enabled = true;
+      SetNetworkRotation(facingRotation);
+
+      IsDodging = true;
+      PostDodgeAttackLockTimer = TickTimer.None;
+      DodgeDirection = worldDirection;
+      DodgeTimer = TickTimer.CreateFromSeconds(Runner, dodgeDuration);
+      DodgeCooldownTimer = TickTimer.CreateFromSeconds(Runner, dodgeCooldown);
+
+      GetComponent<MeleeController>()?.InterruptAttack();
+
+      Velocity = new Vector3(DodgeDirection.x * dodgeSpeed, Velocity.y, DodgeDirection.z * dodgeSpeed);
+      _animController?.TriggerDodge();
+      return true;
     }
     
     private void CheckDashHit() {
@@ -320,7 +391,7 @@ namespace _Root.Scripts.Controllers {
 
       _deathPoseFrozen = false;
       
-      if (IsDashing) {
+      if (IsDashing || IsDodging) {
         return;
       }
 
@@ -417,6 +488,29 @@ namespace _Root.Scripts.Controllers {
           CheckDashHit();
           
           NetworkPosition = transform.position;
+          NetworkRotation = transform.rotation;
+        }
+      }
+
+      if (Object.HasStateAuthority && IsDodging) {
+        if (DodgeTimer.Expired(Runner)) {
+          IsDodging = false;
+          DodgeTimer = TickTimer.None;
+          if (dodgeAttackLockAfterRoll > 0.001f)
+            PostDodgeAttackLockTimer = TickTimer.CreateFromSeconds(Runner, dodgeAttackLockAfterRoll);
+          var vel = Velocity;
+          vel.x = 0f;
+          vel.z = 0f;
+          Velocity = vel;
+        } else {
+          Vector3 dodgeMovement = DodgeDirection * dodgeSpeed * Runner.DeltaTime;
+          _controller.Move(dodgeMovement);
+          NetworkPosition = transform.position;
+          NetworkRotation = transform.rotation;
+          var vel = Velocity;
+          vel.x = DodgeDirection.x * dodgeSpeed;
+          vel.z = DodgeDirection.z * dodgeSpeed;
+          Velocity = vel;
         }
       }
     }
@@ -428,6 +522,11 @@ namespace _Root.Scripts.Controllers {
       transform.rotation = NetworkRotation;
       
       _controller.enabled = true;
+
+      bool isDodging = IsDodging;
+      if (isDodging && !_wasDodgingForAnim)
+        _animController?.TriggerDodge();
+      _wasDodgingForAnim = isDodging;
     }
   }
 }

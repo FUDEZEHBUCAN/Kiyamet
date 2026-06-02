@@ -12,6 +12,7 @@ namespace _Root.Scripts.Roles
         PlayerRoleType RoleType { get; }
 
         bool CanDash(NetworkPlayer player);
+        bool CanDodge(NetworkPlayer player);
         bool CanBlock(NetworkPlayer player);
         bool CanMelee(NetworkPlayer player);
         bool CanUseRangedWeapon(NetworkPlayer player);

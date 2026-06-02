@@ -12,6 +12,8 @@ namespace _Root.Scripts.Enemy
         Idle,
         Chase,
         Attack,
+        LeapWindup,
+        LeapJump,
         Dead
     }
     
@@ -61,7 +63,10 @@ namespace _Root.Scripts.Enemy
         [Networked] private TickTimer KnockbackTimer { get; set; }
         [Networked] private float TimeDistortionSpeedMultiplier { get; set; }
         [Networked] public NetworkBool PlayerDetectionEnabled { get; private set; }
-        
+        [Networked] private Vector3 LeapStartPosition { get; set; }
+        [Networked] private Vector3 LeapLockedPosition { get; set; }
+        [Networked] private TickTimer LeapPhaseTimer { get; set; }
+
         // Local variables
         private NetworkPlayer _currentTarget;
         private float _attackCooldownMultiplier = 1f;
@@ -84,6 +89,7 @@ namespace _Root.Scripts.Enemy
         public bool IsAlive => CurrentHealth > 0f;
         public EnemyState State => CurrentState;
         public bool IsEliteEnemy => enemyData != null && enemyData.IsElite;
+        public bool UsesLeapAttack => enemyData != null && enemyData.CanLeapAttack;
         public bool HasActiveKnockback =>
             Object != null && Object.IsValid && Runner != null && IsKnockedBack && KnockbackTimer.IsRunning;
 
@@ -475,6 +481,12 @@ namespace _Root.Scripts.Enemy
                 case EnemyState.Attack:
                     UpdateAttack();
                     break;
+                case EnemyState.LeapWindup:
+                    UpdateLeapWindup();
+                    break;
+                case EnemyState.LeapJump:
+                    UpdateLeapJump();
+                    break;
             }
         }
         
@@ -487,7 +499,12 @@ namespace _Root.Scripts.Enemy
                 if (LastAttackAnimTick > _lastVisualAttackAnimTick && LastAttackAnimTick > 0)
                 {
                     if (animController != null)
-                        animController.TriggerAttack();
+                    {
+                        if (CurrentState == EnemyState.LeapJump || CurrentState == EnemyState.LeapWindup)
+                            animController.TriggerLeap();
+                        else
+                            animController.TriggerAttack();
+                    }
                     _lastVisualAttackAnimTick = LastAttackAnimTick;
                 }
                 
@@ -529,6 +546,18 @@ namespace _Root.Scripts.Enemy
                 _lastState = CurrentState;
             }
             
+            if (CurrentState == EnemyState.LeapWindup || CurrentState == EnemyState.LeapJump)
+            {
+                if (animController != null)
+                {
+                    animController.SetSpeed(0f);
+                    animController.SetPlaybackSpeed(GetTimeDistortionAnimPlaybackSpeed());
+                }
+
+                _lastPosition = transform.position;
+                return;
+            }
+
             // Ölü ise animasyon güncellemesini atla
             if (CurrentState == EnemyState.Dead)
             {
@@ -623,6 +652,9 @@ namespace _Root.Scripts.Enemy
                 LoseTarget();
                 return;
             }
+
+            if (TryBeginLeapAttack(distanceToTarget))
+                return;
             
             if (distanceToTarget <= enemyData.AttackRange)
             {
@@ -758,10 +790,60 @@ namespace _Root.Scripts.Enemy
                     enemyData.RotationSpeed * Runner.DeltaTime * 0.1f);
             }
             
+            if (IsWithinLeapRange(distanceToTarget) && TryBeginLeapAttack(distanceToTarget))
+                return;
+
             if (Runner.SimulationTime >= _nextAttackAllowedTime)
             {
                 PerformAttack();
             }
+        }
+
+        private void UpdateLeapWindup()
+        {
+            if (_currentTarget == null || !_currentTarget.IsAlive)
+            {
+                CancelLeapAttack();
+                FindAndChaseTarget();
+                return;
+            }
+
+            float distanceToTarget = Vector3.Distance(transform.position, _currentTarget.transform.position);
+            float disengageRange = detectionRange * disengageRangeMultiplier;
+            if (distanceToTarget > disengageRange || !IsWithinLeapRange(distanceToTarget))
+            {
+                CancelLeapAttack();
+                CurrentState = EnemyState.Chase;
+                EnableAgentForNavigation();
+                return;
+            }
+
+            FacePosition(_currentTarget.transform.position, 1f);
+
+            if (!LeapPhaseTimer.ExpiredOrNotRunning(Runner))
+                return;
+
+            BeginLeapJump();
+        }
+
+        private void UpdateLeapJump()
+        {
+            if (LeapPhaseTimer.ExpiredOrNotRunning(Runner))
+            {
+                CompleteLeapJump();
+                return;
+            }
+
+            float duration = Mathf.Max(0.05f, enemyData.LeapDuration);
+            float remaining = LeapPhaseTimer.RemainingTime(Runner) ?? 0f;
+            float t = 1f - Mathf.Clamp01(remaining / duration);
+            Vector3 nextPos = EvaluateLeapArcPosition(LeapStartPosition, LeapLockedPosition, enemyData.LeapArcHeight, t);
+            transform.position = nextPos;
+
+            Vector3 moveDir = LeapLockedPosition - LeapStartPosition;
+            moveDir.y = 0f;
+            if (moveDir.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.LookRotation(moveDir.normalized);
         }
         
         #endregion
@@ -882,6 +964,200 @@ namespace _Root.Scripts.Enemy
         #endregion
 
         #region Combat
+
+        #region Leap Attack
+
+        private bool IsWithinLeapRange(float distanceToTarget)
+        {
+            if (enemyData == null || !enemyData.CanLeapAttack)
+                return false;
+
+            return distanceToTarget >= enemyData.LeapMinRange
+                && distanceToTarget <= enemyData.LeapMaxRange;
+        }
+
+        private bool TryBeginLeapAttack(float distanceToTarget)
+        {
+            if (!IsWithinLeapRange(distanceToTarget) || _currentTarget == null || !_currentTarget.IsAlive)
+                return false;
+
+            if (Runner.SimulationTime < _nextAttackAllowedTime)
+                return false;
+
+            if (CurrentState == EnemyState.LeapWindup || CurrentState == EnemyState.LeapJump)
+                return true;
+
+            StartLeapWindup();
+            return true;
+        }
+
+        private void StartLeapWindup()
+        {
+            PendingDamage = false;
+            DamageDelayTimer = TickTimer.None;
+
+            if (agent != null && agent.enabled)
+            {
+                agent.ResetPath();
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+            }
+
+            CurrentState = EnemyState.LeapWindup;
+            LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, enemyData.LeapWindupDuration));
+        }
+
+        private void BeginLeapJump()
+        {
+            if (_currentTarget == null || !_currentTarget.IsAlive)
+            {
+                CancelLeapAttack();
+                return;
+            }
+
+            LeapLockedPosition = ResolveLeapLandingPosition(_currentTarget.transform.position);
+            LeapStartPosition = transform.position;
+            LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, enemyData.LeapDuration));
+            CurrentState = EnemyState.LeapJump;
+
+            if (agent != null && agent.enabled)
+            {
+                agent.ResetPath();
+                agent.enabled = false;
+            }
+
+            _nextAttackAllowedTime = Runner.SimulationTime + RollAttackCooldownDuration();
+            LastAttackAnimTick = Runner.Tick;
+
+            if (animController != null)
+                animController.TriggerLeap();
+
+            if (audioController != null)
+                audioController.PlayAttackSwing();
+        }
+
+        private void CompleteLeapJump()
+        {
+            transform.position = LeapLockedPosition;
+            LeapPhaseTimer = TickTimer.None;
+
+            DealLeapDamage(LeapLockedPosition);
+            EnableAgentForNavigation();
+
+            if (agent != null && agent.isOnNavMesh)
+                agent.Warp(LeapLockedPosition);
+
+            if (_currentTarget != null && _currentTarget.IsAlive)
+            {
+                float distance = Vector3.Distance(transform.position, _currentTarget.transform.position);
+                CurrentState = distance <= enemyData.AttackRange ? EnemyState.Attack : EnemyState.Chase;
+            }
+            else
+            {
+                CurrentState = EnemyState.Idle;
+            }
+        }
+
+        private void CancelLeapAttack()
+        {
+            if (CurrentState != EnemyState.LeapWindup && CurrentState != EnemyState.LeapJump)
+                return;
+
+            LeapPhaseTimer = TickTimer.None;
+            EnableAgentForNavigation();
+
+            if (animController != null)
+                animController.InterruptAttack();
+
+            if (IsAlive && _currentTarget != null && _currentTarget.IsAlive)
+                CurrentState = EnemyState.Chase;
+            else if (IsAlive)
+                CurrentState = EnemyState.Idle;
+        }
+
+        private void EnableAgentForNavigation()
+        {
+            if (agent == null || !IsAlive)
+                return;
+
+            if (!agent.enabled)
+                agent.enabled = true;
+
+            agent.isStopped = false;
+            RefreshAgentSpeed();
+        }
+
+        private Vector3 ResolveLeapLandingPosition(Vector3 desiredWorldPosition)
+        {
+            var landing = desiredWorldPosition;
+            landing.y = transform.position.y;
+
+            if (NavMesh.SamplePosition(landing, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+                return hit.position;
+
+            return landing;
+        }
+
+        private static Vector3 EvaluateLeapArcPosition(Vector3 from, Vector3 to, float arcHeight, float t)
+        {
+            t = Mathf.Clamp01(t);
+            var pos = Vector3.Lerp(from, to, t);
+            pos.y += arcHeight * 4f * t * (1f - t);
+            return pos;
+        }
+
+        private void FacePosition(Vector3 worldPosition, float rotationScale = 0.1f)
+        {
+            Vector3 lookDir = worldPosition - transform.position;
+            lookDir.y = 0f;
+            if (lookDir.sqrMagnitude < 0.0001f)
+                return;
+
+            Quaternion targetRotation = Quaternion.LookRotation(lookDir.normalized);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation,
+                targetRotation,
+                Runner.DeltaTime * enemyData.RotationSpeed * rotationScale);
+        }
+
+        private void DealLeapDamage(Vector3 landingPosition)
+        {
+            Collider[] hitColliders = Physics.OverlapSphere(
+                landingPosition,
+                enemyData.LeapLandingRadius,
+                playerLayer);
+
+            bool didHit = false;
+            bool isElite = enemyData != null && enemyData.IsElite;
+
+            foreach (var col in hitColliders)
+            {
+                var player = col.GetComponentInParent<NetworkPlayer>();
+                if (player != null && player.IsAlive)
+                {
+                    player.TakeDamage(enemyData.LeapDamage, isElite, landingPosition);
+                    didHit = true;
+                }
+            }
+
+            if (!didHit)
+                return;
+
+            SpawnAttackEffectAt(landingPosition);
+            LastAttackEffectTick = Runner.Tick;
+            audioController?.PlayAttackHit();
+        }
+
+        private void SpawnAttackEffectAt(Vector3 position)
+        {
+            if (attackEffectPrefab == null)
+                return;
+
+            GameObject effect = Instantiate(attackEffectPrefab, position, Quaternion.identity);
+            Destroy(effect, 1f);
+        }
+
+        #endregion
         
         private void PerformAttack()
         {
@@ -962,6 +1238,8 @@ namespace _Root.Scripts.Enemy
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
             
+            CancelLeapAttack();
+
             // Saldırıyı iptal et (eğer saldırı başlamışsa)
             if (PendingDamage)
             {
@@ -1028,6 +1306,8 @@ namespace _Root.Scripts.Enemy
                 knockbackForce.y = maxUpwardForce;
             }
             
+            CancelLeapAttack();
+
             // Knockback başlat
             IsKnockedBack = true;
             KnockbackVelocity = knockbackForce;
@@ -1043,6 +1323,7 @@ namespace _Root.Scripts.Enemy
         
         private void Die()
         {
+            CancelLeapAttack();
             CurrentState = EnemyState.Dead;
             HasTarget = false;
             
@@ -1104,6 +1385,21 @@ namespace _Root.Scripts.Enemy
             {
                 Gizmos.color = Color.green;
                 Gizmos.DrawLine(transform.position, _currentTarget.transform.position);
+            }
+
+            if (UsesLeapAttack)
+            {
+                Gizmos.color = new Color(0.2f, 0.85f, 1f, 0.35f);
+                Gizmos.DrawWireSphere(transform.position, enemyData.LeapMinRange);
+                Gizmos.color = new Color(0.2f, 0.85f, 1f, 0.85f);
+                Gizmos.DrawWireSphere(transform.position, enemyData.LeapMaxRange);
+            }
+
+            if (CurrentState == EnemyState.LeapJump || CurrentState == EnemyState.LeapWindup)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawWireSphere(LeapLockedPosition, enemyData.LeapLandingRadius);
+                Gizmos.DrawLine(transform.position, LeapLockedPosition);
             }
         }
         

@@ -76,7 +76,21 @@ namespace _Root.Scripts.Network
         /// </summary>
         public bool CanAttack =>
             HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead && !IsSupportUltimateCastLocked
-            && !IsSignatureSkillInputLocked;
+            && !IsSignatureSkillInputLocked && !IsAttackBlockedByDodge;
+
+        private bool IsAttackBlockedByDodge
+        {
+            get
+            {
+                if (_characterController == null)
+                    _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+                return _characterController != null
+                    && _characterController.Object != null
+                    && _characterController.Object.IsValid
+                    && _characterController.BlocksAttacksFromDodge;
+            }
+        }
 
         private bool IsSignatureSkillInputLocked
         {

@@ -21,6 +21,7 @@ namespace _Root.Scripts.Input
         private const int NoPress = int.MinValue;
 
         private NetworkPlayer _networkPlayer;
+        private NetworkCharacterControllerCustom _characterController;
 
         private Vector2 _moveInput;
         private float _accumulatedRotation;
@@ -31,6 +32,7 @@ namespace _Root.Scripts.Input
         private int _jumpPressFrame = NoPress;
         private int _meleePressFrame = NoPress;
         private int _dashPressFrame = NoPress;
+        private int _dodgePressFrame = NoPress;
         private int _ultimatePressFrame = NoPress;
         private int _interactPressFrame = NoPress;
 
@@ -42,6 +44,7 @@ namespace _Root.Scripts.Input
         private void Awake()
         {
             TryGetComponent(out _networkPlayer);
+            TryGetComponent(out _characterController);
         }
 
         private void Start()
@@ -114,6 +117,7 @@ namespace _Root.Scripts.Input
                 IsMeleePressed = IsPressActive(_meleePressFrame, currentFrame),
                 IsBlockPressed = _blockPressed,
                 IsDashPressed = IsPressActive(_dashPressFrame, currentFrame),
+                IsDodgePressed = IsPressActive(_dodgePressFrame, currentFrame),
                 IsUltimatePressed = IsPressActive(_ultimatePressFrame, currentFrame),
                 IsInteractPressed = IsPressActive(_interactPressFrame, currentFrame),
                 IsRunning = IsRunHeld,
@@ -157,16 +161,23 @@ namespace _Root.Scripts.Input
         /// </summary>
         private void BufferEdgeTriggeredInput()
         {
+            if (IsDodgeMovementBlocked())
+                return;
+
             int frame = Time.frameCount;
 
             if (UnityEngine.Input.GetButtonDown("Jump"))
                 _jumpPressFrame = frame;
 
-            if (UnityEngine.Input.GetMouseButtonDown(0))
+            if (UnityEngine.Input.GetMouseButtonDown(0) && !IsAttackBlockedByDodge())
                 _meleePressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.E))
                 _dashPressFrame = frame;
+
+            // macOS Option = Left Alt
+            if (UnityEngine.Input.GetKeyDown(KeyCode.LeftAlt))
+                _dodgePressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.X))
                 _ultimatePressFrame = frame;
@@ -192,6 +203,8 @@ namespace _Root.Scripts.Input
                 _meleePressFrame = NoPress;
             if (_dashPressFrame != NoPress && currentFrame - _dashPressFrame > PressBufferFrames)
                 _dashPressFrame = NoPress;
+            if (_dodgePressFrame != NoPress && currentFrame - _dodgePressFrame > PressBufferFrames)
+                _dodgePressFrame = NoPress;
             if (_ultimatePressFrame != NoPress && currentFrame - _ultimatePressFrame > PressBufferFrames)
                 _ultimatePressFrame = NoPress;
             if (_interactPressFrame != NoPress && currentFrame - _interactPressFrame > PressBufferFrames)
@@ -208,6 +221,13 @@ namespace _Root.Scripts.Input
                 return;
             }
 
+            if (IsDodgeMovementBlocked())
+            {
+                _moveInput = Vector2.zero;
+                _accumulatedRotation = 0f;
+                return;
+            }
+
             _moveInput.x = UnityEngine.Input.GetAxis("Horizontal");
             _moveInput.y = UnityEngine.Input.GetAxis("Vertical");
 
@@ -217,6 +237,28 @@ namespace _Root.Scripts.Input
 
             _blockPressed = UnityEngine.Input.GetMouseButton(1);
             _shootPressed = UnityEngine.Input.GetKey(KeyCode.Q);
+        }
+
+        private bool IsDodgeMovementBlocked()
+        {
+            if (_characterController == null)
+                TryGetComponent(out _characterController);
+
+            return _characterController != null
+                && _characterController.Object != null
+                && _characterController.Object.IsValid
+                && _characterController.BlocksMovementFromDodge;
+        }
+
+        private bool IsAttackBlockedByDodge()
+        {
+            if (_characterController == null)
+                TryGetComponent(out _characterController);
+
+            return _characterController != null
+                && _characterController.Object != null
+                && _characterController.Object.IsValid
+                && _characterController.BlocksAttacksFromDodge;
         }
     }
 }

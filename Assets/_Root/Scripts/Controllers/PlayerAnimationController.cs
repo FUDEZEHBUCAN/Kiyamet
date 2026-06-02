@@ -40,6 +40,7 @@ namespace _Root.Scripts.Controllers
         private int _combatLayerIndex = -2;
         private int _clearAttackTypeAfterFrame = -1;
         private static readonly int ParamDash = Animator.StringToHash("Dash");
+        private static readonly int ParamDodge = Animator.StringToHash("Dodge");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
@@ -203,6 +204,12 @@ namespace _Root.Scripts.Controllers
             {
                 animator.SetTrigger(ParamDash);
             }
+        }
+
+        public void TriggerDodge()
+        {
+            if (animator != null && animator.enabled && animator.isActiveAndEnabled)
+                animator.SetTrigger(ParamDodge);
         }
 
         /// <summary>Animator'da isimle tanımlı trigger (Support imza skill vb.).</summary>

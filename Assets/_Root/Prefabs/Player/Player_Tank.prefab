@@ -351,6 +351,10 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
+  dodgeSpeed: 15
+  dodgeDuration: 0.5
+  dodgeCooldown: 2
+  dodgeAttackLockAfterRoll: 0.03
   reflectorLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -360,6 +364,8 @@ MonoBehaviour:
   _NetworkRotation: {x: 0, y: 0, z: 0, w: 0}
   _Velocity: {x: 0, y: 0, z: 0}
   _Grounded:
+    _value: 0
+  _IsDodging:
     _value: 0
 --- !u!114 &8747253484073344204
 MonoBehaviour:
