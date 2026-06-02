@@ -200,6 +200,9 @@ namespace _Root.Scripts.Network
                 var skillHud = GetComponentInChildren<PlayerSkillUIController>(true);
                 if (skillHud != null && skillHud.GetComponent<MeleeQueueHudFeedback>() == null)
                     skillHud.gameObject.AddComponent<MeleeQueueHudFeedback>();
+
+                if (GetComponent<CheckpointCapturedHudFeedback>() == null)
+                    gameObject.AddComponent<CheckpointCapturedHudFeedback>();
             }
 
             if (Object.HasStateAuthority)
@@ -252,9 +255,7 @@ namespace _Root.Scripts.Network
                 if (_wasDead && !IsDead)
                 {
                     if (animController != null)
-                    {
-                        animController.ResetAnimator();
-                    }
+                        animController.TriggerRevive();
                     _wasDead = false;
                 }
                 
@@ -767,9 +768,8 @@ namespace _Root.Scripts.Network
                 CurrentHealth = MaxHealth;
                 CurrentMana = MaxMana;
                 
-                // Animator reset
                 if (animController != null)
-                    animController.ResetAnimator();
+                    animController.TriggerRevive();
             }
         }
         

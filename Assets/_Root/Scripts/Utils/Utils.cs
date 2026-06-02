@@ -31,6 +31,19 @@ namespace _Root.Scripts.Utils
             return Quaternion.identity;
         }
 
+        /// <summary>
+        /// Ölüm sonrası respawn: kayıtlı checkpoint varsa oradan, yoksa klasik spawn noktası.
+        /// </summary>
+        public static void TryGetRespawnPose(out Vector3 position, out Quaternion rotation)
+        {
+            var manager = NetworkCheckpointManager.FindActiveInstance();
+            if (manager != null && manager.TryGetRespawnPose(out position, out rotation))
+                return;
+
+            position = GetRandomSpawnPoint();
+            rotation = GetRandomSpawnRotation();
+        }
+
         private static bool TryGetSpawnPointTransform(int slotIndex, out Transform spawnPoint)
         {
             spawnPoint = null;

@@ -43,6 +43,7 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamDodge = Animator.StringToHash("Dodge");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamDie = Animator.StringToHash("Die");
+        private static readonly int ParamRevive = Animator.StringToHash("Revive");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
         
         private float _currentSpeed;
@@ -271,10 +272,37 @@ namespace _Root.Scripts.Controllers
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
             {
+                animator.ResetTrigger(ParamRevive);
                 animator.SetBool(ParamIsDead, true);
                 animator.SetTrigger(ParamDie);
                 SetSpeedImmediate(0f);
             }
+        }
+
+        public void TriggerRevive()
+        {
+            if (animator == null || !animator.enabled || !animator.isActiveAndEnabled)
+                return;
+
+            _clearAttackTypeAfterFrame = -1;
+            animator.SetBool(ParamIsDead, false);
+            animator.SetBool(ParamIsMoving, false);
+            animator.SetBool(ParamIsGrounded, true);
+            animator.SetBool(ParamIsRunning, false);
+            animator.SetBool(ParamIsBlocking, false);
+            animator.SetBool(ParamIsPushing, false);
+            animator.SetFloat(ParamMoveX, 0f);
+            animator.SetFloat(ParamMoveY, 0f);
+            SetSpeedImmediate(0f);
+
+            animator.ResetTrigger(ParamDie);
+            animator.ResetTrigger(ParamMeleeAttack);
+            animator.ResetTrigger(ParamHit);
+            animator.ResetTrigger(ParamShoot);
+            animator.ResetTrigger(ParamDash);
+            animator.ResetTrigger(ParamDodge);
+            animator.SetInteger(ParamAttackType, 0);
+            animator.SetTrigger(ParamRevive);
         }
         
         public void ResetAnimator()
@@ -292,6 +320,7 @@ namespace _Root.Scripts.Controllers
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamHit);
                 animator.ResetTrigger(ParamDie);
+                animator.ResetTrigger(ParamRevive);
                 animator.SetInteger(ParamAttackType, 0);
             }
         }

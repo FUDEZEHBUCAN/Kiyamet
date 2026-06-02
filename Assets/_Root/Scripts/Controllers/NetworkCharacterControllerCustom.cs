@@ -456,8 +456,7 @@ namespace _Root.Scripts.Controllers {
       }
 
       _deathPoseFrozen = false;
-      Vector3 spawnPosition = Utils.Utils.GetRandomSpawnPoint();
-      Quaternion spawnRotation = Utils.Utils.GetRandomSpawnRotation();
+      Utils.Utils.TryGetRespawnPose(out Vector3 spawnPosition, out Quaternion spawnRotation);
       Teleport(spawnPosition, spawnRotation);
       
       Velocity = Vector3.zero;
