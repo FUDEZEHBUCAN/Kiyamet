@@ -223,6 +223,7 @@ GameObject:
   - component: {fileID: 6648164291199739916}
   - component: {fileID: 8609273837512490597}
   - component: {fileID: 4523880770481813386}
+  - component: {fileID: 4553990314280123848}
   m_Layer: 0
   m_Name: YurtSupports
   m_TagString: Untagged
@@ -273,7 +274,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: dd6d8c3411792f24789dc2bdb839ce23, type: 2}
+  - {fileID: 2100000, guid: 3014ea97cefb1a3408ce8f57afe83fb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -295,6 +296,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4553990314280123848
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4820963557271402843}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -168336758545615557, guid: df3e45cf3b0018440878a34b43244478, type: 3}
 --- !u!1 &5609566393452893006
 GameObject:
   m_ObjectHideFlags: 0
@@ -356,7 +379,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: afd883868bfb44645a5b118915a7cd9f, type: 2}
+  - {fileID: 2100000, guid: 3014ea97cefb1a3408ce8f57afe83fb3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
