@@ -85,7 +85,6 @@ namespace _Root.Scripts.Controllers
         private NetworkPlayer _networkPlayer;
         private NetworkCharacterControllerCustom _characterController;
         private int _lastVisualMeleeSequence;
-        private int _lastVisualHitEffectTick;
         private int _lastVisualMeleeResolveSequence;
         private bool _damageAppliedThisSwing;
 
@@ -93,6 +92,8 @@ namespace _Root.Scripts.Controllers
             Runner != null && !MovementLockTimer.ExpiredOrNotRunning(Runner);
 
         public float AttackFacingRotationSpeed => attackFacingRotationSpeed;
+
+        public float GetBaseDamageForExternalSkills() => meleeDamage;
         
         /// <summary>
         /// Aktif melee saldırısını tamamen iptal eder (hasar, queue, kilit, animasyon).
@@ -383,19 +384,13 @@ namespace _Root.Scripts.Controllers
             if (MeleeResolveSequence > _lastVisualMeleeResolveSequence)
             {
                 if (MeleeResolveWasHit)
+                {
                     TriggerMeleeCameraShake(isHit: true);
+                    SpawnHitEffect();
+                    audioController?.PlayMeleeHit();
+                }
 
                 _lastVisualMeleeResolveSequence = MeleeResolveSequence;
-            }
-            
-            // Tüm clientlar için vuruş efekti (hasar anında) - sadece remote clientlar için
-            if (!Object.HasStateAuthority)
-            {
-                if (LastHitEffectTick > _lastVisualHitEffectTick && LastHitEffectTick > 0)
-                {
-                    SpawnHitEffect();
-                    _lastVisualHitEffectTick = LastHitEffectTick;
-                }
             }
         }
         
@@ -470,11 +465,7 @@ namespace _Root.Scripts.Controllers
             
             if (didHit)
             {
-                SpawnHitEffect();
                 LastHitEffectTick = Runner.Tick;
-                
-                if (audioController != null)
-                    audioController.PlayMeleeHit();
             }
             
             MeleeResolveTick = Runner.Tick;

@@ -54,9 +54,6 @@ namespace _Root.Scripts.Network
             _networkRunner = Instantiate(networkRunnerPrefab);
             _networkRunner.name = "Network Runner";
 
-            if (gameObject.GetComponent<NetworkDebugUI>() == null)
-                gameObject.AddComponent<NetworkDebugUI>();
-
             if (gameObject.GetComponent<GameplayPingDisplay>() == null)
                 gameObject.AddComponent<GameplayPingDisplay>();
 

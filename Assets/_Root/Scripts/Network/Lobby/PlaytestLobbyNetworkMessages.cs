@@ -26,7 +26,7 @@ namespace _Root.Scripts.Network.Lobby
                 return false;
 
             role = (PlayerRoleType)data[1];
-            return role == PlayerRoleType.Tank || role == PlayerRoleType.Support;
+            return PlaytestLobbyRoles.IsLobbySelectable(role);
         }
 
         public static byte[] CreateSyncState(IReadOnlyDictionary<PlayerRef, PlayerRoleType> lockedRoles,
@@ -73,7 +73,7 @@ namespace _Root.Scripts.Network.Lobby
                     continue;
 
                 var role = (PlayerRoleType)roleByte;
-                if (role != PlayerRoleType.Tank && role != PlayerRoleType.Support)
+                if (!PlaytestLobbyRoles.IsLobbySelectable(role))
                     continue;
 
                 lockedRoles[PlayerRef.FromEncoded(encoded)] = role;

@@ -4,15 +4,21 @@ using UnityEngine;
 namespace _Root.Scripts.Network
 {
     /// <summary>
-    /// Runtime'da network durumunu ekranda gösterir (debug amaçlı)
+    /// Opsiyonel: sahneye manuel eklenirse network durumunu IMGUI ile gösterir.
+    /// Varsayılan olarak <see cref="NetworkRunnerHandler"/> artık bu bileşeni eklemez.
     /// </summary>
     public class NetworkDebugUI : MonoBehaviour
     {
+        [SerializeField] private bool showOnScreen;
+
         private NetworkRunner _runner;
         private GUIStyle _style;
 
         void OnGUI()
         {
+            if (!showOnScreen)
+                return;
+
             if (_runner == null)
             {
                 _runner = FindObjectOfType<NetworkRunner>();

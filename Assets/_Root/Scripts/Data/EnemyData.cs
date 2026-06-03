@@ -45,6 +45,22 @@ namespace _Root.Scripts.Data
         [SerializeField] private float leapLandingRadius = 1.35f;
         [Tooltip("0 veya negatifse Attack Damage kullanılır.")]
         [SerializeField] private float leapDamage = 0f;
+
+        [Header("Behavior Variety")]
+        [Tooltip("Spawn başına hız çarpanı sapması (±). Kalabalıkta aynı tempoda koşmayı kırar.")]
+        [SerializeField] [Range(0f, 0.35f)] private float movementSpeedVariance = 0.16f;
+        [Tooltip("Oyuncu etrafındaki yaklaşma halkası — AttackRange ile çarpılır.")]
+        [SerializeField] private float chaseRingRadiusMinScale = 0.72f;
+        [SerializeField] private float chaseRingRadiusMaxScale = 1.48f;
+        [SerializeField] private float separationRadius = 2.3f;
+        [SerializeField] private float separationStrength = 1.4f;
+        [SerializeField] private float pathUpdateIntervalMin = 0.38f;
+        [SerializeField] private float pathUpdateIntervalMax = 0.82f;
+        [SerializeField] private float aggroReactionDelayMax = 0.55f;
+        [SerializeField] [Range(0f, 1f)] private float leapAttemptChanceMin = 0.32f;
+        [SerializeField] [Range(0f, 1f)] private float leapAttemptChanceMax = 1f;
+        [SerializeField] private float attackRangeChaseToleranceMin = 1.08f;
+        [SerializeField] private float attackRangeChaseToleranceMax = 1.34f;
         
         // Properties
         public bool IsElite => isElite;
@@ -68,5 +84,18 @@ namespace _Root.Scripts.Data
         public float LeapMaxRange => leapMaxRange;
         public float LeapLandingRadius => leapLandingRadius;
         public float LeapDamage => leapDamage > 0.001f ? leapDamage : attackDamage;
+
+        public float MovementSpeedVariance => movementSpeedVariance;
+        public float ChaseRingRadiusMinScale => chaseRingRadiusMinScale;
+        public float ChaseRingRadiusMaxScale => chaseRingRadiusMaxScale;
+        public float SeparationRadius => separationRadius;
+        public float SeparationStrength => separationStrength;
+        public float PathUpdateIntervalMin => pathUpdateIntervalMin;
+        public float PathUpdateIntervalMax => pathUpdateIntervalMax;
+        public float AggroReactionDelayMax => aggroReactionDelayMax;
+        public float LeapAttemptChanceMin => leapAttemptChanceMin;
+        public float LeapAttemptChanceMax => leapAttemptChanceMax;
+        public float AttackRangeChaseToleranceMin => attackRangeChaseToleranceMin;
+        public float AttackRangeChaseToleranceMax => attackRangeChaseToleranceMax;
     }
 }

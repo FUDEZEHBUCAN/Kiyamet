@@ -48,6 +48,7 @@ namespace _Root.Scripts.Controllers
         
         private float _currentSpeed;
         private float _speedVelocity;
+        private float _playbackSpeedMultiplier = 1f;
         
         private void Awake()
         {
@@ -303,6 +304,7 @@ namespace _Root.Scripts.Controllers
             animator.ResetTrigger(ParamDodge);
             animator.SetInteger(ParamAttackType, 0);
             animator.SetTrigger(ParamRevive);
+            ResetPlaybackSpeed();
         }
         
         public void ResetAnimator()
@@ -322,7 +324,26 @@ namespace _Root.Scripts.Controllers
                 animator.ResetTrigger(ParamDie);
                 animator.ResetTrigger(ParamRevive);
                 animator.SetInteger(ParamAttackType, 0);
+                ResetPlaybackSpeed();
             }
+        }
+
+        public void SetPlaybackSpeedMultiplier(float multiplier)
+        {
+            _playbackSpeedMultiplier = Mathf.Max(0.05f, multiplier);
+            ApplyPlaybackSpeed();
+        }
+
+        public void ResetPlaybackSpeed()
+        {
+            _playbackSpeedMultiplier = 1f;
+            ApplyPlaybackSpeed();
+        }
+
+        private void ApplyPlaybackSpeed()
+        {
+            if (animator != null)
+                animator.speed = _playbackSpeedMultiplier;
         }
         
         #endregion

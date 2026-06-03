@@ -73,7 +73,18 @@ namespace _Root.Scripts.Enemy
         private float _nextAttackAllowedTime;
         private float _targetUpdateTimer;
         private float _lastChaseAttemptTime; // Son chase denemesi zamanı
-        private float _lastChaseLogTime; // Son chase log zamanı (tekrar tekrar log basmamak için)
+
+        // Per-enemy behavior variety (state authority only; AI runs on host)
+        private float _movementSpeedMultiplier = 1f;
+        private float _stoppingDistanceMultiplier = 1f;
+        private float _personalityAngleRad;
+        private float _chaseRingRadius = 2.5f;
+        private float _pathUpdateInterval = 0.55f;
+        private float _nextPathUpdateTime;
+        private float _aggroReadyTime;
+        private float _leapAttemptChance = 1f;
+        private float _attackRangeChaseTolerance = 1.2f;
+        private static readonly Collider[] SeparationOverlapBuffer = new Collider[20];
         private int _lastVisualAttackAnimTick;
         private int _lastVisualAttackEffectTick;
         private int _lastVisualHitTick;
@@ -135,7 +146,10 @@ namespace _Root.Scripts.Enemy
             if (agent == null || enemyData == null)
                 return;
 
-            agent.speed = enemyData.MovementSpeed * Mathf.Max(0.05f, TimeDistortionSpeedMultiplier);
+            agent.speed = enemyData.MovementSpeed
+                * _movementSpeedMultiplier
+                * Mathf.Max(0.05f, TimeDistortionSpeedMultiplier);
+            agent.stoppingDistance = enemyData.StoppingDistance * _stoppingDistanceMultiplier;
         }
         
         private void Awake()
@@ -160,7 +174,6 @@ namespace _Root.Scripts.Enemy
             _lastState = CurrentState;
             _deathAnimTriggered = false;
             _lastChaseAttemptTime = 0f;
-            _lastChaseLogTime = 0f;
             detectionRange = Mathf.Max(detectionRange, enemyData.AttackRange + 0.5f);
             PlayerDetectionEnabled = startWithPlayerDetectionEnabled;
             
@@ -245,7 +258,7 @@ namespace _Root.Scripts.Enemy
                     }
                 }
                 
-                InitializeAttackTimingVariance();
+                InitializeBehaviorVariance();
                 if (PlayerDetectionEnabled)
                     FindAndChaseTarget();
             }
@@ -255,7 +268,7 @@ namespace _Root.Scripts.Enemy
             }
         }
 
-        private void InitializeAttackTimingVariance()
+        private void InitializeBehaviorVariance()
         {
             if (enemyData == null || Runner == null)
                 return;
@@ -264,6 +277,33 @@ namespace _Root.Scripts.Enemy
             float maxScale = Mathf.Max(enemyData.AttackCooldownMinScale, enemyData.AttackCooldownMaxScale);
             _attackCooldownMultiplier = Random.Range(minScale, maxScale);
             _nextAttackAllowedTime = Runner.SimulationTime + Random.Range(0f, RollAttackCooldownDuration());
+
+            int idSalt = Object != null ? unchecked((int)Object.Id.Raw) : Random.Range(0, 10000);
+            float hash01 = Mathf.Repeat(idSalt * 0.0137f + Random.Range(0f, 1f), 1f);
+            _personalityAngleRad = hash01 * Mathf.PI * 2f;
+
+            float ringMin = enemyData.AttackRange * enemyData.ChaseRingRadiusMinScale;
+            float ringMax = enemyData.AttackRange * enemyData.ChaseRingRadiusMaxScale;
+            _chaseRingRadius = Random.Range(ringMin, ringMax);
+
+            float speedVar = enemyData.MovementSpeedVariance;
+            _movementSpeedMultiplier = Random.Range(1f - speedVar, 1f + speedVar);
+            _stoppingDistanceMultiplier = Random.Range(0.88f, 1.14f);
+
+            _pathUpdateInterval = Random.Range(
+                enemyData.PathUpdateIntervalMin,
+                enemyData.PathUpdateIntervalMax);
+            _nextPathUpdateTime = Runner.SimulationTime + Random.Range(0f, _pathUpdateInterval);
+
+            _leapAttemptChance = Random.Range(
+                enemyData.LeapAttemptChanceMin,
+                enemyData.LeapAttemptChanceMax);
+
+            _attackRangeChaseTolerance = Random.Range(
+                enemyData.AttackRangeChaseToleranceMin,
+                enemyData.AttackRangeChaseToleranceMax);
+
+            RefreshAgentSpeed();
         }
 
         private float RollAttackCooldownDuration()
@@ -635,6 +675,9 @@ namespace _Root.Scripts.Enemy
                 FindAndChaseTarget();
                 return;
             }
+
+            if (Runner.SimulationTime < _aggroReadyTime)
+                return;
             
             // Agent'ın enable ve NavMesh üzerinde olduğundan emin ol
             if (!agent.enabled || !agent.isOnNavMesh)
@@ -666,60 +709,22 @@ namespace _Root.Scripts.Enemy
             }
             else
             {
-                Vector3 targetPos = _currentTarget.transform.position;
+                Vector3 playerPos = _currentTarget.transform.position;
+                Vector3 desiredChasePos = ComputeChaseDestination(playerPos);
+                Vector3 validDestination = SampleNavMeshDestination(desiredChasePos, playerPos);
                 
-                // NavMesh üzerinde bir pozisyon bul (target player NavMesh üzerinde olmayabilir)
-                // Terrain'de daha geniş bir arama yap (yükseklik farkları için)
-                NavMeshHit hit;
-                Vector3 validDestination = targetPos;
-                float sampleDistance = 10f; // Terrain için daha geniş arama mesafesi
-                
-                // Önce yakın mesafede dene
-                if (!NavMesh.SamplePosition(targetPos, out hit, sampleDistance, NavMesh.AllAreas))
+                bool shouldRefreshPath = Runner.SimulationTime >= _nextPathUpdateTime
+                    || !agent.hasPath
+                    || Vector3.Distance(agent.destination, validDestination) > 0.85f;
+
+                if (shouldRefreshPath)
                 {
-                    // Yakında bulamazsa daha geniş bir arama yap
-                    if (NavMesh.SamplePosition(targetPos, out hit, sampleDistance * 2f, NavMesh.AllAreas))
-                    {
-                        validDestination = hit.position;
-                    }
-                    else
-                    {
-                        // Hiç bulamazsa mevcut destination'ı kullan (player çok uzaktaysa)
-                        if (agent.hasPath)
-                        {
-                            validDestination = agent.destination;
-                        }
-                        else
-                        {
-                            // Son çare: target pozisyonunu kullan (agent kendisi NavMesh'e en yakın noktayı bulacak)
-                            validDestination = targetPos;
-                        }
-                    }
+                    _nextPathUpdateTime = Runner.SimulationTime + _pathUpdateInterval;
+
+                    if (!agent.SetDestination(validDestination))
+                        agent.SetDestination(playerPos);
                 }
-                else
-                {
-                    validDestination = hit.position;
-                }
-                
-                // Destination'ı her zaman güncelle (player hareket ediyor, sürekli güncelle)
-                // Ama çok sık güncellemeyi önlemek için küçük bir threshold kullan
-                if (!agent.hasPath || Vector3.Distance(agent.destination, validDestination) > 0.5f)
-                {
-                    bool destinationSet = agent.SetDestination(validDestination);
-                    if (!destinationSet)
-                    {
-                        // SetDestination başarısız oldu, direct targetPos'u dene (agent kendisi en yakın noktayı bulabilir)
-                        destinationSet = agent.SetDestination(targetPos);
-                        if (!destinationSet)
-                        {
-                            Debug.LogWarning($"[NetworkEnemy] Failed to set destination to both {validDestination} and {targetPos}. Agent may not move correctly.");
-                        }
-                        else
-                        {
-                            validDestination = targetPos;
-                        }
-                    }
-                }
+
                 TargetPosition = validDestination;
                 
                 // Path'in geçerli olup olmadığını kontrol et
@@ -732,20 +737,13 @@ namespace _Root.Scripts.Enemy
                 if (agent.pathStatus == UnityEngine.AI.NavMeshPathStatus.PathInvalid)
                 {
                     // Path bulunamadı
-                    Debug.LogWarning($"[NetworkEnemy] Path invalid to target {targetPos}. Current position: {transform.position}");
+                    Debug.LogWarning($"[NetworkEnemy] Path invalid to chase destination near {playerPos}. Current position: {transform.position}");
                     CurrentState = EnemyState.Idle;
                     _lastChaseAttemptTime = Runner.SimulationTime;
                     return;
                 }
                 
-                // Agent hareket durumu kontrolü (tekrar tekrar log basmamak için 2 saniyede bir)
-                if (agent.hasPath && Runner.SimulationTime - _lastChaseLogTime > 2f)
-                {
-                    Debug.Log($"[NetworkEnemy] Chase: hasPath={agent.hasPath}, velocity={agent.velocity.magnitude:F2}, remainingDistance={agent.remainingDistance:F2}, pathStatus={agent.pathStatus}, enabled={agent.enabled}, isOnNavMesh={agent.isOnNavMesh}, position={transform.position}");
-                    _lastChaseLogTime = Runner.SimulationTime;
-                }
-                
-                Vector3 lookDir = (targetPos - transform.position).normalized;
+                Vector3 lookDir = (playerPos - transform.position).normalized;
                 lookDir.y = 0;
                 if (lookDir != Vector3.zero)
                 {
@@ -773,8 +771,7 @@ namespace _Root.Scripts.Enemy
                 return;
             }
             
-            // Player attack range dışına çıktıysa tekrar chase'e geç
-            if (distanceToTarget > enemyData.AttackRange * 1.2f) // 20% tolerance
+            if (distanceToTarget > enemyData.AttackRange * _attackRangeChaseTolerance)
             {
                 CurrentState = EnemyState.Chase;
                 agent.ResetPath(); // Path'i resetle ki yeni destination ayarlanabilsin
@@ -858,8 +855,10 @@ namespace _Root.Scripts.Enemy
             {
                 _currentTarget = target;
                 HasTarget = true;
-                TargetPosition = target.transform.position;
+                TargetPosition = ComputeChaseDestination(target.transform.position);
                 CurrentState = EnemyState.Chase;
+                _aggroReadyTime = Runner.SimulationTime + Random.Range(0f, enemyData.AggroReactionDelayMax);
+                _nextPathUpdateTime = Runner.SimulationTime + Random.Range(0f, _pathUpdateInterval * 0.5f);
             }
             else
             {
@@ -981,6 +980,9 @@ namespace _Root.Scripts.Enemy
             if (!IsWithinLeapRange(distanceToTarget) || _currentTarget == null || !_currentTarget.IsAlive)
                 return false;
 
+            if (Random.value > _leapAttemptChance)
+                return false;
+
             if (Runner.SimulationTime < _nextAttackAllowedTime)
                 return false;
 
@@ -1015,7 +1017,8 @@ namespace _Root.Scripts.Enemy
                 return;
             }
 
-            LeapLockedPosition = ResolveLeapLandingPosition(_currentTarget.transform.position);
+            Vector3 leapAim = ComputeChaseDestination(_currentTarget.transform.position);
+            LeapLockedPosition = ResolveLeapLandingPosition(leapAim);
             LeapStartPosition = transform.position;
             LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, enemyData.LeapDuration));
             CurrentState = EnemyState.LeapJump;
@@ -1089,13 +1092,77 @@ namespace _Root.Scripts.Enemy
 
         private Vector3 ResolveLeapLandingPosition(Vector3 desiredWorldPosition)
         {
-            var landing = desiredWorldPosition;
-            landing.y = transform.position.y;
+            return SampleNavMeshDestination(desiredWorldPosition, desiredWorldPosition);
+        }
 
-            if (NavMesh.SamplePosition(landing, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+        /// <summary>
+        /// Oyuncu etrafında kişiye özel halka noktası + yakındaki düşmanlardan uzaklaşma.
+        /// </summary>
+        private Vector3 ComputeChaseDestination(Vector3 playerWorldPosition)
+        {
+            Vector3 offsetFromPlayer = new Vector3(
+                Mathf.Cos(_personalityAngleRad) * _chaseRingRadius,
+                0f,
+                Mathf.Sin(_personalityAngleRad) * _chaseRingRadius);
+
+            Vector3 ringPoint = playerWorldPosition + offsetFromPlayer;
+            ringPoint += ComputeSeparationOffset();
+            return ringPoint;
+        }
+
+        private Vector3 ComputeSeparationOffset()
+        {
+            if (enemyData == null)
+                return Vector3.zero;
+
+            float radius = enemyData.SeparationRadius;
+            int count = Physics.OverlapSphereNonAlloc(
+                transform.position,
+                radius,
+                SeparationOverlapBuffer,
+                ~0,
+                QueryTriggerInteraction.Ignore);
+
+            Vector3 push = Vector3.zero;
+            for (int i = 0; i < count; i++)
+            {
+                Collider col = SeparationOverlapBuffer[i];
+                if (col == null)
+                    continue;
+
+                var other = col.GetComponentInParent<NetworkEnemy>();
+                if (other == null || other == this || !other.IsAlive)
+                    continue;
+
+                Vector3 away = transform.position - other.transform.position;
+                away.y = 0f;
+                float dist = away.magnitude;
+                if (dist < 0.05f)
+                    continue;
+
+                float weight = 1f - dist / radius;
+                push += away.normalized * weight;
+            }
+
+            if (push.sqrMagnitude < 0.0001f)
+                return Vector3.zero;
+
+            return push.normalized * enemyData.SeparationStrength;
+        }
+
+        private Vector3 SampleNavMeshDestination(Vector3 desiredPosition, Vector3 fallbackPosition)
+        {
+            const float sampleDistance = 10f;
+            if (NavMesh.SamplePosition(desiredPosition, out NavMeshHit hit, sampleDistance, NavMesh.AllAreas))
                 return hit.position;
 
-            return landing;
+            if (NavMesh.SamplePosition(desiredPosition, out hit, sampleDistance * 2f, NavMesh.AllAreas))
+                return hit.position;
+
+            if (NavMesh.SamplePosition(fallbackPosition, out hit, sampleDistance * 2f, NavMesh.AllAreas))
+                return hit.position;
+
+            return desiredPosition;
         }
 
         private static Vector3 EvaluateLeapArcPosition(Vector3 from, Vector3 to, float arcHeight, float t)

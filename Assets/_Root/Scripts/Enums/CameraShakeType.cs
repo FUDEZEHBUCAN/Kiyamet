@@ -12,6 +12,10 @@ namespace _Root.Scripts.Enums
         /// <summary>Tank ulti açılış darbesi (güç patlaması hissi).</summary>
         TankUltimateActivate,
         /// <summary>Support ulti invuln — sürekli hafif süzülme (StartSupportUltimateFloatShake kullan).</summary>
-        SupportUltimateFloat
+        SupportUltimateFloat,
+        /// <summary>Duelist Mirage Step başlangıç darbesi.</summary>
+        DuelistMirageStepStart,
+        /// <summary>Duelist Mirage Step spin finale.</summary>
+        DuelistMirageStepFinale
     }
 }

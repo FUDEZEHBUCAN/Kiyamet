@@ -2404,7 +2404,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   enemyData: {fileID: 11400000, guid: 4e0627000eced421f9b2fb3d8a30e700, type: 2}
   agent: {fileID: 0}
-  animController: {fileID: 0}
+  animController: {fileID: 7087160707622599084}
   audioController: {fileID: 0}
   hitCollider: {fileID: 0}
   attackPoint: {fileID: 9145044130149988047}
@@ -2416,11 +2416,14 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
+  startWithPlayerDetectionEnabled: 1
   detectionRange: 50
   disengageRangeMultiplier: 10
   hitEffectPrefab: {fileID: 168136, guid: 47c6eee70f9391f46a710b0592491a63, type: 3}
   attackEffectPrefab: {fileID: 0}
   _CurrentHealth: 0
+  _PlayerDetectionEnabled:
+    _value: 0
 --- !u!136 &5725342940904691850
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2604,6 +2607,10 @@ PrefabInstance:
       propertyPath: m_Materials.Array.size
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 9114948898736298122, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
+      propertyPath: m_Avatar
+      value: 
+      objectReference: {fileID: 9000000, guid: 4fd78e57121828f42b957f78d4e2f7ea, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 5670593155270088740, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
@@ -2622,3 +2629,14 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2927024672320914160, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
   m_PrefabInstance: {fileID: 1207757953020253119}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7087160707622599084 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8257480108778957331, guid: 26b013b7f06b3cf45a9e25710b2ae407, type: 3}
+  m_PrefabInstance: {fileID: 1207757953020253119}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 686b15f478bc145739e0fb495982d73b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

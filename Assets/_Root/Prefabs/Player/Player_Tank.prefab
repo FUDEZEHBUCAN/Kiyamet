@@ -521,12 +521,22 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
-  meleeQueueWindowOpenSounds:
-  - {fileID: 8300000, guid: 5fdb13d3756c84fecac96f5a2d124370, type: 3}
-  meleeQueueAcceptedSounds:
-  - {fileID: 8300000, guid: 657578e4be6b64dbf9b09deada272e55, type: 3}
-  meleeQueueChainStartSounds:
-  - {fileID: 8300000, guid: 4b4dd7245f6104c8c8eb07ccf6b386ed, type: 3}
+  meleeQueueWindowOpen:
+    clips:
+    - {fileID: 8300000, guid: 5fdb13d3756c84fecac96f5a2d124370, type: 3}
+    volume: 1
+    pitchVariation: 0.12
+  meleeQueueAccepted:
+    clips:
+    - {fileID: 8300000, guid: 657578e4be6b64dbf9b09deada272e55, type: 3}
+    volume: 1
+    pitchVariation: 0.22
+  meleeQueueChainStart:
+    clips:
+    - {fileID: 8300000, guid: 4b4dd7245f6104c8c8eb07ccf6b386ed, type: 3}
+    volume: 1
+    pitchVariation: 0.16
+  meleeQueueUseGlobalAudio: 1
   pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
   use3DSound: 1

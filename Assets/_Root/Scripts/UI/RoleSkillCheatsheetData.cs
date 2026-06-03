@@ -20,7 +20,12 @@ namespace _Root.Scripts.UI
     public static class RoleSkillCheatsheetData
     {
         public static string GetRoleTitle(PlayerRoleType role) =>
-            role == PlayerRoleType.Support ? "Support" : "Tank";
+            role switch
+            {
+                PlayerRoleType.Support => "Support",
+                PlayerRoleType.Duelist => "Duelist",
+                _ => "Tank"
+            };
 
         public static IReadOnlyList<RoleSkillCheatsheetEntry> Get(PlayerRoleType role)
         {
@@ -35,6 +40,17 @@ namespace _Root.Scripts.UI
                     "Launch a magic orb; allies in its radius are healed continuously until it fades."));
                 list.Add(new("Ultimate", "X",
                     "Summon a time dome: allies take less damage, heal over time, and cooldowns recharge faster; enemies inside are slowed. Brief invulnerability while casting."));
+                list.Add(new("Interact", "F",
+                    "Interact with or pick up nearby objects (press F again to release)."));
+            }
+            else if (role == PlayerRoleType.Duelist)
+            {
+                list.Add(new("Block", "RMB",
+                    "Hold to block and absorb the incoming damage."));
+                list.Add(new("Dash", "E",
+                    "Quick forward dash and apply knock back to enemies to reposition or escape."));
+                list.Add(new("Ultimate — Mirage Step", "X",
+                    "Blink between enemies within 6 m, striking up to 6 targets, then spin-hit all nearby foes."));
                 list.Add(new("Interact", "F",
                     "Interact with or pick up nearby objects (press F again to release)."));
             }

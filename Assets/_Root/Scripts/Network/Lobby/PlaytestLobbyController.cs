@@ -15,7 +15,7 @@ namespace _Root.Scripts.Network.Lobby
     {
         public static PlaytestLobbyController Instance { get; private set; }
 
-        private const int MaxLobbyPlayers = 2;
+        private const int MaxLobbyPlayers = 3;
 
         [Header("References")]
         [SerializeField] private NetworkRunnerHandler networkRunnerHandler;
@@ -24,6 +24,7 @@ namespace _Root.Scripts.Network.Lobby
         [Header("Player prefabs")]
         [SerializeField] private NetworkPlayer tankPlayerPrefab;
         [SerializeField] private NetworkPlayer supportPlayerPrefab;
+        [SerializeField] private NetworkPlayer duelistPlayerPrefab;
 
         [Header("Session")]
         [SerializeField] private string defaultSessionName = "";
@@ -181,7 +182,7 @@ namespace _Root.Scripts.Network.Lobby
             if (!_isConnected || _localRoleLocked || _runner == null || !_hasPickedRole)
                 return;
 
-            if (!PlaytestLobbyPrefabUtility.ValidatePair(tankPlayerPrefab, supportPlayerPrefab, out var prefabError))
+            if (!PlaytestLobbyPrefabUtility.ValidatePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab, out var prefabError))
             {
                 _statusMessage = prefabError;
                 RefreshLobbyUi();
@@ -240,9 +241,11 @@ namespace _Root.Scripts.Network.Lobby
 
             var tankTaken = IsRoleLockedByOther(PlayerRoleType.Tank);
             var supportTaken = IsRoleLockedByOther(PlayerRoleType.Support);
+            var duelistTaken = IsRoleLockedByOther(PlayerRoleType.Duelist);
             var canPick = !_localRoleLocked;
             _view.SetRolePickable(PlayerRoleType.Tank, canPick && !tankTaken);
             _view.SetRolePickable(PlayerRoleType.Support, canPick && !supportTaken);
+            _view.SetRolePickable(PlayerRoleType.Duelist, canPick && !duelistTaken);
 
             if (_localRoleLocked)
             {
@@ -251,7 +254,8 @@ namespace _Root.Scripts.Network.Lobby
             else
             {
                 var roleAvailable = (_localPendingRole == PlayerRoleType.Tank && !tankTaken)
-                                    || (_localPendingRole == PlayerRoleType.Support && !supportTaken);
+                                    || (_localPendingRole == PlayerRoleType.Support && !supportTaken)
+                                    || (_localPendingRole == PlayerRoleType.Duelist && !duelistTaken);
                 var canLock = _hasPickedRole && roleAvailable;
                 _view.SetLockRoleButton(true, canLock, canLock ? "Lock Role" : "Pick an available role");
             }
@@ -295,7 +299,7 @@ namespace _Root.Scripts.Network.Lobby
         }
 
         private static string RoleDisplayName(PlayerRoleType role) =>
-            role == PlayerRoleType.Support ? "Support" : "Tank";
+            PlaytestLobbyRoles.GetDisplayName(role);
 
         private async Task ConnectAsync()
         {
@@ -354,7 +358,7 @@ namespace _Root.Scripts.Network.Lobby
             if (_runner == null || !_runner.IsServer || _gameStarted || spawner == null)
                 return;
 
-            if (!PlaytestLobbyPrefabUtility.ValidatePair(tankPlayerPrefab, supportPlayerPrefab, out var prefabError))
+            if (!PlaytestLobbyPrefabUtility.ValidatePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab, out var prefabError))
             {
                 _statusMessage = prefabError;
                 RefreshLobbyUi();
@@ -386,7 +390,7 @@ namespace _Root.Scripts.Network.Lobby
         private void BeginMatchOnHost()
         {
             _gameStarted = true;
-            spawner.ConfigurePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab);
+            spawner.ConfigurePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab);
             spawner.ResetSpawnAssignments();
             spawner.ClearCachedInputController();
             BroadcastGameStarted();
@@ -429,7 +433,7 @@ namespace _Root.Scripts.Network.Lobby
         {
             error = string.Empty;
 
-            if (role != PlayerRoleType.Tank && role != PlayerRoleType.Support)
+            if (!PlaytestLobbyRoles.IsLobbySelectable(role))
             {
                 error = "Invalid role.";
                 return false;
@@ -451,7 +455,7 @@ namespace _Root.Scripts.Network.Lobby
             }
 
             _lockedRoles[player] = role;
-            _lockedPrefabs[player] = PlaytestLobbyPrefabUtility.Resolve(tankPlayerPrefab, supportPlayerPrefab, role);
+            _lockedPrefabs[player] = PlaytestLobbyPrefabUtility.Resolve(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab, role);
             return true;
         }
 
@@ -466,7 +470,10 @@ namespace _Root.Scripts.Network.Lobby
             if (supportPlayerPrefab == null)
                 supportPlayerPrefab = spawner.DefaultSupportPrefab;
 
-            if (!PlaytestLobbyPrefabUtility.ValidatePair(tankPlayerPrefab, supportPlayerPrefab, out var error))
+            if (duelistPlayerPrefab == null)
+                duelistPlayerPrefab = spawner.DefaultDuelistPrefab;
+
+            if (!PlaytestLobbyPrefabUtility.ValidatePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab, out var error))
                 Debug.LogWarning($"[PlaytestLobby] {error}");
         }
 
@@ -487,7 +494,7 @@ namespace _Root.Scripts.Network.Lobby
             foreach (var pair in synced)
             {
                 _lockedRoles[pair.Key] = pair.Value;
-                _lockedPrefabs[pair.Key] = PlaytestLobbyPrefabUtility.Resolve(tankPlayerPrefab, supportPlayerPrefab, pair.Value);
+                _lockedPrefabs[pair.Key] = PlaytestLobbyPrefabUtility.Resolve(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab, pair.Value);
             }
 
             if (_runner != null && _lockedRoles.TryGetValue(_runner.LocalPlayer, out var localRole))
@@ -515,7 +522,7 @@ namespace _Root.Scripts.Network.Lobby
 
                 if (spawner != null && _lockedPrefabs.TryGetValue(player, out var prefab) && prefab != null)
                 {
-                    spawner.ConfigurePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab);
+                    spawner.ConfigurePlaytestPrefabs(tankPlayerPrefab, supportPlayerPrefab, duelistPlayerPrefab);
                     spawner.SpawnPlayerWithPrefab(runner, player, prefab);
                 }
             }
@@ -673,15 +680,20 @@ namespace _Root.Scripts.Network.Lobby
 
     internal static class PlaytestLobbyPrefabUtility
     {
-        public static NetworkPlayer Resolve(NetworkPlayer tank, NetworkPlayer support, PlayerRoleType role)
+        public static NetworkPlayer Resolve(NetworkPlayer tank, NetworkPlayer support, NetworkPlayer duelist, PlayerRoleType role)
         {
-            if (role == PlayerRoleType.Support)
-                return support != null ? support : tank;
-
-            return tank;
+            switch (role)
+            {
+                case PlayerRoleType.Support:
+                    return support != null ? support : tank;
+                case PlayerRoleType.Duelist:
+                    return duelist != null ? duelist : tank;
+                default:
+                    return tank;
+            }
         }
 
-        public static bool ValidatePair(NetworkPlayer tank, NetworkPlayer support, out string error)
+        public static bool ValidatePlaytestPrefabs(NetworkPlayer tank, NetworkPlayer support, NetworkPlayer duelist, out string error)
         {
             error = string.Empty;
 
@@ -697,9 +709,15 @@ namespace _Root.Scripts.Network.Lobby
                 return false;
             }
 
-            if (ReferenceEquals(tank, support))
+            if (duelist == null)
             {
-                error = "Tank and Support prefabs must be different assets.";
+                error = "Duelist player prefab is not assigned.";
+                return false;
+            }
+
+            if (ReferenceEquals(tank, support) || ReferenceEquals(tank, duelist) || ReferenceEquals(support, duelist))
+            {
+                error = "Tank, Support and Duelist prefabs must be different assets.";
                 return false;
             }
 
@@ -712,6 +730,12 @@ namespace _Root.Scripts.Network.Lobby
             if (support.RoleType != PlayerRoleType.Support)
             {
                 error = $"Support prefab '{support.name}' has role {support.RoleType}, expected Support.";
+                return false;
+            }
+
+            if (duelist.RoleType != PlayerRoleType.Duelist)
+            {
+                error = $"Duelist prefab '{duelist.name}' has role {duelist.RoleType}, expected Duelist.";
                 return false;
             }
 

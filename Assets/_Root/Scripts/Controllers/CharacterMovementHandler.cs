@@ -107,11 +107,12 @@ namespace _Root.Scripts.Controllers
                 bool keyboardTurnBody = roleRules != null && roleRules.UsesKeyboardCharacterRotation;
                 bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
                 isSupportUltimateCastLocked = _networkPlayer != null && _networkPlayer.IsSupportUltimateCastLocked;
+                bool isMirageStepLocked = _networkPlayer != null && _networkPlayer.IsMirageStepCastLocked;
                 bool isSignatureCastMovementLocked = _supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked;
                 bool isDodging = _cc.IsDodging;
                 bool isDodgeRollBlockingMovement = _cc.BlocksMovementFromDodge;
                 bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked
-                    || isSignatureCastMovementLocked || isDodgeRollBlockingMovement;
+                    || isMirageStepLocked || isSignatureCastMovementLocked || isDodgeRollBlockingMovement;
 
                 NetworkedIsRunning = input.IsRunning && !isMovementLocked;
 

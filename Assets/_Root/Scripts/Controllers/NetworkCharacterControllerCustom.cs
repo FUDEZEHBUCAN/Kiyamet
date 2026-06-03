@@ -43,6 +43,14 @@ namespace _Root.Scripts.Controllers {
     
     [Header("Respawn Settings")]
     [SerializeField] private float respawnYThreshold = -10f;
+
+    [Header("Ground Snap")]
+    [SerializeField] private LayerMask groundSnapLayers;
+    [SerializeField] private float groundSnapRayStartHeight = 4f;
+    [SerializeField] private float groundSnapRayDistance = 12f;
+    [SerializeField] private float groundSnapSkin = 0.04f;
+    [SerializeField] private float groundPenetrationStep = 0.12f;
+    [SerializeField] private int groundPenetrationResolveAttempts = 10;
     
     private float BaseMaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
     private float RunningMaxSpeed
@@ -96,6 +104,13 @@ namespace _Root.Scripts.Controllers {
     [Networked] private TickTimer DodgeCooldownTimer { get; set; }
     [Networked] private TickTimer PostDodgeAttackLockTimer { get; set; }
     [Networked] private Vector3 DodgeDirection { get; set; }
+    [Networked] private NetworkBool IsMirageReturnDodge { get; set; }
+    [Networked] private Vector3 MirageReturnTargetPosition { get; set; }
+    [Networked] private float MirageReturnTargetYaw { get; set; }
+    [Networked] private float MirageReturnDodgeSpeed { get; set; }
+
+    public bool IsMirageReturnDodgeActive => IsMirageReturnDodge;
+    public float DodgeDurationSeconds => dodgeDuration;
 
     public bool IsPostDodgeAttackLocked =>
         Runner != null && !PostDodgeAttackLockTimer.ExpiredOrNotRunning(Runner);
@@ -118,6 +133,21 @@ namespace _Root.Scripts.Controllers {
       TryGetComponent(out _rigidbody);
       TryGetComponent(out _networkPlayer);
       _animController = GetComponentInChildren<PlayerAnimationController>();
+      EnsureGroundSnapLayers();
+    }
+
+    private void Reset() {
+      EnsureGroundSnapLayers();
+    }
+
+    private void EnsureGroundSnapLayers() {
+      if (groundSnapLayers.value != 0)
+        return;
+
+      int mask = LayerMask.GetMask("Default", "Obstacle");
+      if (mask == 0)
+        mask = ~(LayerMask.GetMask("Character", "Ignore Raycast", "UI", "Water"));
+      groundSnapLayers = mask;
     }
 
     public override void Spawned() {
@@ -154,6 +184,7 @@ namespace _Root.Scripts.Controllers {
       IsDodging = false;
       DodgeTimer = TickTimer.None;
       PostDodgeAttackLockTimer = TickTimer.None;
+      IsMirageReturnDodge = false;
 
       if (_rigidbody != null) {
         _rigidbody.velocity = Vector3.zero;
@@ -204,6 +235,7 @@ namespace _Root.Scripts.Controllers {
       }
 
       if (_networkPlayer != null && (_networkPlayer.IsSupportUltimateCastLocked
+          || _networkPlayer.IsMirageStepCastLocked
           || !_networkPlayer.RoleRules.CanDash(_networkPlayer))) {
         return;
       }
@@ -248,7 +280,8 @@ namespace _Root.Scripts.Controllers {
       if (IsDodging || IsDashing)
         return false;
 
-      if (_networkPlayer != null && (!_networkPlayer.IsAlive || _networkPlayer.IsSupportUltimateCastLocked))
+      if (_networkPlayer != null && (!_networkPlayer.IsAlive || _networkPlayer.IsSupportUltimateCastLocked
+          || _networkPlayer.IsMirageStepCastLocked))
         return false;
 
       if (_networkPlayer != null && !_networkPlayer.RoleRules.CanDodge(_networkPlayer))
@@ -277,6 +310,80 @@ namespace _Root.Scripts.Controllers {
       Velocity = new Vector3(DodgeDirection.x * dodgeSpeed, Velocity.y, DodgeDirection.z * dodgeSpeed);
       _animController?.TriggerDodge();
       return true;
+    }
+
+    /// <summary>
+    /// Mirage Step dönüşü: dodge animasyonu ile başlangıç pozisyonuna kayar.
+    /// </summary>
+    public float BeginMirageReturnDodge(Vector3 targetPosition, float targetYaw)
+    {
+      if (!Object.HasStateAuthority)
+        return 0f;
+
+      Vector3 flatDelta = targetPosition - transform.position;
+      flatDelta.y = 0f;
+      float distance = flatDelta.magnitude;
+      if (distance < 0.08f)
+      {
+        TeleportToGround(targetPosition, Quaternion.Euler(0f, targetYaw, 0f));
+        return 0f;
+      }
+
+      Vector3 direction = flatDelta / distance;
+      float facingYaw = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+      float duration = dodgeDuration;
+      float effectiveSpeed = distance / duration;
+      Vector3 groundedTarget = SnapPositionToGround(targetPosition);
+
+      var facingRotation = Quaternion.Euler(0f, facingYaw, 0f);
+      _controller.enabled = false;
+      transform.rotation = facingRotation;
+      _controller.enabled = true;
+      SetNetworkRotation(facingRotation);
+
+      IsMirageReturnDodge = true;
+      MirageReturnTargetPosition = groundedTarget;
+      MirageReturnTargetYaw = targetYaw;
+      MirageReturnDodgeSpeed = effectiveSpeed;
+      IsDodging = true;
+      PostDodgeAttackLockTimer = TickTimer.None;
+      DodgeDirection = direction;
+      DodgeTimer = TickTimer.CreateFromSeconds(Runner, duration);
+
+      Velocity = new Vector3(direction.x * effectiveSpeed, Velocity.y, direction.z * effectiveSpeed);
+      _animController?.TriggerDodge();
+      return duration;
+    }
+
+    public float EstimateMirageReturnDodgeDuration(Vector3 from, Vector3 to)
+    {
+      Vector3 flatDelta = to - from;
+      flatDelta.y = 0f;
+      return flatDelta.magnitude < 0.08f ? 0f : dodgeDuration;
+    }
+
+    public void CancelMirageReturnDodge()
+    {
+      if (!Object.HasStateAuthority || !IsMirageReturnDodge)
+        return;
+
+      CompleteMirageReturnDodge(snapToTarget: false);
+    }
+
+    private void CompleteMirageReturnDodge(bool snapToTarget)
+    {
+      if (snapToTarget)
+        TeleportToGround(MirageReturnTargetPosition, Quaternion.Euler(0f, MirageReturnTargetYaw, 0f));
+
+      IsMirageReturnDodge = false;
+      IsDodging = false;
+      DodgeTimer = TickTimer.None;
+      PostDodgeAttackLockTimer = TickTimer.None;
+
+      var vel = Velocity;
+      vel.x = 0f;
+      vel.z = 0f;
+      Velocity = vel;
     }
     
     private void CheckDashHit() {
@@ -435,6 +542,85 @@ namespace _Root.Scripts.Controllers {
     public void SetNetworkRotation(Quaternion rotation) {
       NetworkRotation = rotation;
     }
+
+    public bool TrySampleGroundHeight(Vector3 worldPosition, out float groundY)
+    {
+      EnsureGroundSnapLayers();
+
+      Vector3 rayOrigin = worldPosition + Vector3.up * groundSnapRayStartHeight;
+      float rayLength = groundSnapRayStartHeight + groundSnapRayDistance;
+
+      if (Physics.Raycast(
+            rayOrigin,
+            Vector3.down,
+            out RaycastHit hit,
+            rayLength,
+            groundSnapLayers,
+            QueryTriggerInteraction.Ignore))
+      {
+        groundY = hit.point.y + groundSnapSkin;
+        return true;
+      }
+
+      groundY = worldPosition.y;
+      return false;
+    }
+
+    public Vector3 SnapPositionToGround(Vector3 worldPosition)
+    {
+      Vector3 snapped = worldPosition;
+      if (TrySampleGroundHeight(worldPosition, out float groundY))
+        snapped.y = groundY;
+
+      return ResolveVerticalPenetration(snapped);
+    }
+
+    public void TeleportToGround(Vector3 position, Quaternion rotation)
+    {
+      Teleport(SnapPositionToGround(position), rotation);
+    }
+
+    private Vector3 ResolveVerticalPenetration(Vector3 position)
+    {
+      if (_controller == null)
+        return position;
+
+      Vector3 resolved = position;
+      for (int i = 0; i < groundPenetrationResolveAttempts; i++)
+      {
+        if (!IsControllerCapsuleOverlapping(resolved))
+          return resolved;
+
+        resolved.y += groundPenetrationStep;
+      }
+
+      return resolved;
+    }
+
+    private bool IsControllerCapsuleOverlapping(Vector3 position)
+    {
+      if (_controller == null)
+        return false;
+
+      GetCapsuleWorldPoints(position, out Vector3 pointA, out Vector3 pointB, out float radius);
+      return Physics.CheckCapsule(
+        pointA,
+        pointB,
+        radius,
+        groundSnapLayers,
+        QueryTriggerInteraction.Ignore);
+    }
+
+    private void GetCapsuleWorldPoints(Vector3 position, out Vector3 pointA, out Vector3 pointB, out float radius)
+    {
+      float scaledRadius = _controller.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z);
+      float scaledHeight = _controller.height * transform.lossyScale.y;
+      Vector3 worldCenter = position + transform.TransformVector(_controller.center);
+      float halfHeight = Mathf.Max(scaledRadius, scaledHeight * 0.5f - scaledRadius);
+      pointA = worldCenter + Vector3.up * halfHeight;
+      pointB = worldCenter - Vector3.up * halfHeight;
+      radius = scaledRadius;
+    }
     
     public void Teleport(Vector3 position, Quaternion rotation) {
       if (!Object.HasStateAuthority) {
@@ -492,7 +678,9 @@ namespace _Root.Scripts.Controllers {
       }
 
       if (Object.HasStateAuthority && IsDodging) {
-        if (DodgeTimer.Expired(Runner)) {
+        if (IsMirageReturnDodge) {
+          TickMirageReturnDodge();
+        } else if (DodgeTimer.Expired(Runner)) {
           IsDodging = false;
           DodgeTimer = TickTimer.None;
           if (dodgeAttackLockAfterRoll > 0.001f)
@@ -512,6 +700,45 @@ namespace _Root.Scripts.Controllers {
           Velocity = vel;
         }
       }
+    }
+
+    private void TickMirageReturnDodge()
+    {
+      float speed = MirageReturnDodgeSpeed > 0.001f ? MirageReturnDodgeSpeed : dodgeSpeed;
+      Vector3 toTarget = MirageReturnTargetPosition - transform.position;
+      toTarget.y = 0f;
+      float remainingDistance = toTarget.magnitude;
+      Vector3 dodgeMovement = DodgeDirection * speed * Runner.DeltaTime;
+      bool shouldComplete = DodgeTimer.Expired(Runner)
+        || remainingDistance <= 0.05f
+        || remainingDistance <= dodgeMovement.magnitude;
+
+      if (shouldComplete)
+      {
+        CompleteMirageReturnDodge(snapToTarget: true);
+        return;
+      }
+
+      _controller.Move(dodgeMovement);
+      ApplyGroundSnapToTransform();
+      NetworkPosition = transform.position;
+      NetworkRotation = transform.rotation;
+
+      var vel = Velocity;
+      vel.x = DodgeDirection.x * speed;
+      vel.z = DodgeDirection.z * speed;
+      Velocity = vel;
+    }
+
+    private void ApplyGroundSnapToTransform()
+    {
+      Vector3 snapped = SnapPositionToGround(transform.position);
+      if ((snapped - transform.position).sqrMagnitude <= 0.000001f)
+        return;
+
+      _controller.enabled = false;
+      transform.position = snapped;
+      _controller.enabled = true;
     }
 
     public override void Render() {

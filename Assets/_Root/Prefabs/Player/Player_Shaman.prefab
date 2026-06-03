@@ -152,6 +152,7 @@ MonoBehaviour:
   movementLockDuration: 1
   comboChainResetSeconds: 1.5
   attackFacingRotationSpeed: 540
+  queueWindowAfterDamage: 0.2
   meleePoint: {fileID: 0}
   hitLayers:
     serializedVersion: 2
@@ -164,10 +165,14 @@ MonoBehaviour:
   effectSpawnPoint: {fileID: 0}
   animController: {fileID: 0}
   audioController: {fileID: 0}
+  weaponTipGlow: {fileID: 0}
   _PendingDamage:
     _value: 0
   _ActiveMeleeSwingType: 0
   _ActiveMeleeAttackYaw: 0
+  _HasQueuedMeleeAttack:
+    _value: 0
+  _HudFeedbackSequence: 0
 --- !u!114 &5528760391886604145
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -249,11 +254,21 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   respawnYThreshold: -10
+  groundSnapLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  groundSnapRayStartHeight: 4
+  groundSnapRayDistance: 12
+  groundSnapSkin: 0.04
+  groundPenetrationStep: 0.12
+  groundPenetrationResolveAttempts: 10
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
   _NetworkRotation: {x: 0, y: 0, z: 0, w: 0}
   _Velocity: {x: 0, y: 0, z: 0}
   _Grounded:
+    _value: 0
+  _IsDodging:
     _value: 0
 --- !u!114 &3360321549091136651
 MonoBehaviour:
@@ -393,13 +408,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   audioSource: {fileID: 0}
   meleeSwingSounds:
-  - {fileID: 8300000, guid: 7211929e1067e452f81175b96e4b56b9, type: 3}
-  - {fileID: 8300000, guid: 151e3e3e8ab784a5880cce809eb79209, type: 3}
+  - {fileID: 8300000, guid: 7eacbb028ea844684b9f23151ce80ae1, type: 3}
+  - {fileID: 8300000, guid: 34ce0551c1de8499ebd4f88cf285183a, type: 3}
   meleeHitSounds:
   - {fileID: 8300000, guid: a1f7b375e82ca9140b869169c07a5262, type: 3}
+  - {fileID: 8300000, guid: 0127061f4d7704a3191890d4a25e5a85, type: 3}
   takeDamageSounds:
   - {fileID: 8300000, guid: 1a3e92106b59843cf877fda278ae1624, type: 3}
   - {fileID: 8300000, guid: f27b2551b2455452ea9d8474c19591a5, type: 3}
+  - {fileID: 8300000, guid: 7211929e1067e452f81175b96e4b56b9, type: 3}
+  - {fileID: 8300000, guid: 151e3e3e8ab784a5880cce809eb79209, type: 3}
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
   blockSounds:
@@ -410,6 +428,19 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
+  meleeQueueWindowOpen:
+    clips: []
+    volume: 1
+    pitchVariation: 0.12
+  meleeQueueAccepted:
+    clips: []
+    volume: 1
+    pitchVariation: 0.22
+  meleeQueueChainStart:
+    clips: []
+    volume: 1
+    pitchVariation: 0.16
+  meleeQueueUseGlobalAudio: 1
   pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
   use3DSound: 1

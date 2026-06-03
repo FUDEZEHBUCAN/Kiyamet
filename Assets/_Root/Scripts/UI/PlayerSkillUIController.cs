@@ -176,10 +176,10 @@ namespace _Root.Scripts.UI
                 return;
 
             _appliedIconRole = role;
-            var isSupport = role == PlayerRoleType.Support;
-            ApplySlotIcon(ultimate, isSupport ? supportUltimateIcon : tankUltimateIcon);
-            ApplySlotIcon(signature, isSupport ? supportSignatureIcon : tankSignatureIcon);
-            ApplySlotIcon(basic, isSupport ? supportBasicIcon : tankBasicIcon);
+            var useSupportIcons = role == PlayerRoleType.Support;
+            ApplySlotIcon(ultimate, useSupportIcons ? supportUltimateIcon : tankUltimateIcon);
+            ApplySlotIcon(signature, useSupportIcons ? supportSignatureIcon : tankSignatureIcon);
+            ApplySlotIcon(basic, useSupportIcons ? supportBasicIcon : tankBasicIcon);
         }
 
         private static void ApplySlotIcon(SkillSlotUI slot, Sprite sprite)

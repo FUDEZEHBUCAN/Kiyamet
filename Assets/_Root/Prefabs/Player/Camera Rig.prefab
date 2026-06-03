@@ -25,14 +25,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4868281383642275246}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.009316564, y: 0.04052687, z: -0.0000038295984, w: 0.9991351}
+  m_LocalRotation: {x: 0.00931879, y: 0.040527683, z: -0.0000024801705, w: 0.99913496}
   m_LocalPosition: {x: 56.068733, y: 18.781578, z: 38.375244}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7147391530041483450}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 1.067, y: 4.646, z: 0.043}
 --- !u!114 &6824531915352028555
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79,6 +79,22 @@ MonoBehaviour:
   supportUltimateFloatRollAmplitude: 0.28
   supportUltimateFloatYawAmplitude: 0.12
   supportUltimateFloatBobFrequency: 1.15
+  duelistMirageStartShakeStrength: 1.65
+  duelistMirageFinaleShakeStrength: 2.35
+  mirageObserveLookHeight: 2
+  mirageCinematicDistance: 7
+  mirageCinematicHeight: 2.6
+  mirageCinematicSideOffset: 1.6
+  mirageCinematicPitch: 14
+  mirageCinematicPositionSmooth: 0.11
+  mirageCinematicRotationSmooth: 0.06
+  mirageCinematicOrbitSpeed: 10
+  mirageMoveDistanceMultiplier: 1.12
+  mirageStrikeDistanceMultiplier: 0.78
+  mirageSpinDistanceMultiplier: 1.42
+  mirageWindUpDistanceMultiplier: 1.05
+  mirageReturnDistanceMultiplier: 0.95
+  mirageReturnBlendDuration: 1
   vignetteFadeInDuration: 0.15
   vignetteFadeOutDuration: 0.3
 --- !u!1 &6027347942890513018

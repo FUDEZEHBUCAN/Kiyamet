@@ -28,6 +28,7 @@ namespace _Root.Scripts.Network.Lobby
         private GameObject _clientWaitSection;
         private Image _tankHighlight;
         private Image _supportHighlight;
+        private Image _duelistHighlight;
         private Font _uiFont;
 
         public string SessionName => _sessionField != null ? _sessionField.text : string.Empty;
@@ -83,6 +84,7 @@ namespace _Root.Scripts.Network.Lobby
             var roleRow = AddHorizontalRow(_inLobbySection.transform, 96f);
             _tankHighlight = AddRoleButton(roleRow.transform, "Tank", PlayerRoleType.Tank);
             _supportHighlight = AddRoleButton(roleRow.transform, "Support", PlayerRoleType.Support);
+            _duelistHighlight = AddRoleButton(roleRow.transform, "Duelist", PlayerRoleType.Duelist);
             _lockRoleButton = AddPrimaryButton(_inLobbySection.transform, "Lock Role", () => LockRoleClicked?.Invoke());
 
             _rosterText = AddLabel(_inLobbySection.transform, string.Empty, 26, FontStyle.Normal, 140f);
@@ -132,19 +134,23 @@ namespace _Root.Scripts.Network.Lobby
         {
             SetHighlight(_tankHighlight, role == PlayerRoleType.Tank);
             SetHighlight(_supportHighlight, role == PlayerRoleType.Support);
+            SetHighlight(_duelistHighlight, role == PlayerRoleType.Duelist);
         }
 
         public void ClearRoleSelection()
         {
             SetHighlight(_tankHighlight, false);
             SetHighlight(_supportHighlight, false);
+            SetHighlight(_duelistHighlight, false);
         }
 
         public void SetRolePickable(PlayerRoleType role, bool pickable)
         {
-            var button = role == PlayerRoleType.Tank
-                ? _tankHighlight.GetComponentInParent<Button>()
-                : _supportHighlight.GetComponentInParent<Button>();
+            var highlight = GetRoleHighlight(role);
+            if (highlight == null)
+                return;
+
+            var button = highlight.GetComponentInParent<Button>();
             if (button != null)
                 button.interactable = pickable;
         }
@@ -153,7 +159,16 @@ namespace _Root.Scripts.Network.Lobby
         {
             SetRolePickable(PlayerRoleType.Tank, enabled);
             SetRolePickable(PlayerRoleType.Support, enabled);
+            SetRolePickable(PlayerRoleType.Duelist, enabled);
         }
+
+        private Image GetRoleHighlight(PlayerRoleType role) =>
+            role switch
+            {
+                PlayerRoleType.Support => _supportHighlight,
+                PlayerRoleType.Duelist => _duelistHighlight,
+                _ => _tankHighlight
+            };
 
         public void SetLockRoleButton(bool visible, bool interactable, string label)
         {

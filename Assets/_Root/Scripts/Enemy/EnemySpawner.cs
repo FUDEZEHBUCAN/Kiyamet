@@ -26,6 +26,8 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private int baseEliteCountPerWave = 1;
         [Tooltip("Elite sayısı her kaç wave'de bir artacak")]
         [SerializeField] private int eliteCountIncreaseInterval = 2;
+        [Tooltip("Wave spawn noktasında rastgele yatay dağılım (metre). Aynı noktadan çıkan düşmanların üst üste binmesini azaltır.")]
+        [SerializeField] private float spawnScatterRadius = 2.5f;
         
         // Networked state
         [Networked] private int CurrentWave { get; set; }
@@ -249,9 +251,14 @@ namespace _Root.Scripts.Enemy
             if (EnemiesAlive >= maxEnemies)
                 return;
             
-            // Spawn position'ı NavMesh üzerine çek (terrain için daha geniş arama)
+            if (spawnScatterRadius > 0.01f)
+            {
+                Vector2 scatter = Random.insideUnitCircle * spawnScatterRadius;
+                position += new Vector3(scatter.x, 0f, scatter.y);
+            }
+
             NavMeshHit hit;
-            float maxDistance = 15f; // Terrain için daha geniş arama mesafesi
+            float maxDistance = 15f;
             
             if (NavMesh.SamplePosition(position, out hit, maxDistance, NavMesh.AllAreas))
             {

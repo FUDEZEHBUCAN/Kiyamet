@@ -9,6 +9,7 @@ namespace _Root.Scripts.Enums
         Tank = 0,
         Ranged = 1,
         Support = 2,
-        Magician = 3
+        Magician = 3,
+        Duelist = 4
     }
 }

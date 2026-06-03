@@ -2,6 +2,18 @@ using UnityEngine;
 
 namespace _Root.Scripts.Controllers
 {
+    [System.Serializable]
+    public sealed class MeleeQueueSoundGroup
+    {
+        public AudioClip[] clips;
+
+        [Tooltip("PlayOneShot çarpanı (0 = sessiz, 1 = tam, >1 kuvvetlendirilmiş).")]
+        [Range(0f, 2f)] public float volume = 1f;
+
+        [Tooltip("Her çalışmada pitch = 1 ± bu değer (ör. 0.18 → yaklaşık 0.82–1.18).")]
+        [Range(0f, 0.45f)] public float pitchVariation = 0.18f;
+    }
+
     [RequireComponent(typeof(AudioSource))]
     public class PlayerAudioController : MonoBehaviour
     {
@@ -23,10 +35,21 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private AudioClip[] dashSounds;
         [SerializeField] private AudioClip[] dashHitSounds;
 
+        [Header("Ultimate Sounds")]
+        [SerializeField] private AudioClip[] mirageStepActivateSounds;
+        [SerializeField] private AudioClip[] mirageStepMoveSounds;
+
+        [Header("Global (2D) ses")]
+        [Tooltip("Mesafe bağımsız sesler için. Boş bırakılırsa otomatik oluşturulur.")]
+        [SerializeField] private AudioSource globalAudioSource;
+
         [Header("Melee Queue (HUD)")]
-        [SerializeField] private AudioClip[] meleeQueueWindowOpenSounds;
-        [SerializeField] private AudioClip[] meleeQueueAcceptedSounds;
-        [SerializeField] private AudioClip[] meleeQueueChainStartSounds;
+        [SerializeField] private MeleeQueueSoundGroup meleeQueueWindowOpen = new();
+        [SerializeField] private MeleeQueueSoundGroup meleeQueueAccepted = new();
+        [SerializeField] private MeleeQueueSoundGroup meleeQueueChainStart = new();
+
+        [Tooltip("Queue bildirimleri 2D global kaynak üzerinden çalınır (HUD geri bildirimi). Kapalıysa karakter AudioSource kullanılır.")]
+        [SerializeField] private bool meleeQueueUseGlobalAudio = true;
         
         [Header("Settings")]
         [Tooltip("Her çalışmada pitch = 1 ± bu değer (ör. 0.22 → yaklaşık 0.78–1.22).")]
@@ -38,7 +61,10 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float minDistance = 1.5f;
         [SerializeField] private float maxDistance = 18f;
         
-        private float _lastSoundTime;
+        private float _lastSwingSoundTime;
+        private float _lastHitSoundTime;
+        private float _lastGeneralSoundTime;
+        private float _lastMirageMoveSoundTime;
         private float _lastQueueSoundTime;
         
         private void Awake()
@@ -48,6 +74,7 @@ namespace _Root.Scripts.Controllers
 
             audioSource.playOnAwake = false;
             ApplySpatialSettings();
+            EnsureGlobalAudioSource();
         }
 
         private void OnEnable()
@@ -68,55 +95,68 @@ namespace _Root.Scripts.Controllers
         
         public void PlayMeleeSwing()
         {
-            PlayRandomSound(meleeSwingSounds);
+            PlayRandomSound(meleeSwingSounds, ref _lastSwingSoundTime);
         }
         
         public void PlayMeleeHit()
         {
-            PlayRandomSound(meleeHitSounds);
+            PlayRandomSound(meleeHitSounds, ref _lastHitSoundTime);
         }
         
         public void PlayTakeDamage()
         {
-            PlayRandomSound(takeDamageSounds);
+            PlayRandomSound(takeDamageSounds, ref _lastGeneralSoundTime);
         }
         
         public void PlayDeath()
         {
-            PlayRandomSound(deathSounds);
+            PlayRandomSound(deathSounds, ref _lastGeneralSoundTime);
         }
         
         public void PlayBlock()
         {
-            PlayRandomSound(blockSounds);
+            PlayRandomSound(blockSounds, ref _lastGeneralSoundTime);
         }
         
         public void PlayDash()
         {
-            PlayRandomSound(dashSounds);
+            PlayRandomSound(dashSounds, ref _lastGeneralSoundTime);
         }
         
         public void PlayDashHit()
         {
-            PlayRandomSound(dashHitSounds);
+            PlayRandomSound(dashHitSounds, ref _lastGeneralSoundTime);
         }
 
-        public void PlayMeleeQueueWindowOpen() => PlayQueueSound(meleeQueueWindowOpenSounds);
+        /// <summary>Mirage Step ulti başlangıcı — 2D, haritadaki tüm oyuncular duyar.</summary>
+        public void PlayMirageStepActivateGlobal()
+        {
+            EnsureGlobalAudioSource();
+            PlayRandomSound(mirageStepActivateSounds, ref _lastGeneralSoundTime, globalAudioSource);
+        }
 
-        public void PlayMeleeQueueAccepted() => PlayQueueSound(meleeQueueAcceptedSounds);
+        /// <summary>Mirage Step hedefe sıçrama — 3D karakter kaynağı.</summary>
+        public void PlayMirageStepMove()
+        {
+            PlayRandomSound(mirageStepMoveSounds, ref _lastMirageMoveSoundTime);
+        }
 
-        public void PlayMeleeQueueChainStart() => PlayQueueSound(meleeQueueChainStartSounds);
+        public void PlayMeleeQueueWindowOpen() => PlayQueueSound(meleeQueueWindowOpen);
+
+        public void PlayMeleeQueueAccepted() => PlayQueueSound(meleeQueueAccepted);
+
+        public void PlayMeleeQueueChainStart() => PlayQueueSound(meleeQueueChainStart);
         
-        private void PlayRandomSound(AudioClip[] clips)
+        private void PlayRandomSound(AudioClip[] clips, ref float lastPlayedTime, AudioSource source = null)
         {
             if (clips == null || clips.Length == 0)
                 return;
-            
-            if (audioSource == null)
+
+            source ??= audioSource;
+            if (source == null)
                 return;
             
-            // Çok sık ses çalmayı engelle
-            if (Time.time - _lastSoundTime < minTimeBetweenSounds)
+            if (Time.time - lastPlayedTime < minTimeBetweenSounds)
                 return;
             
             AudioClip clip = clips[Random.Range(0, clips.Length)];
@@ -124,27 +164,42 @@ namespace _Root.Scripts.Controllers
             if (clip == null)
                 return;
             
-            audioSource.pitch = SampleRandomPitch();
-            audioSource.PlayOneShot(clip);
+            source.pitch = SampleRandomPitch(pitchVariation);
+            source.PlayOneShot(clip);
             
-            _lastSoundTime = Time.time;
+            lastPlayedTime = Time.time;
         }
 
-        private void PlayQueueSound(AudioClip[] clips)
+        private void PlayQueueSound(MeleeQueueSoundGroup group)
         {
-            if (clips == null || clips.Length == 0 || audioSource == null)
+            if (group?.clips == null || group.clips.Length == 0 || group.volume <= 0.001f)
+                return;
+
+            AudioSource source = ResolveQueueAudioSource();
+            if (source == null)
                 return;
 
             if (Time.time - _lastQueueSoundTime < minTimeBetweenSounds)
                 return;
 
-            AudioClip clip = clips[Random.Range(0, clips.Length)];
+            AudioClip clip = group.clips[Random.Range(0, group.clips.Length)];
             if (clip == null)
                 return;
 
-            audioSource.pitch = SampleRandomPitch();
-            audioSource.PlayOneShot(clip);
+            source.pitch = SampleRandomPitch(group.pitchVariation);
+            source.PlayOneShot(clip, group.volume);
             _lastQueueSoundTime = Time.time;
+        }
+
+        private AudioSource ResolveQueueAudioSource()
+        {
+            if (meleeQueueUseGlobalAudio)
+            {
+                EnsureGlobalAudioSource();
+                return globalAudioSource;
+            }
+
+            return audioSource;
         }
         
         public void PlaySound(AudioClip clip, float volumeScale = 1f)
@@ -152,16 +207,29 @@ namespace _Root.Scripts.Controllers
             if (clip == null || audioSource == null)
                 return;
             
-            audioSource.pitch = SampleRandomPitch();
+            audioSource.pitch = SampleRandomPitch(pitchVariation);
             audioSource.PlayOneShot(clip, volumeScale);
         }
 
-        private float SampleRandomPitch()
+        private static float SampleRandomPitch(float variation)
         {
-            if (pitchVariation <= 0.001f)
+            if (variation <= 0.001f)
                 return 1f;
 
-            return Mathf.Clamp(1f + Random.Range(-pitchVariation, pitchVariation), 0.5f, 2f);
+            return Mathf.Clamp(1f + Random.Range(-variation, variation), 0.5f, 2f);
+        }
+
+        private void EnsureGlobalAudioSource()
+        {
+            if (globalAudioSource != null)
+            {
+                SpatialAudioUtility.ConfigureAs2D(globalAudioSource);
+                return;
+            }
+
+            globalAudioSource = gameObject.AddComponent<AudioSource>();
+            globalAudioSource.playOnAwake = false;
+            SpatialAudioUtility.ConfigureAs2D(globalAudioSource);
         }
     }
 }

@@ -13,7 +13,8 @@ namespace _Root.Scripts.Roles
             TankCharacterRoleRules.Instance,
             RangedCharacterRoleRules.Instance,
             SupportCharacterRoleRules.Instance,
-            MagicianCharacterRoleRules.Instance
+            MagicianCharacterRoleRules.Instance,
+            DuelistCharacterRoleRules.Instance
         };
 
         public static ICharacterRoleRules Get(PlayerRoleType roleType)

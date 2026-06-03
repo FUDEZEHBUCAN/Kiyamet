@@ -43,6 +43,7 @@ namespace _Root.Scripts.Network
         private MeleeController _meleeController;
         private NetworkCharacterControllerCustom _characterController;
         private SupportUltimateController _supportUltimateController;
+        private DuelistUltimateController _duelistUltimateController;
         private SupportSignatureSkillController _supportSignatureSkill;
         
         // Networked state - tüm client'larda senkronize
@@ -76,7 +77,7 @@ namespace _Root.Scripts.Network
         /// </summary>
         public bool CanAttack =>
             HitStunTimer.ExpiredOrNotRunning(Runner) && !IsDead && !IsSupportUltimateCastLocked
-            && !IsSignatureSkillInputLocked && !IsAttackBlockedByDodge;
+            && !IsMirageStepCastLocked && !IsSignatureSkillInputLocked && !IsAttackBlockedByDodge;
 
         private bool IsAttackBlockedByDodge
         {
@@ -130,9 +131,14 @@ namespace _Root.Scripts.Network
         public bool IsUltimateReady => UltimateKillCount >= Mathf.Max(1, killsRequiredForUltimate);
         public int UltimateKillsRequired => Mathf.Max(1, killsRequiredForUltimate);
         public float UltimateDurationSeconds =>
-            RoleType == PlayerRoleType.Support && _supportUltimateController != null
-                ? _supportUltimateController.UltimateDurationSeconds
-                : ultimateDuration;
+            RoleType switch
+            {
+                PlayerRoleType.Support when _supportUltimateController != null =>
+                    _supportUltimateController.UltimateDurationSeconds,
+                PlayerRoleType.Duelist when _duelistUltimateController != null =>
+                    _duelistUltimateController.EstimatedDurationSeconds,
+                _ => ultimateDuration
+            };
         
         // Mana property
         public float Mana => CurrentMana;
@@ -166,6 +172,9 @@ namespace _Root.Scripts.Network
 
             if (_supportUltimateController == null)
                 _supportUltimateController = GetComponent<SupportUltimateController>();
+
+            if (_duelistUltimateController == null)
+                _duelistUltimateController = GetComponent<DuelistUltimateController>();
             
             // Animator'ın enabled olduğundan emin ol (remote client'larda)
             if (animController != null)
@@ -226,7 +235,10 @@ namespace _Root.Scripts.Network
 
             if (Object.HasStateAuthority && IsUltimateActive && UltimateTimer.Expired(Runner))
             {
-                DeactivateUltimate();
+                if (IsMirageStepCastLocked && _duelistUltimateController != null)
+                    _duelistUltimateController.ForceEndFromTimeout();
+                else
+                    DeactivateUltimate();
             }
         }
 
@@ -328,7 +340,10 @@ namespace _Root.Scripts.Network
             if (HasSupportUltimateInvulnerability())
                 return;
 
-            if (IsUltimateActive && RoleType != PlayerRoleType.Support)
+            if (IsMirageStepCastLocked)
+                return;
+
+            if (IsUltimateActive && RoleType == PlayerRoleType.Tank)
             {
                 return;
             }
@@ -425,7 +440,7 @@ namespace _Root.Scripts.Network
             if (!Object.HasStateAuthority)
                 return;
 
-            if (IsSupportUltimateCastLocked)
+            if (IsSupportUltimateCastLocked || IsMirageStepCastLocked)
                 blocking = false;
             
             IsBlocking = blocking;
@@ -496,15 +511,19 @@ namespace _Root.Scripts.Network
             if (!Object.HasStateAuthority)
                 return;
 
-            int requiredKills = Mathf.Max(1, killsRequiredForUltimate);
-            UltimateKillCount = Mathf.Min(requiredKills, UltimateKillCount + 1);
+            if (!IsMirageStepCastLocked)
+            {
+                int requiredKills = Mathf.Max(1, killsRequiredForUltimate);
+                UltimateKillCount = Mathf.Min(requiredKills, UltimateKillCount + 1);
+            }
+
             GainMana(ManaRegen);
         }
 
         public bool TryActivateUltimate()
         {
             if (!Object.HasStateAuthority || !IsAlive || IsUltimateActive || !IsUltimateReady
-                || IsSupportUltimateCastLocked)
+                || IsSupportUltimateCastLocked || IsMirageStepCastLocked)
                 return false;
 
             if (RoleType == PlayerRoleType.Support)
@@ -515,8 +534,41 @@ namespace _Root.Scripts.Network
                 return _supportUltimateController != null && _supportUltimateController.TryActivateUltimate();
             }
 
+            if (RoleType == PlayerRoleType.Duelist)
+            {
+                if (_duelistUltimateController == null)
+                    _duelistUltimateController = GetComponent<DuelistUltimateController>();
+
+                return _duelistUltimateController != null && _duelistUltimateController.TryActivateUltimate();
+            }
+
             return TryActivateDefaultUltimate();
         }
+
+        public void BeginMirageStepUltimate(float duration)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            IsUltimateActive = true;
+            UltimateKillCount = 0;
+            UltimateTimer = TickTimer.CreateFromSeconds(Runner, duration);
+            UltimateEndTime = Runner.SimulationTime + duration;
+        }
+
+        public void EndMirageStepUltimate()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            DeactivateUltimate();
+        }
+
+        /// <summary>Mirage Step cast boyunca hareket/saldırı kilitleri.</summary>
+        public bool IsMirageStepCastLocked =>
+            RoleType == PlayerRoleType.Duelist
+            && _duelistUltimateController != null
+            && _duelistUltimateController.IsActive;
 
         public void BeginSupportUltimate()
         {
@@ -574,7 +626,7 @@ namespace _Root.Scripts.Network
 
         public float GetDamageMultiplier()
         {
-            if (!IsUltimateActive || RoleType == PlayerRoleType.Support)
+            if (!IsUltimateActive || RoleType != PlayerRoleType.Tank)
                 return 1f;
 
             return ultimateDamageMultiplier;

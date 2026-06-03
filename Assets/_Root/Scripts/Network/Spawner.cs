@@ -22,6 +22,7 @@ namespace _Root.Scripts.Network
         [Tooltip("Playtest lobisi — boşsa playerPrefab kullanılır.")]
         [SerializeField] private NetworkPlayer tankPlayerPrefab;
         [SerializeField] private NetworkPlayer supportPlayerPrefab;
+        [SerializeField] private NetworkPlayer duelistPlayerPrefab;
         [Tooltip("Player spawn point'leri - boş bırakılırsa sahnede 'Player Spawn' / 'SpawnPoint' aranır.")]
         public Transform[] playerSpawnPoints;
 
@@ -38,6 +39,7 @@ namespace _Root.Scripts.Network
         private NetworkRunner _runner;
         private NetworkPlayer _configuredTankPrefab;
         private NetworkPlayer _configuredSupportPrefab;
+        private NetworkPlayer _configuredDuelistPrefab;
 
         private void Awake()
         {
@@ -47,13 +49,16 @@ namespace _Root.Scripts.Network
 
         public NetworkPlayer DefaultTankPrefab => tankPlayerPrefab != null ? tankPlayerPrefab : playerPrefab;
         public NetworkPlayer DefaultSupportPrefab => supportPlayerPrefab;
+        public NetworkPlayer DefaultDuelistPrefab => duelistPlayerPrefab;
 
-        public void ConfigurePlaytestPrefabs(NetworkPlayer tank, NetworkPlayer support)
+        public void ConfigurePlaytestPrefabs(NetworkPlayer tank, NetworkPlayer support, NetworkPlayer duelist)
         {
             if (tank != null)
                 _configuredTankPrefab = tank;
             if (support != null)
                 _configuredSupportPrefab = support;
+            if (duelist != null)
+                _configuredDuelistPrefab = duelist;
         }
 
         public void ResetSpawnAssignments()
@@ -123,6 +128,10 @@ namespace _Root.Scripts.Network
                 case PlayerRoleType.Support:
                     return _configuredSupportPrefab != null ? _configuredSupportPrefab
                         : supportPlayerPrefab != null ? supportPlayerPrefab
+                        : playerPrefab;
+                case PlayerRoleType.Duelist:
+                    return _configuredDuelistPrefab != null ? _configuredDuelistPrefab
+                        : duelistPlayerPrefab != null ? duelistPlayerPrefab
                         : playerPrefab;
                 case PlayerRoleType.Tank:
                 default:

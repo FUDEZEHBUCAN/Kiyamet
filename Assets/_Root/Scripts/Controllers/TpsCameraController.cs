@@ -60,6 +60,24 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float supportUltimateFloatRollAmplitude = 0.28f;
         [SerializeField] private float supportUltimateFloatYawAmplitude = 0.12f;
         [SerializeField] private float supportUltimateFloatBobFrequency = 1.15f;
+
+        [Header("Duelist Mirage Step")]
+        [SerializeField] private float duelistMirageStartShakeStrength = 1.65f;
+        [SerializeField] private float duelistMirageFinaleShakeStrength = 2.35f;
+        [SerializeField] private float mirageObserveLookHeight = 1.35f;
+        [SerializeField] private float mirageCinematicDistance = 5.2f;
+        [SerializeField] private float mirageCinematicHeight = 2.6f;
+        [SerializeField] private float mirageCinematicSideOffset = 1.6f;
+        [SerializeField] private float mirageCinematicPitch = 14f;
+        [SerializeField] private float mirageCinematicPositionSmooth = 0.045f;
+        [SerializeField] private float mirageCinematicRotationSmooth = 0.06f;
+        [SerializeField] private float mirageCinematicOrbitSpeed = 28f;
+        [SerializeField] private float mirageMoveDistanceMultiplier = 1.12f;
+        [SerializeField] private float mirageStrikeDistanceMultiplier = 0.78f;
+        [SerializeField] private float mirageSpinDistanceMultiplier = 1.42f;
+        [SerializeField] private float mirageWindUpDistanceMultiplier = 1.05f;
+        [SerializeField] private float mirageReturnDistanceMultiplier = 0.95f;
+        [SerializeField] private float mirageReturnBlendDuration = 0.45f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -78,10 +96,73 @@ namespace _Root.Scripts.Controllers
         private float _floatShakeDuration;
         private float _smoothedArmLength;
         private float _armLengthVelocity;
+        private bool _mirageStepObserveActive;
+        private Transform _mirageObserveTarget;
+        private DuelistUltimateController _mirageUltimateController;
+        private float _mirageCinematicOrbitYaw;
+        private Vector3 _mirageSmoothedCameraPos;
+        private Vector3 _mirageCameraPosVelocity;
+        private bool _mirageCinematicInitialized;
+        private float _mirageSavedPitch;
+        private float _mirageSavedYaw;
+        private bool _mirageCameraBlendingOut;
+        private float _mirageBlendOutElapsed;
         private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
 
         /// <summary>Kameranın yatay bakış açısı (°). Hareket ve melee yönü için kullanılır.</summary>
         public float HorizontalLookYawDegrees => _yaw;
+
+        public bool IsMirageStepObserveActive => _mirageStepObserveActive || _mirageCameraBlendingOut;
+
+        /// <summary>
+        /// Mirage Step boyunca duelist etrafında yumuşak orbit + faz bazlı zoom ile sinematik kamera.
+        /// </summary>
+        public void BeginMirageStepObserve(Transform observeTarget)
+        {
+            if (observeTarget == null || _mirageStepObserveActive)
+                return;
+
+            _mirageObserveTarget = observeTarget;
+            _mirageUltimateController = observeTarget.GetComponent<DuelistUltimateController>();
+            _mirageSavedPitch = _pitch;
+            _mirageSavedYaw = _yaw;
+            _mirageCinematicOrbitYaw = observeTarget.eulerAngles.y + 42f;
+            _mirageSmoothedCameraPos = transform.position;
+            _mirageCameraPosVelocity = Vector3.zero;
+            _mirageCinematicInitialized = true;
+            _mirageStepObserveActive = true;
+
+            StopCameraShake();
+        }
+
+        public void EndMirageStepObserve()
+        {
+            if (!_mirageStepObserveActive || _mirageCameraBlendingOut)
+                return;
+
+            _mirageCameraBlendingOut = true;
+            _mirageBlendOutElapsed = 0f;
+            _mirageCameraPosVelocity = Vector3.zero;
+            _armLengthVelocity = 0f;
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+        }
+
+        private void CompleteMirageCameraBlendOut()
+        {
+            _pitch = _mirageSavedPitch;
+            _yaw = GetGameplayCameraYaw(target);
+            _mirageStepObserveActive = false;
+            _mirageCameraBlendingOut = false;
+            _mirageBlendOutElapsed = 0f;
+            _mirageCinematicInitialized = false;
+            _mirageObserveTarget = null;
+            _mirageUltimateController = null;
+        }
 
         private void Awake()
         {
@@ -299,6 +380,14 @@ namespace _Root.Scripts.Controllers
 
                 case CameraShakeType.SupportUltimateFloat:
                     break;
+
+                case CameraShakeType.DuelistMirageStepStart:
+                    PlayDuelistMirageShake(duelistMirageStartShakeStrength, 0.12f, 0.16f);
+                    break;
+
+                case CameraShakeType.DuelistMirageStepFinale:
+                    PlayDuelistMirageShake(duelistMirageFinaleShakeStrength, 0.16f, 0.22f);
+                    break;
                     
                 default:
                     break;
@@ -454,6 +543,37 @@ namespace _Root.Scripts.Controllers
             });
         }
 
+        private void PlayDuelistMirageShake(float strength, float surgeDuration, float settleDuration)
+        {
+            if (_cameraTransform == null || _supportUltimateFloatShaking)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+
+            float s = strength;
+            float surgeDur = Mathf.Max(0.05f, surgeDuration);
+            float settleDur = Mathf.Max(0.08f, settleDuration);
+
+            var seq = DOTween.Sequence();
+            seq.Append(_cameraTransform.DOPunchRotation(
+                new Vector3(-s * 0.55f, s * 0.65f, s * 0.35f),
+                surgeDur,
+                16,
+                0.1f));
+            seq.Append(_cameraTransform.DOShakeRotation(
+                settleDur,
+                new Vector3(s * 0.28f, s * 0.34f, s * 0.18f),
+                10,
+                80f,
+                true));
+            seq.OnComplete(() =>
+            {
+                if (_cameraTransform != null)
+                    _cameraTransform.localRotation = Quaternion.identity;
+            });
+        }
+
         /// <summary>
         /// İmza skill top fırlatma: kısa ateşleme darbesi + hafif ripple (pulse).
         /// </summary>
@@ -558,14 +678,33 @@ namespace _Root.Scripts.Controllers
             if (target == null) 
                 return;
 
+            if (_mirageStepObserveActive)
+            {
+                Transform observeTarget = _mirageObserveTarget != null ? _mirageObserveTarget : target;
+                if (_mirageCameraBlendingOut)
+                    ApplyMirageStepBlendOutCamera(observeTarget);
+                else
+                    ApplyMirageStepObserveCamera(observeTarget);
+
+                ApplyGameplayCursorLock();
+                return;
+            }
+
+            ApplyNormalTpsCamera(readMouseInput: true);
+            ApplySupportUltimateFloatShake();
+            ApplyGameplayCursorLock();
+        }
+
+        private void ApplyNormalTpsCamera(bool readMouseInput)
+        {
             bool tankFreeLook = NetworkPlayer.Local != null &&
                                 NetworkPlayer.Local.RoleRules.UsesKeyboardCharacterRotation;
 
-            if (!_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
+            if (readMouseInput && !_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
             {
                 float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseYSensitivity;
                 _pitch -= mouseY;
-                _pitch  = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
+                _pitch = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
             }
 
             if (tankFreeLook)
@@ -576,7 +715,7 @@ namespace _Root.Scripts.Controllers
                     _wasTankFreeLookActive = true;
                 }
 
-                if (!_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
+                if (readMouseInput && !_Root.Scripts.UI.UIElementController.IsAnyPanelOpen)
                 {
                     float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseXSensitivity;
                     _tankCameraWorldYaw += mouseX;
@@ -586,25 +725,212 @@ namespace _Root.Scripts.Controllers
             else
             {
                 _wasTankFreeLookActive = false;
-                _yaw = target.eulerAngles.y;
+                _yaw = GetGameplayCameraYaw(target);
             }
 
-            // Kamera rotasyonu
-            Quaternion rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+            ComputeNormalTpsCameraState(target, _pitch, _yaw, out Vector3 position, out Quaternion rotation);
+            transform.position = position;
             transform.rotation = rotation;
+        }
+
+        private float GetGameplayCameraYaw(Transform followTarget)
+        {
+            if (followTarget == null)
+                return _yaw;
+
+            bool tankFreeLook = NetworkPlayer.Local != null &&
+                                NetworkPlayer.Local.RoleRules.UsesKeyboardCharacterRotation;
+            return tankFreeLook ? _tankCameraWorldYaw : followTarget.eulerAngles.y;
+        }
+
+        private void ComputeNormalTpsCameraState(
+            Transform followTarget,
+            float pitch,
+            float yaw,
+            out Vector3 position,
+            out Quaternion rotation)
+        {
+            rotation = Quaternion.Euler(pitch, yaw, 0f);
 
             Vector3 desiredOffset = new Vector3(0f, height, -distance);
-            Vector3 desiredPos = target.position + rotation * desiredOffset;
-            Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+            Vector3 desiredPos = followTarget.position + rotation * desiredOffset;
+            Vector3 pivot = followTarget.position + Vector3.up * collisionOriginHeight;
             Vector3 toCamera = desiredPos - pivot;
             float desiredLength = toCamera.magnitude;
             Vector3 direction = desiredLength > 0.001f ? toCamera / desiredLength : rotation * Vector3.back;
             float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
             float finalLength = ApplyArmLengthSmoothing(safeLength, desiredLength);
-            transform.position = pivot + direction * finalLength;
+            position = pivot + direction * finalLength;
+        }
 
-            ApplySupportUltimateFloatShake();
-            ApplyGameplayCursorLock();
+        private void ApplyMirageStepBlendOutCamera(Transform observeTarget)
+        {
+            if (observeTarget == null)
+            {
+                CompleteMirageCameraBlendOut();
+                return;
+            }
+
+            _mirageBlendOutElapsed += Time.deltaTime;
+            float t = mirageReturnBlendDuration > 0.001f
+                ? Mathf.Clamp01(_mirageBlendOutElapsed / mirageReturnBlendDuration)
+                : 1f;
+            float eased = EaseOutCubic(t);
+
+            ComputeMirageCinematicCameraState(observeTarget, out Vector3 cinematicPos, out Quaternion cinematicRot);
+            float normalYaw = GetGameplayCameraYaw(target);
+            ComputeNormalTpsCameraState(target, _mirageSavedPitch, normalYaw, out Vector3 normalPos, out Quaternion normalRot);
+
+            transform.position = Vector3.Lerp(cinematicPos, normalPos, eased);
+            transform.rotation = Quaternion.Slerp(cinematicRot, normalRot, eased);
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+
+            if (t >= 1f)
+                CompleteMirageCameraBlendOut();
+        }
+
+        private static float EaseOutCubic(float t)
+        {
+            float inv = 1f - t;
+            return 1f - inv * inv * inv;
+        }
+
+        private void ApplyMirageStepObserveCamera(Transform observeTarget)
+        {
+            if (observeTarget == null)
+                return;
+
+            ComputeMirageCinematicCameraState(observeTarget, out Vector3 position, out Quaternion rotation);
+            transform.position = position;
+            transform.rotation = rotation;
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private void ComputeMirageCinematicCameraState(
+            Transform observeTarget,
+            out Vector3 position,
+            out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+
+            if (observeTarget == null)
+                return;
+
+            var ultimate = _mirageUltimateController != null
+                ? _mirageUltimateController
+                : observeTarget.GetComponent<DuelistUltimateController>();
+
+            GetMirageCinematicFrameParams(
+                ultimate,
+                out float distMul,
+                out float heightMul,
+                out float orbitSpeed,
+                out float sideMul);
+
+            _mirageCinematicOrbitYaw += orbitSpeed * Time.deltaTime;
+
+            if (ultimate != null &&
+                (ultimate.Phase == DuelistUltimateController.MirageStepPhase.Move ||
+                 ultimate.Phase == DuelistUltimateController.MirageStepPhase.Strike))
+            {
+                float targetYaw = observeTarget.eulerAngles.y;
+                _mirageCinematicOrbitYaw = Mathf.LerpAngle(
+                    _mirageCinematicOrbitYaw,
+                    targetYaw + 35f,
+                    Time.deltaTime * 2.5f);
+            }
+
+            float dist = mirageCinematicDistance * distMul;
+            float height = mirageCinematicHeight * heightMul;
+            float side = mirageCinematicSideOffset * sideMul;
+            Vector3 pivot = observeTarget.position + Vector3.up * mirageObserveLookHeight;
+
+            Quaternion orbitRot = Quaternion.Euler(mirageCinematicPitch, _mirageCinematicOrbitYaw, 0f);
+            Vector3 offset = orbitRot * new Vector3(side, height, -dist);
+            Vector3 desiredPos = pivot + offset;
+
+            Vector3 toCamera = desiredPos - pivot;
+            float desiredLength = toCamera.magnitude;
+            Vector3 direction = desiredLength > 0.001f ? toCamera / desiredLength : orbitRot * Vector3.back;
+            float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
+            desiredPos = pivot + direction * safeLength;
+
+            if (!_mirageCinematicInitialized)
+            {
+                _mirageSmoothedCameraPos = desiredPos;
+                _mirageCinematicInitialized = true;
+            }
+            else
+            {
+                _mirageSmoothedCameraPos = Vector3.SmoothDamp(
+                    _mirageSmoothedCameraPos,
+                    desiredPos,
+                    ref _mirageCameraPosVelocity,
+                    mirageCinematicPositionSmooth);
+            }
+
+            Vector3 lookDir = pivot - _mirageSmoothedCameraPos;
+            if (lookDir.sqrMagnitude < 0.0001f)
+                lookDir = observeTarget.forward;
+
+            Quaternion desiredRot = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+            position = _mirageSmoothedCameraPos;
+            rotation = Quaternion.Slerp(
+                transform.rotation,
+                desiredRot,
+                Time.deltaTime / Mathf.Max(0.001f, mirageCinematicRotationSmooth));
+        }
+
+        private void GetMirageCinematicFrameParams(
+            DuelistUltimateController ultimate,
+            out float distMul,
+            out float heightMul,
+            out float orbitSpeed,
+            out float sideMul)
+        {
+            distMul = 1f;
+            heightMul = 1f;
+            sideMul = 1f;
+            orbitSpeed = mirageCinematicOrbitSpeed;
+
+            if (ultimate == null)
+                return;
+
+            if (ultimate.MirageReturnInProgress)
+            {
+                distMul = mirageReturnDistanceMultiplier;
+                orbitSpeed *= 0.55f;
+                return;
+            }
+
+            switch (ultimate.Phase)
+            {
+                case DuelistUltimateController.MirageStepPhase.WindUp:
+                    distMul = mirageWindUpDistanceMultiplier;
+                    orbitSpeed *= 0.45f;
+                    break;
+                case DuelistUltimateController.MirageStepPhase.Move:
+                    distMul = mirageMoveDistanceMultiplier;
+                    orbitSpeed *= 1.35f;
+                    sideMul = 1.15f;
+                    break;
+                case DuelistUltimateController.MirageStepPhase.Strike:
+                    distMul = mirageStrikeDistanceMultiplier;
+                    orbitSpeed *= 0.25f;
+                    heightMul = 0.92f;
+                    break;
+                case DuelistUltimateController.MirageStepPhase.Spin:
+                    distMul = mirageSpinDistanceMultiplier;
+                    heightMul = 1.2f;
+                    orbitSpeed *= 0.75f;
+                    sideMul = 1.25f;
+                    break;
+            }
         }
 
         /// <summary>
