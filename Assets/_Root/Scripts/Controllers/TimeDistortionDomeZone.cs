@@ -220,6 +220,10 @@ namespace _Root.Scripts.Controllers
                     var signature = ally.GetComponent<SupportSignatureSkillController>();
                     if (signature != null)
                         signature.ApplyCooldownHaste(allyCooldownHasteMultiplier, deltaTime);
+
+                    var duelistSignature = ally.GetComponent<DuelistSignatureSkillController>();
+                    if (duelistSignature != null)
+                        duelistSignature.ApplyCooldownHaste(allyCooldownHasteMultiplier, deltaTime);
                 }
             }
         }

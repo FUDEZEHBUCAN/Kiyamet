@@ -690,9 +690,19 @@ namespace _Root.Scripts.Controllers
                 return;
             }
 
-            ApplyNormalTpsCamera(readMouseInput: true);
+            ApplyNormalTpsCamera(readMouseInput: !IsLocalShadowDashInputLocked());
             ApplySupportUltimateFloatShake();
             ApplyGameplayCursorLock();
+        }
+
+        private static bool IsLocalShadowDashInputLocked()
+        {
+            var local = NetworkPlayer.Local;
+            if (local == null || local.RoleType != PlayerRoleType.Duelist)
+                return false;
+
+            var signature = local.GetComponent<DuelistSignatureSkillController>();
+            return signature != null && signature.IsShadowDashing;
         }
 
         private void ApplyNormalTpsCamera(bool readMouseInput)

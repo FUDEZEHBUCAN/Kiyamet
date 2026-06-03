@@ -1,6 +1,7 @@
 using _Root.Scripts.Input;
 using _Root.Scripts.Network;
 using _Root.Scripts.Roles;
+using _Root.Scripts.Enums;
 using Fusion;
 using UnityEngine;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
@@ -20,6 +21,7 @@ namespace _Root.Scripts.Controllers
         private PlayerAnimationController _animController;
         private NetworkPlayer _networkPlayer;
         private SupportSignatureSkillController _supportSignatureSkill;
+        private DuelistSignatureSkillController _duelistSignatureSkill;
         
         [Networked] private float NetworkedYaw { get; set; }
         [Networked] public NetworkBool NetworkedIsRunning { get; set; }
@@ -33,6 +35,7 @@ namespace _Root.Scripts.Controllers
             _animController = GetComponentInChildren<PlayerAnimationController>();
             _networkPlayer = GetComponent<NetworkPlayer>();
             _supportSignatureSkill = GetComponent<SupportSignatureSkillController>();
+            _duelistSignatureSkill = GetComponent<DuelistSignatureSkillController>();
         }
 
         public override void Spawned()
@@ -108,7 +111,12 @@ namespace _Root.Scripts.Controllers
                 bool isMeleeMovementLocked = _meleeController != null && _meleeController.IsMovementLocked;
                 isSupportUltimateCastLocked = _networkPlayer != null && _networkPlayer.IsSupportUltimateCastLocked;
                 bool isMirageStepLocked = _networkPlayer != null && _networkPlayer.IsMirageStepCastLocked;
-                bool isSignatureCastMovementLocked = _supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked;
+                bool isSignatureCastMovementLocked =
+                    (_supportSignatureSkill != null && _supportSignatureSkill.IsMovementLocked)
+                    || (_duelistSignatureSkill != null && _duelistSignatureSkill.IsMovementLocked);
+                bool isSignatureInputLocked =
+                    (_supportSignatureSkill != null && _supportSignatureSkill.IsInputLocked)
+                    || (_duelistSignatureSkill != null && _duelistSignatureSkill.IsInputLocked);
                 bool isDodging = _cc.IsDodging;
                 bool isDodgeRollBlockingMovement = _cc.BlocksMovementFromDodge;
                 bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked
@@ -140,7 +148,7 @@ namespace _Root.Scripts.Controllers
                 if (isMovementLocked)
                     moveDir = Vector3.zero;
 
-                if (!isDodging)
+                if (!isDodging && !isSignatureCastMovementLocked)
                     _meleeController?.TryRotateTowardAttackFacing(ref yaw, Runner.DeltaTime);
 
                 if (!isMovementLocked && keyboardTurnBody && Mathf.Abs(input.MovementInput.y) > 0.001f)
@@ -178,13 +186,24 @@ namespace _Root.Scripts.Controllers
                         yaw = dodgeYaw;
                 }
 
-                NetworkedYaw = yaw;
-                var newRotation = Quaternion.Euler(0f, yaw, 0f);
-                if (!_cc.IsDodging)
-                    transform.rotation = newRotation;
-                _cc.SetNetworkRotation(newRotation);
+                if (!isSignatureCastMovementLocked)
+                {
+                    NetworkedYaw = yaw;
+                    var newRotation = Quaternion.Euler(0f, yaw, 0f);
+                    if (!_cc.IsDodging)
+                        transform.rotation = newRotation;
+                    _cc.SetNetworkRotation(newRotation);
+                }
+                else if (_duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing)
+                {
+                    NetworkedYaw = transform.eulerAngles.y;
+                    _cc.SetNetworkRotation(transform.rotation);
+                }
 
-                _cc.Move(moveDir, input.IsRunning && !isMovementLocked);
+                if (!isSignatureCastMovementLocked)
+                    _cc.Move(moveDir, input.IsRunning && !isMovementLocked);
+                else
+                    _cc.Move(Vector3.zero, false);
 
                 if (!isMovementLocked && input.IsJumpPressed && (roleRules == null || roleRules.CanJump(_networkPlayer)))
                 {
@@ -199,9 +218,15 @@ namespace _Root.Scripts.Controllers
                 if (input.IsDashPressed && canTrySignatureMove)
                 {
                     bool dashAsSignature = roleRules == null || roleRules.UsesDashAsSignature;
-                    if (!dashAsSignature && _supportSignatureSkill != null)
+                    if (!dashAsSignature && _networkPlayer != null && _networkPlayer.RoleType == PlayerRoleType.Support
+                        && _supportSignatureSkill != null)
                     {
                         _supportSignatureSkill.TryCastSignature(input);
+                    }
+                    else if (!dashAsSignature && _networkPlayer != null && _networkPlayer.RoleType == PlayerRoleType.Duelist
+                        && _duelistSignatureSkill != null)
+                    {
+                        _duelistSignatureSkill.TryCastSignature(input);
                     }
                     else if (roleRules == null || roleRules.CanDash(_networkPlayer))
                     {
@@ -209,12 +234,13 @@ namespace _Root.Scripts.Controllers
                     }
                 }
 
-                if (input.IsUltimatePressed && _networkPlayer != null)
+                if (input.IsUltimatePressed && _networkPlayer != null && !isSignatureInputLocked)
                 {
                     _networkPlayer.TryActivateUltimate();
                 }
                 
-                if (input.IsInteractPressed && _interactionController != null && !isSupportUltimateCastLocked)
+                if (input.IsInteractPressed && _interactionController != null
+                    && !isSupportUltimateCastLocked && !isSignatureInputLocked)
                 {
                     if (_interactionController.IsInteracting)
                     {
@@ -242,6 +268,7 @@ namespace _Root.Scripts.Controllers
                 if (_networkPlayer != null)
                 {
                     bool canBlock = !isSupportUltimateCastLocked
+                        && !isSignatureInputLocked
                         && !_networkPlayer.IsPushing
                         && (roleRules == null || roleRules.CanBlock(_networkPlayer));
                     _networkPlayer.SetBlocking(input.IsBlockPressed && canBlock);

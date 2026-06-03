@@ -152,7 +152,7 @@ MonoBehaviour:
   movementLockDuration: 1
   comboChainResetSeconds: 1.5
   attackFacingRotationSpeed: 540
-  queueWindowAfterDamage: 0.2
+  queueWindowAfterDamage: 0.4
   meleePoint: {fileID: 0}
   hitLayers:
     serializedVersion: 2
@@ -428,6 +428,10 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
+  shadowDashSounds: []
+  mirageStepActivateSounds: []
+  mirageStepMoveSounds: []
+  globalAudioSource: {fileID: 0}
   meleeQueueWindowOpen:
     clips: []
     volume: 1

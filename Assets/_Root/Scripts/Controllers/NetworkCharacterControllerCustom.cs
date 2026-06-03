@@ -123,6 +123,7 @@ namespace _Root.Scripts.Controllers {
     private Rigidbody _rigidbody;
     private NetworkPlayer _networkPlayer;
     private PlayerAnimationController _animController;
+    private DuelistSignatureSkillController _duelistSignatureSkill;
     private readonly HashSet<ReflectorInteractable> _reflectorsHitThisDash = new HashSet<ReflectorInteractable>();
     private bool _deathPoseFrozen;
     private Quaternion _frozenDeathRotation;
@@ -132,6 +133,7 @@ namespace _Root.Scripts.Controllers {
       TryGetComponent(out _controller);
       TryGetComponent(out _rigidbody);
       TryGetComponent(out _networkPlayer);
+      _duelistSignatureSkill = GetComponent<DuelistSignatureSkillController>();
       _animController = GetComponentInChildren<PlayerAnimationController>();
       EnsureGroundSnapLayers();
     }
@@ -470,6 +472,13 @@ namespace _Root.Scripts.Controllers {
           return supportSig.GetSignatureCooldownNormalized();
       }
 
+      if (_networkPlayer != null && _networkPlayer.RoleType == PlayerRoleType.Duelist)
+      {
+        var duelistSig = GetComponent<DuelistSignatureSkillController>();
+        if (duelistSig != null)
+          return duelistSig.GetSignatureCooldownNormalized();
+      }
+
       float cooldownDuration = SignatureSkillCooldown;
       if (Object == null || !Object.IsValid || Runner == null || cooldownDuration <= 0.001f)
         return 0f;
@@ -498,6 +507,9 @@ namespace _Root.Scripts.Controllers {
 
       _deathPoseFrozen = false;
       
+      if (_duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing)
+        return;
+
       if (IsDashing || IsDodging) {
         return;
       }
@@ -742,12 +754,15 @@ namespace _Root.Scripts.Controllers {
     }
 
     public override void Render() {
+      bool shadowDashing = _duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing;
+
       _controller.enabled = false;
 
       transform.position = NetworkPosition;
       transform.rotation = NetworkRotation;
       
-      _controller.enabled = true;
+      if (!shadowDashing)
+        _controller.enabled = true;
 
       bool isDodging = IsDodging;
       if (isDodging && !_wasDodgingForAnim)

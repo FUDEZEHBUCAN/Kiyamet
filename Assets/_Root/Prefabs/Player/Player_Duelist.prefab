@@ -192,7 +192,10 @@ GameObject:
   - component: {fileID: 882951704907274375}
   - component: {fileID: 7903323964844648238}
   - component: {fileID: 7123456789012345678}
+  - component: {fileID: 8234567890123456789}
+  - component: {fileID: 8234567890123456790}
   - component: {fileID: 1044461956547538308}
+  - component: {fileID: 1083564620619082423}
   m_Layer: 3
   m_Name: Player_Duelist
   m_TagString: Untagged
@@ -316,13 +319,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   meleeDamage: 25
   meleeRange: 3
-  meleeRadius: 1.25
+  meleeRadius: 1.7
   meleeCooldown: 0.8
-  damageDelay: 0.3
-  movementLockDuration: 1
+  damageDelay: 0.27
+  movementLockDuration: 0.8
   comboChainResetSeconds: 3
   attackFacingRotationSpeed: 540
-  queueWindowAfterDamage: 0.4
+  queueWindowAfterDamage: 0.25
   meleePoint: {fileID: 7922746147276222283}
   hitLayers:
     serializedVersion: 2
@@ -366,6 +369,7 @@ MonoBehaviour:
   - {fileID: 3234827810678291694}
   - {fileID: 7903323964844648238}
   - {fileID: 7123456789012345678}
+  - {fileID: 8234567890123456789}
   ForceRemoteRenderTimeframe: 0
 --- !u!143 &2818965827170238181
 CharacterController:
@@ -594,11 +598,11 @@ MonoBehaviour:
   blockSounds:
   - {fileID: 8300000, guid: ab96ab9a401c3d9478884a66074c279c, type: 3}
   dashSounds:
-  - {fileID: 8300000, guid: 110fe3fedb75eff48b6fd540d5d51b5a, type: 3}
-  - {fileID: 8300000, guid: da60887d634607849b38a679a057dfc4, type: 3}
+  - {fileID: 8300000, guid: 0737a83602add441c9eb93d0f35d1876, type: 3}
   dashHitSounds:
-  - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
-  - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
+  - {fileID: 8300000, guid: 0127061f4d7704a3191890d4a25e5a85, type: 3}
+  - {fileID: 8300000, guid: c8422b77807e441ea88063437109e41b, type: 3}
+  shadowDashSounds: []
   mirageStepActivateSounds:
   - {fileID: 8300000, guid: d23578ce069c34a5cac9ba728c71c971, type: 3}
   - {fileID: 8300000, guid: 0737a83602add441c9eb93d0f35d1876, type: 3}
@@ -691,6 +695,65 @@ MonoBehaviour:
   _MirageOriginYaw: 0
   _MirageReturnInProgress:
     _value: 0
+--- !u!114 &8234567890123456789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5558338714983898878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2e3d4c5b6a7489081726354fedcba98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dashSpeed: 24
+  dashDuration: 0.6
+  dashInputLockDuration: 0.6
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  obstacleCastSkin: 0.05
+  obstacleSubstepDistance: 0.12
+  endDashOnObstacleHit: 1
+  mediumDamageMultiplier: 1.5
+  slashRadius: 1
+  knockbackForce: 4
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  criticalHitChance: 0.25
+  criticalDamageMultiplier: 2
+  criticalKnockbackMultiplier: 1.35
+  criticalHitEffectPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
+  castAnimatorTriggerName: Stabbing
+  _IsShadowDashing:
+    _value: 0
+--- !u!114 &8234567890123456790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5558338714983898878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1b2c3d4e5f6479081726354fedcba99, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  controller: {fileID: 8234567890123456789}
+  bodyRenderers: []
+  flashColor: {r: 0.72, g: 0.35, b: 1, a: 1}
+  flashEmission: 2
+  trailEmissionStrength: 5.5
+  afterimageInterval: 0.035
+  trailLineWidth: 0.3
+  trailPointCount: 14
+  streakLength: 1.35
+  streakWidth: 0.28
+  streakLifetime: 0.2
+  streakEmissionStrength: 4.8
+  streakLateralJitter: 0.12
 --- !u!114 &1044461956547538308
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -713,13 +776,36 @@ MonoBehaviour:
   - {r: 0.42, g: 1, b: 0.72, a: 0.06666667}
   - {r: 1, g: 0.9890597, b: 0.3803922, a: 0.06666667}
   silhouetteAlpha: 0.1
-  emissionStrength: 2.6
+  emissionStrength: 1.5
   outlineWidth: 0.001
   lifetime: 5
   fadeInDuration: 3
   fadeDuration: 2
   poseCaptureDelay: 0.07
   spawnOnSpinFinale: 1
+--- !u!114 &1083564620619082423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5558338714983898878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9dc5f2e7e5da14ab08e179120188ea80, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tipAnchor: {fileID: 7922746147276222283}
+  glowRenderer: {fileID: 0}
+  glowParticles: {fileID: 0}
+  glowSphereScale: 0.21
+  particleSize: 0.035
+  particleShapeRadius: 0.015
+  queueWindowColor: {r: 0.35, g: 0.75, b: 1, a: 1}
+  queuedColor: {r: 1, g: 0.85, b: 0.25, a: 1}
+  queueWindowIntensity: 1.6
+  queuedIntensity: 2.8
+  pulseSpeed: 10
 --- !u!1 &7439315313741578655
 GameObject:
   m_ObjectHideFlags: 0

@@ -45,6 +45,7 @@ namespace _Root.Scripts.Network
         private SupportUltimateController _supportUltimateController;
         private DuelistUltimateController _duelistUltimateController;
         private SupportSignatureSkillController _supportSignatureSkill;
+        private DuelistSignatureSkillController _duelistSignatureSkill;
         
         // Networked state - tüm client'larda senkronize
         [Networked] public float CurrentHealth { get; set; }
@@ -97,13 +98,23 @@ namespace _Root.Scripts.Network
         {
             get
             {
-                if (RoleType != PlayerRoleType.Support)
-                    return false;
+                if (RoleType == PlayerRoleType.Support)
+                {
+                    if (_supportSignatureSkill == null)
+                        _supportSignatureSkill = GetComponent<SupportSignatureSkillController>();
 
-                if (_supportSignatureSkill == null)
-                    _supportSignatureSkill = GetComponent<SupportSignatureSkillController>();
+                    return _supportSignatureSkill != null && _supportSignatureSkill.IsInputLocked;
+                }
 
-                return _supportSignatureSkill != null && _supportSignatureSkill.IsInputLocked;
+                if (RoleType == PlayerRoleType.Duelist)
+                {
+                    if (_duelistSignatureSkill == null)
+                        _duelistSignatureSkill = GetComponent<DuelistSignatureSkillController>();
+
+                    return _duelistSignatureSkill != null && _duelistSignatureSkill.IsInputLocked;
+                }
+
+                return false;
             }
         }
         

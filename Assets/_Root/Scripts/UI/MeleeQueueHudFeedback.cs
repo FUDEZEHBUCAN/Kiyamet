@@ -160,10 +160,8 @@ namespace _Root.Scripts.UI
                 case MeleeController.MeleeHudFeedbackEvent.Queued:
                     if (_melee.LastMeleeSwingWasHit)
                         StartComboCallout();
-                    _audio.PlayMeleeQueueAccepted();
-                    break;
-                case MeleeController.MeleeHudFeedbackEvent.ChainStarted:
-                    _audio.PlayMeleeQueueChainStart();
+                    else
+                        _audio.PlayMeleeQueueAccepted();
                     break;
             }
         }
@@ -171,6 +169,7 @@ namespace _Root.Scripts.UI
         private void StartComboCallout()
         {
             _comboCalloutTimeLeft = comboCalloutDisplayDuration;
+            _audio?.PlayMeleeQueueChainStart();
         }
 
         private void DrawComboCallout()

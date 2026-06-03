@@ -34,6 +34,7 @@ namespace _Root.Scripts.Controllers
         [Header("Dash Sounds")]
         [SerializeField] private AudioClip[] dashSounds;
         [SerializeField] private AudioClip[] dashHitSounds;
+        [SerializeField] private AudioClip[] shadowDashSounds;
 
         [Header("Ultimate Sounds")]
         [SerializeField] private AudioClip[] mirageStepActivateSounds;
@@ -122,7 +123,15 @@ namespace _Root.Scripts.Controllers
         {
             PlayRandomSound(dashSounds, ref _lastGeneralSoundTime);
         }
-        
+
+        public void PlayShadowDash()
+        {
+            if (shadowDashSounds != null && shadowDashSounds.Length > 0)
+                PlayRandomSound(shadowDashSounds, ref _lastGeneralSoundTime);
+            else
+                PlayDash();
+        }
+
         public void PlayDashHit()
         {
             PlayRandomSound(dashHitSounds, ref _lastGeneralSoundTime);

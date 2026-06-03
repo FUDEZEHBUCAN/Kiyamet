@@ -47,8 +47,8 @@ namespace _Root.Scripts.UI
             {
                 list.Add(new("Block", "RMB",
                     "Hold to block and absorb the incoming damage."));
-                list.Add(new("Dash", "E",
-                    "Quick forward dash and apply knock back to enemies to reposition or escape."));
+                list.Add(new("Shadow Dash", "E",
+                    "Quick dash that slices enemies in your path for medium damage; 25% critical hit chance."));
                 list.Add(new("Ultimate — Mirage Step", "X",
                     "Blink between enemies within 6 m, striking up to 6 targets, then spin-hit all nearby foes."));
                 list.Add(new("Interact", "F",
