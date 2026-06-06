@@ -181,6 +181,7 @@ namespace _Root.Scripts.Enemy
                 
                 // Tüm trigger'ları resetle
                 animator.ResetTrigger(ParamAttack);
+                animator.ResetTrigger(ParamLeap);
                 animator.ResetTrigger(ParamHit);
                 animator.ResetTrigger(ParamDie);
             }

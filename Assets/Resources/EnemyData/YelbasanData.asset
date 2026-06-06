@@ -25,10 +25,22 @@ MonoBehaviour:
   attackCooldownMaxScale: 1.38
   attackCooldownJitter: 0.15
   canLeapAttack: 1
-  leapWindupDuration: 1
-  leapDuration: 0.45
+  leapWindupDuration: 0.5
+  leapDuration: 0.7
   leapArcHeight: 2.2
   leapMinRange: 2.5
   leapMaxRange: 10
-  leapLandingRadius: 0
-  leapDamage: 0
+  leapLandingRadius: 3
+  leapDamage: 10
+  movementSpeedVariance: 0.27
+  chaseRingRadiusMinScale: 0.72
+  chaseRingRadiusMaxScale: 1.48
+  separationRadius: 2.3
+  separationStrength: 1.4
+  pathUpdateIntervalMin: 0.38
+  pathUpdateIntervalMax: 0.82
+  aggroReactionDelayMax: 0.55
+  leapAttemptChanceMin: 0.32
+  leapAttemptChanceMax: 1
+  attackRangeChaseToleranceMin: 1.08
+  attackRangeChaseToleranceMax: 1.34

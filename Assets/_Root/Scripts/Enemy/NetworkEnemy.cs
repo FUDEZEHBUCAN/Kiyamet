@@ -14,6 +14,7 @@ namespace _Root.Scripts.Enemy
         Attack,
         LeapWindup,
         LeapJump,
+        LeapRecover,
         Dead
     }
     
@@ -95,6 +96,10 @@ namespace _Root.Scripts.Enemy
         private EnemyState _lastState; // State değişikliğini takip et
         private const float TARGET_UPDATE_INTERVAL = 0.1f;
         private const float CHASE_RETRY_COOLDOWN = 1f; // Path bulunamazsa 1 saniye bekle
+        private const float LeapLandingNavMeshDriftMax = 2.5f;
+        private const float LeapMaxVerticalDelta = 3.5f;
+        private const float DropLeapMinVerticalDrop = 1.25f;
+        private const float LeapRecoverDuration = 0.5f;
         
         // Properties
         public bool IsAlive => CurrentHealth > 0f;
@@ -242,6 +247,7 @@ namespace _Root.Scripts.Enemy
                 agent.autoBraking = false;
                 agent.updateRotation = true; // Agent rotation'ı güncellesin
                 agent.updatePosition = true; // Agent position'ı güncellesin
+                agent.autoTraverseOffMeshLink = true;
                 
                 // Agent'ı enable et (transform.position artık NavMesh üzerinde olmalı)
                 agent.enabled = true;
@@ -333,15 +339,11 @@ namespace _Root.Scripts.Enemy
                 return;
             }
             
-            // Agent'ın transform.position'ı güncellendiğinden emin ol (agent.updatePosition = true olsa bile kontrol)
-            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            // Agent pozisyon senkronu (Network). Off-mesh link sırasında agent kendi hareketini yönetir.
+            if (agent != null && agent.enabled && agent.isOnNavMesh && !agent.isOnOffMeshLink)
             {
-                // Agent hareket ediyorsa, transform.position'ı agent.nextPosition ile senkronize et
-                // Bu, network senkronizasyonu için gerekli
-                if (agent.hasPath && agent.velocity.magnitude > 0.1f)
-                {
+                if (agent.hasPath && agent.velocity.sqrMagnitude > 0.01f)
                     transform.position = agent.nextPosition;
-                }
             }
             
             // Knockback — ölü düşmanlarda da (son vuruş savrulması) AI'dan önce işlenir
@@ -483,6 +485,9 @@ namespace _Root.Scripts.Enemy
 
             if (!IsAlive)
             {
+                if (CurrentState == EnemyState.LeapJump)
+                    SnapToNearestNavMeshGround();
+
                 CurrentState = EnemyState.Dead;
                 return;
             }
@@ -527,6 +532,9 @@ namespace _Root.Scripts.Enemy
                 case EnemyState.LeapJump:
                     UpdateLeapJump();
                     break;
+                case EnemyState.LeapRecover:
+                    UpdateLeapRecover();
+                    break;
             }
         }
         
@@ -540,7 +548,7 @@ namespace _Root.Scripts.Enemy
                 {
                     if (animController != null)
                     {
-                        if (CurrentState == EnemyState.LeapJump || CurrentState == EnemyState.LeapWindup)
+                        if (IsInLeapPhaseState())
                             animController.TriggerLeap();
                         else
                             animController.TriggerAttack();
@@ -586,7 +594,7 @@ namespace _Root.Scripts.Enemy
                 _lastState = CurrentState;
             }
             
-            if (CurrentState == EnemyState.LeapWindup || CurrentState == EnemyState.LeapJump)
+            if (IsInLeapPhaseState())
             {
                 if (animController != null)
                 {
@@ -710,9 +718,8 @@ namespace _Root.Scripts.Enemy
             else
             {
                 Vector3 playerPos = _currentTarget.transform.position;
-                Vector3 desiredChasePos = ComputeChaseDestination(playerPos);
-                Vector3 validDestination = SampleNavMeshDestination(desiredChasePos, playerPos);
-                
+                Vector3 validDestination = ResolveChaseDestination(playerPos);
+
                 bool shouldRefreshPath = Runner.SimulationTime >= _nextPathUpdateTime
                     || !agent.hasPath
                     || Vector3.Distance(agent.destination, validDestination) > 0.85f;
@@ -720,9 +727,7 @@ namespace _Root.Scripts.Enemy
                 if (shouldRefreshPath)
                 {
                     _nextPathUpdateTime = Runner.SimulationTime + _pathUpdateInterval;
-
-                    if (!agent.SetDestination(validDestination))
-                        agent.SetDestination(playerPos);
+                    agent.SetDestination(validDestination);
                 }
 
                 TargetPosition = validDestination;
@@ -734,10 +739,22 @@ namespace _Root.Scripts.Enemy
                     return;
                 }
                 
-                if (agent.pathStatus == UnityEngine.AI.NavMeshPathStatus.PathInvalid)
+                if (agent.pathStatus == NavMeshPathStatus.PathInvalid)
                 {
-                    // Path bulunamadı
-                    Debug.LogWarning($"[NetworkEnemy] Path invalid to chase destination near {playerPos}. Current position: {transform.position}");
+                    if (TrySampleNavMeshNearWorldTarget(playerPos, out Vector3 playerNavPos)
+                        && agent.SetDestination(playerNavPos))
+                    {
+                        TargetPosition = playerNavPos;
+                        return;
+                    }
+
+                    if (TryBeginDropLeapToUnreachableTarget(playerPos))
+                        return;
+
+                    Debug.LogWarning(
+                        $"[NetworkEnemy] Path invalid to chase destination near {playerPos}. " +
+                        $"Enemy: {transform.position}. NavMesh Link veya geçilebilir yol gerekli.",
+                        this);
                     CurrentState = EnemyState.Idle;
                     _lastChaseAttemptTime = Runner.SimulationTime;
                     return;
@@ -798,24 +815,21 @@ namespace _Root.Scripts.Enemy
 
         private void UpdateLeapWindup()
         {
-            if (_currentTarget == null || !_currentTarget.IsAlive)
+            Vector3 faceTarget = LeapLockedPosition;
+
+            if (_currentTarget != null && _currentTarget.IsAlive)
             {
-                CancelLeapAttack();
-                FindAndChaseTarget();
-                return;
+                Vector3 leapAim = ResolveLeapLandingTargetPosition();
+                faceTarget = leapAim;
+
+                if (TryResolveLeapLandingPosition(leapAim, out Vector3 landing)
+                    || TryResolveDropLeapLandingPosition(leapAim, out landing))
+                {
+                    LeapLockedPosition = landing;
+                }
             }
 
-            float distanceToTarget = Vector3.Distance(transform.position, _currentTarget.transform.position);
-            float disengageRange = detectionRange * disengageRangeMultiplier;
-            if (distanceToTarget > disengageRange || !IsWithinLeapRange(distanceToTarget))
-            {
-                CancelLeapAttack();
-                CurrentState = EnemyState.Chase;
-                EnableAgentForNavigation();
-                return;
-            }
-
-            FacePosition(_currentTarget.transform.position, 1f);
+            FacePosition(faceTarget, 1f);
 
             if (!LeapPhaseTimer.ExpiredOrNotRunning(Runner))
                 return;
@@ -841,6 +855,37 @@ namespace _Root.Scripts.Enemy
             moveDir.y = 0f;
             if (moveDir.sqrMagnitude > 0.01f)
                 transform.rotation = Quaternion.LookRotation(moveDir.normalized);
+        }
+
+        private void UpdateLeapRecover()
+        {
+            if (agent != null && agent.enabled)
+            {
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                agent.ResetPath();
+            }
+
+            if (_currentTarget != null && _currentTarget.IsAlive)
+                FacePosition(_currentTarget.transform.position, 1f);
+
+            if (!LeapPhaseTimer.ExpiredOrNotRunning(Runner))
+                return;
+
+            LeapPhaseTimer = TickTimer.None;
+
+            if (agent != null && agent.enabled)
+                agent.isStopped = false;
+
+            if (_currentTarget != null && _currentTarget.IsAlive)
+            {
+                float distance = Vector3.Distance(transform.position, _currentTarget.transform.position);
+                CurrentState = distance <= enemyData.AttackRange ? EnemyState.Attack : EnemyState.Chase;
+            }
+            else
+            {
+                CurrentState = EnemyState.Idle;
+            }
         }
         
         #endregion
@@ -977,7 +1022,10 @@ namespace _Root.Scripts.Enemy
 
         private bool TryBeginLeapAttack(float distanceToTarget)
         {
-            if (!IsWithinLeapRange(distanceToTarget) || _currentTarget == null || !_currentTarget.IsAlive)
+            _ = distanceToTarget;
+
+            float horizontalDistance = GetHorizontalDistanceToTarget();
+            if (!IsWithinLeapRange(horizontalDistance) || _currentTarget == null || !_currentTarget.IsAlive)
                 return false;
 
             if (Random.value > _leapAttemptChance)
@@ -986,9 +1034,17 @@ namespace _Root.Scripts.Enemy
             if (Runner.SimulationTime < _nextAttackAllowedTime)
                 return false;
 
-            if (CurrentState == EnemyState.LeapWindup || CurrentState == EnemyState.LeapJump)
+            if (IsInLeapPhaseState())
                 return true;
 
+            Vector3 leapAim = ResolveLeapLandingTargetPosition();
+            if (!TryResolveLeapLandingPosition(leapAim, out Vector3 landing)
+                && !TryResolveDropLeapLandingPosition(leapAim, out landing))
+            {
+                return false;
+            }
+
+            LeapLockedPosition = landing;
             StartLeapWindup();
             return true;
         }
@@ -1007,18 +1063,27 @@ namespace _Root.Scripts.Enemy
 
             CurrentState = EnemyState.LeapWindup;
             LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, enemyData.LeapWindupDuration));
+            LastAttackAnimTick = Runner.Tick;
+
+            if (animController != null)
+                animController.TriggerLeap();
         }
 
         private void BeginLeapJump()
         {
-            if (_currentTarget == null || !_currentTarget.IsAlive)
+            if (_currentTarget != null && _currentTarget.IsAlive)
             {
-                CancelLeapAttack();
-                return;
+                Vector3 leapAim = ResolveLeapLandingTargetPosition();
+                if (TryResolveLeapLandingPosition(leapAim, out Vector3 landing)
+                    || TryResolveDropLeapLandingPosition(leapAim, out landing))
+                {
+                    LeapLockedPosition = landing;
+                }
             }
 
-            Vector3 leapAim = ComputeChaseDestination(_currentTarget.transform.position);
-            LeapLockedPosition = ResolveLeapLandingPosition(leapAim);
+            if (LeapLockedPosition == Vector3.zero)
+                LeapLockedPosition = transform.position + transform.forward * Mathf.Max(1f, enemyData.LeapMinRange);
+
             LeapStartPosition = transform.position;
             LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, enemyData.LeapDuration));
             CurrentState = EnemyState.LeapJump;
@@ -1030,10 +1095,6 @@ namespace _Root.Scripts.Enemy
             }
 
             _nextAttackAllowedTime = Runner.SimulationTime + RollAttackCooldownDuration();
-            LastAttackAnimTick = Runner.Tick;
-
-            if (animController != null)
-                animController.TriggerLeap();
 
             if (audioController != null)
                 audioController.PlayAttackSwing();
@@ -1042,7 +1103,6 @@ namespace _Root.Scripts.Enemy
         private void CompleteLeapJump()
         {
             transform.position = LeapLockedPosition;
-            LeapPhaseTimer = TickTimer.None;
 
             DealLeapDamage(LeapLockedPosition);
             EnableAgentForNavigation();
@@ -1050,21 +1110,65 @@ namespace _Root.Scripts.Enemy
             if (agent != null && agent.isOnNavMesh)
                 agent.Warp(LeapLockedPosition);
 
-            if (_currentTarget != null && _currentTarget.IsAlive)
+            if (agent != null && agent.enabled)
             {
-                float distance = Vector3.Distance(transform.position, _currentTarget.transform.position);
-                CurrentState = distance <= enemyData.AttackRange ? EnemyState.Attack : EnemyState.Chase;
+                agent.isStopped = true;
+                agent.velocity = Vector3.zero;
+                agent.ResetPath();
             }
-            else
+
+            LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, LeapRecoverDuration);
+            CurrentState = EnemyState.LeapRecover;
+        }
+
+        private bool IsInLeapPhaseState()
+        {
+            return CurrentState == EnemyState.LeapWindup
+                || CurrentState == EnemyState.LeapJump
+                || CurrentState == EnemyState.LeapRecover;
+        }
+
+        private void SnapToNearestNavMeshGround()
+        {
+            Vector3 origin = transform.position;
+            NavMeshHit bestHit = default;
+            bool found = false;
+            float bestGroundY = float.MinValue;
+
+            const float maxDropSearch = 40f;
+            for (float drop = 0f; drop <= maxDropSearch; drop += 0.75f)
             {
-                CurrentState = EnemyState.Idle;
+                Vector3 probe = origin + Vector3.down * drop;
+                if (!NavMesh.SamplePosition(probe, out NavMeshHit hit, 2.5f, NavMesh.AllAreas))
+                    continue;
+
+                if (hit.position.y > origin.y + 0.35f)
+                    continue;
+
+                if (!found || hit.position.y > bestGroundY)
+                {
+                    bestGroundY = hit.position.y;
+                    bestHit = hit;
+                    found = true;
+                }
             }
+
+            if (!found)
+                return;
+
+            transform.position = bestHit.position;
+
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+                agent.Warp(bestHit.position);
         }
 
         private void CancelLeapAttack()
         {
-            if (CurrentState != EnemyState.LeapWindup && CurrentState != EnemyState.LeapJump)
+            if (!IsInLeapPhaseState())
                 return;
+
+            if (CurrentState == EnemyState.LeapJump)
+                SnapToNearestNavMeshGround();
 
             LeapPhaseTimer = TickTimer.None;
             EnableAgentForNavigation();
@@ -1090,9 +1194,82 @@ namespace _Root.Scripts.Enemy
             RefreshAgentSpeed();
         }
 
-        private Vector3 ResolveLeapLandingPosition(Vector3 desiredWorldPosition)
+        private float GetHorizontalDistanceToTarget()
         {
-            return SampleNavMeshDestination(desiredWorldPosition, desiredWorldPosition);
+            if (_currentTarget == null || !_currentTarget.IsAlive)
+                return float.MaxValue;
+
+            Vector3 delta = _currentTarget.transform.position - transform.position;
+            delta.y = 0f;
+            return delta.magnitude;
+        }
+
+        private Vector3 ResolveLeapLandingTargetPosition()
+        {
+            if (_currentTarget != null && _currentTarget.IsAlive)
+                return _currentTarget.transform.position;
+
+            return transform.position + transform.forward * Mathf.Max(1f, enemyData.LeapMinRange);
+        }
+
+        private bool TryResolveLeapLandingPosition(Vector3 desiredWorldPosition, out Vector3 landingPosition)
+        {
+            landingPosition = desiredWorldPosition;
+
+            if (!TrySampleNavMeshNearWorldTarget(desiredWorldPosition, out landingPosition))
+                return false;
+
+            Vector3 horizontalDrift = landingPosition - desiredWorldPosition;
+            horizontalDrift.y = 0f;
+            if (horizontalDrift.sqrMagnitude > LeapLandingNavMeshDriftMax * LeapLandingNavMeshDriftMax)
+                return false;
+
+            Vector3 fromEnemy = landingPosition - transform.position;
+            fromEnemy.y = 0f;
+            float maxHorizontalLeap = enemyData.LeapMaxRange * 1.05f;
+            if (fromEnemy.sqrMagnitude > maxHorizontalLeap * maxHorizontalLeap)
+                return false;
+
+            if (Mathf.Abs(landingPosition.y - transform.position.y) > LeapMaxVerticalDelta)
+                return false;
+
+            if (_currentTarget != null && _currentTarget.IsAlive)
+            {
+                Vector3 toPlayer = _currentTarget.transform.position - landingPosition;
+                toPlayer.y = 0f;
+                if (toPlayer.sqrMagnitude > (enemyData.LeapMaxRange + enemyData.AttackRange) * (enemyData.LeapMaxRange + enemyData.AttackRange))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool TryResolveDropLeapLandingPosition(Vector3 playerWorldPosition, out Vector3 landingPosition)
+        {
+            landingPosition = playerWorldPosition;
+
+            if (!TrySampleNavMeshNearWorldTarget(playerWorldPosition, out landingPosition))
+                return false;
+
+            float verticalDrop = transform.position.y - landingPosition.y;
+            if (verticalDrop < DropLeapMinVerticalDrop)
+                return false;
+
+            if (HasCompleteNavMeshPath(landingPosition))
+                return false;
+
+            Vector3 fromEnemy = landingPosition - transform.position;
+            fromEnemy.y = 0f;
+            float maxHorizontalLeap = enemyData.LeapMaxRange * 1.05f;
+            if (fromEnemy.sqrMagnitude > maxHorizontalLeap * maxHorizontalLeap)
+                return false;
+
+            Vector3 horizontalDrift = landingPosition - playerWorldPosition;
+            horizontalDrift.y = 0f;
+            if (horizontalDrift.sqrMagnitude > LeapLandingNavMeshDriftMax * LeapLandingNavMeshDriftMax)
+                return false;
+
+            return true;
         }
 
         /// <summary>
@@ -1148,6 +1325,83 @@ namespace _Root.Scripts.Enemy
                 return Vector3.zero;
 
             return push.normalized * enemyData.SeparationStrength;
+        }
+
+        private Vector3 ResolveChaseDestination(Vector3 playerWorldPosition)
+        {
+            Vector3 ringDestination = SampleNavMeshDestination(
+                ComputeChaseDestination(playerWorldPosition),
+                playerWorldPosition);
+
+            if (TrySampleNavMeshNearWorldTarget(playerWorldPosition, out Vector3 playerNavPos)
+                && HasCompleteNavMeshPath(playerNavPos))
+            {
+                return playerNavPos;
+            }
+
+            if (HasCompleteNavMeshPath(ringDestination))
+                return ringDestination;
+
+            if (TrySampleNavMeshNearWorldTarget(playerWorldPosition, out playerNavPos))
+                return playerNavPos;
+
+            return ringDestination;
+        }
+
+        private bool HasCompleteNavMeshPath(Vector3 destination)
+        {
+            NavMeshPath path = new NavMeshPath();
+            if (!NavMesh.CalculatePath(transform.position, destination, NavMesh.AllAreas, path))
+                return false;
+
+            return path.status == NavMeshPathStatus.PathComplete;
+        }
+
+        private bool TrySampleNavMeshNearWorldTarget(Vector3 worldTarget, out Vector3 navMeshPosition)
+        {
+            navMeshPosition = worldTarget;
+
+            const float horizontalTolerance = 4f;
+            for (float yProbe = 0f; yProbe <= 16f; yProbe += 1f)
+            {
+                Vector3 probe = worldTarget + Vector3.up * (1.5f + yProbe);
+                if (!NavMesh.SamplePosition(probe, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+                    continue;
+
+                if (Mathf.Abs(hit.position.x - worldTarget.x) > horizontalTolerance
+                    || Mathf.Abs(hit.position.z - worldTarget.z) > horizontalTolerance)
+                    continue;
+
+                navMeshPosition = hit.position;
+                return true;
+            }
+
+            if (NavMesh.SamplePosition(worldTarget, out NavMeshHit fallbackHit, 10f, NavMesh.AllAreas))
+            {
+                navMeshPosition = fallbackHit.position;
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool TryBeginDropLeapToUnreachableTarget(Vector3 playerWorldPosition)
+        {
+            if (enemyData == null || !enemyData.CanLeapAttack)
+                return false;
+
+            if (IsInLeapPhaseState())
+                return true;
+
+            if (Runner.SimulationTime < _nextAttackAllowedTime)
+                return false;
+
+            if (!TryResolveDropLeapLandingPosition(playerWorldPosition, out Vector3 landingPos))
+                return false;
+
+            LeapLockedPosition = landingPos;
+            StartLeapWindup();
+            return true;
         }
 
         private Vector3 SampleNavMeshDestination(Vector3 desiredPosition, Vector3 fallbackPosition)
@@ -1462,7 +1716,7 @@ namespace _Root.Scripts.Enemy
                 Gizmos.DrawWireSphere(transform.position, enemyData.LeapMaxRange);
             }
 
-            if (CurrentState == EnemyState.LeapJump || CurrentState == EnemyState.LeapWindup)
+            if (IsInLeapPhaseState())
             {
                 Gizmos.color = Color.magenta;
                 Gizmos.DrawWireSphere(LeapLockedPosition, enemyData.LeapLandingRadius);
