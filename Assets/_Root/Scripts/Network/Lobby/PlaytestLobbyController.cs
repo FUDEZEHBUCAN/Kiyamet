@@ -7,6 +7,7 @@ using _Root.Scripts.UI;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace _Root.Scripts.Network.Lobby
 {
@@ -20,7 +21,10 @@ namespace _Root.Scripts.Network.Lobby
         [Header("References")]
         [SerializeField] private NetworkRunnerHandler networkRunnerHandler;
         [SerializeField] private Spawner spawner;
+
+        [Header("UI")]
         [SerializeField] private PlaytestLobbyView lobbyView;
+        [SerializeField] private GameObject lobbyUiPrefab;
 
         [Header("Player prefabs")]
         [SerializeField] private NetworkPlayer tankPlayerPrefab;
@@ -54,6 +58,27 @@ namespace _Root.Scripts.Network.Lobby
         public bool TryGetSpawnPrefab(PlayerRef player, out NetworkPlayer prefab) =>
             _lockedPrefabs.TryGetValue(player, out prefab);
 
+        private PlaytestLobbyView ResolveLobbyView()
+        {
+            if (lobbyView != null)
+                return lobbyView;
+
+            var childView = GetComponentInChildren<PlaytestLobbyView>(true);
+            if (childView != null)
+                return childView;
+
+            var prefab = lobbyUiPrefab != null
+                ? lobbyUiPrefab
+                : Resources.Load<GameObject>("PlaytestLobbyUI");
+
+            if (prefab == null)
+                return null;
+
+            var uiInstance = Instantiate(prefab);
+            uiInstance.name = "PlaytestLobbyUI";
+            return uiInstance.GetComponent<PlaytestLobbyView>();
+        }
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -72,12 +97,15 @@ namespace _Root.Scripts.Network.Lobby
 
             EnsurePlayerPrefabReferences();
 
-            _view = lobbyView != null ? lobbyView : GetComponentInChildren<PlaytestLobbyView>(true);
+            _view = ResolveLobbyView();
             if (_view == null)
             {
-                Debug.LogError("[PlaytestLobby] PlaytestLobbyView not found. Assign PlaytestLobbyUI prefab as a child or set lobbyView on PlaytestLobbyController.");
+                Debug.LogError("[PlaytestLobby] PlaytestLobbyView not found. Assign lobbyView or lobbyUiPrefab on PlaytestLobbyController, or use PlaytestLobbySystem prefab.");
                 return;
             }
+
+            EnsureLobbyEventSystem();
+            UnlockLobbyCursor();
 
             _view.Initialize();
             _view.SetSessionName(_sessionName);
@@ -87,6 +115,7 @@ namespace _Root.Scripts.Network.Lobby
             _view.LockRoleClicked += OnViewLockRoleClicked;
             _view.LeaveLobbyClicked += OnViewLeaveLobbyClicked;
             _view.RoleSelected += OnViewRoleSelected;
+            _view.BindUiEvents();
             RefreshLobbyUi();
         }
 
@@ -111,11 +140,30 @@ namespace _Root.Scripts.Network.Lobby
             if (!IsLobbyUiVisible())
                 return;
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            EnsureLobbyEventSystem();
+            UnlockLobbyCursor();
         }
 
         private bool IsLobbyUiVisible() => !_gameStarted;
+
+        private static void EnsureLobbyEventSystem()
+        {
+            if (EventSystem.current != null)
+                return;
+
+            var eventSystemGo = new GameObject("EventSystem");
+            DontDestroyOnLoad(eventSystemGo);
+            eventSystemGo.AddComponent<EventSystem>();
+
+            var inputModule = eventSystemGo.AddComponent<StandaloneInputModule>();
+            inputModule.forceModuleActive = true;
+        }
+
+        private static void UnlockLobbyCursor()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
 
         private void OnViewConnectClicked() => _ = ConnectAsync();
 
@@ -227,17 +275,18 @@ namespace _Root.Scripts.Network.Lobby
             if (!lobbyVisible)
                 return;
 
-            _view.SetStatus(_statusMessage);
             _view.SetRoster(BuildLobbyRosterText());
 
             if (!_isConnected)
             {
                 _view.SetPreConnectPhase(_isConnecting);
+                _view.SetStatus(_statusMessage);
                 return;
             }
 
             var isHost = _runner != null && _runner.IsServer;
-            _view.SetInLobbyPhase(isHost);
+            _view.SetInLobbyPhase(isHost, _sessionName);
+            _view.SetLobbyStatus(_statusMessage);
 
             if (_hasPickedRole || _localRoleLocked)
                 _view.SetSelectedRole(_localPendingRole);

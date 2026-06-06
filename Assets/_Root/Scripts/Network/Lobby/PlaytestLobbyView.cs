@@ -2,12 +2,15 @@ using System;
 using _Root.Scripts.Enums;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace _Root.Scripts.Network.Lobby
 {
     public class PlaytestLobbyView : MonoBehaviour
     {
+        private const string PreConnectTitle = "Kiyamet — Playtest Lobby";
+
         public event Action ConnectClicked;
         public event Action QuitGameClicked;
         public event Action StartGameClicked;
@@ -25,12 +28,14 @@ namespace _Root.Scripts.Network.Lobby
         [SerializeField] private Button quitGameButton;
 
         [Header("In Lobby")]
+        [SerializeField] private TMP_Text titleLabel;
         [SerializeField] private GameObject inLobbySection;
         [SerializeField] private PlaytestLobbyRoleButton tankRoleButton;
         [SerializeField] private PlaytestLobbyRoleButton supportRoleButton;
         [SerializeField] private PlaytestLobbyRoleButton duelistRoleButton;
         [SerializeField] private Button lockRoleButton;
         [SerializeField] private TMP_Text rosterText;
+        [SerializeField] private TMP_Text lobbyStatusText;
         [SerializeField] private Button leaveLobbyButton;
 
         [Header("Host / Client")]
@@ -47,9 +52,15 @@ namespace _Root.Scripts.Network.Lobby
                 return;
 
             _initialized = true;
+            BindUiEvents();
+        }
 
+        public void BindUiEvents()
+        {
             if (root == null)
                 root = gameObject;
+
+            EnsureLobbyEventSystem();
 
             WireButton(connectButton, () => ConnectClicked?.Invoke());
             WireButton(quitGameButton, () => QuitGameClicked?.Invoke());
@@ -83,12 +94,20 @@ namespace _Root.Scripts.Network.Lobby
 
         private void WireRoleButton(PlaytestLobbyRoleButton roleButton)
         {
-            if (roleButton == null || roleButton.Button == null)
+            if (roleButton == null)
+                return;
+
+            var button = roleButton.Button;
+            if (button == null)
                 return;
 
             var capturedRole = roleButton.Role;
-            roleButton.Button.onClick.RemoveAllListeners();
-            roleButton.Button.onClick.AddListener(() => RoleSelected?.Invoke(capturedRole));
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() =>
+            {
+                SetSelectedRole(capturedRole);
+                RoleSelected?.Invoke(capturedRole);
+            });
         }
 
         public void SetVisible(bool visible)
@@ -109,6 +128,12 @@ namespace _Root.Scripts.Network.Lobby
                 statusText.text = message;
         }
 
+        public void SetLobbyStatus(string message)
+        {
+            if (lobbyStatusText != null)
+                lobbyStatusText.text = message;
+        }
+
         public void SetRoster(string roster)
         {
             if (rosterText != null)
@@ -117,16 +142,16 @@ namespace _Root.Scripts.Network.Lobby
 
         public void SetSelectedRole(PlayerRoleType role)
         {
-            SetHighlight(tankRoleButton, role == PlayerRoleType.Tank);
-            SetHighlight(supportRoleButton, role == PlayerRoleType.Support);
-            SetHighlight(duelistRoleButton, role == PlayerRoleType.Duelist);
+            tankRoleButton?.SetSelected(role == PlayerRoleType.Tank);
+            supportRoleButton?.SetSelected(role == PlayerRoleType.Support);
+            duelistRoleButton?.SetSelected(role == PlayerRoleType.Duelist);
         }
 
         public void ClearRoleSelection()
         {
-            SetHighlight(tankRoleButton, false);
-            SetHighlight(supportRoleButton, false);
-            SetHighlight(duelistRoleButton, false);
+            tankRoleButton?.SetSelected(false);
+            supportRoleButton?.SetSelected(false);
+            duelistRoleButton?.SetSelected(false);
         }
 
         public void SetRolePickable(PlayerRoleType role, bool pickable)
@@ -164,12 +189,28 @@ namespace _Root.Scripts.Network.Lobby
         public void SetPreConnectPhase(bool connecting)
         {
             if (sessionField != null)
+            {
+                sessionField.gameObject.SetActive(true);
                 sessionField.interactable = !connecting;
+            }
 
             SetConnectVisible(true, connecting ? "Connecting..." : "Join / Host", !connecting);
+            SetLobbyTitle(PreConnectTitle);
+
+            if (statusText != null)
+                statusText.gameObject.SetActive(true);
+            if (lobbyStatusText != null)
+            {
+                lobbyStatusText.text = string.Empty;
+                lobbyStatusText.gameObject.SetActive(false);
+            }
 
             if (inLobbySection != null)
                 inLobbySection.SetActive(false);
+
+            SetLockRoleButton(false, false, string.Empty);
+            ClearRoleSelection();
+
             if (hostSection != null)
                 hostSection.SetActive(false);
             if (clientWaitSection != null)
@@ -179,13 +220,20 @@ namespace _Root.Scripts.Network.Lobby
             SetQuitGameVisible(true, !connecting);
         }
 
-        public void SetInLobbyPhase(bool isHost)
+        public void SetInLobbyPhase(bool isHost, string sessionName)
         {
             SetConnectVisible(false, null, false);
             SetQuitGameVisible(false, false);
 
             if (sessionField != null)
-                sessionField.interactable = false;
+                sessionField.gameObject.SetActive(false);
+
+            if (statusText != null)
+                statusText.gameObject.SetActive(false);
+            if (lobbyStatusText != null)
+                lobbyStatusText.gameObject.SetActive(true);
+
+            SetLobbyTitle(FormatInLobbyTitle(sessionName));
 
             if (inLobbySection != null)
                 inLobbySection.SetActive(true);
@@ -197,6 +245,26 @@ namespace _Root.Scripts.Network.Lobby
                 clientWaitSection.SetActive(!isHost);
 
             SetLeaveLobbyVisible(true, true);
+        }
+
+        private static string FormatInLobbyTitle(string sessionName) =>
+            string.IsNullOrWhiteSpace(sessionName)
+                ? PreConnectTitle
+                : $"Lobby - \"{sessionName.Trim()}\"";
+
+        private void SetLobbyTitle(string title)
+        {
+            if (titleLabel == null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                titleLabel.gameObject.SetActive(false);
+                return;
+            }
+
+            titleLabel.gameObject.SetActive(true);
+            titleLabel.text = title;
         }
 
         public void SetLeaveLobbyVisible(bool visible, bool interactable)
@@ -237,10 +305,17 @@ namespace _Root.Scripts.Network.Lobby
                 tmpText.text = label;
         }
 
-        private static void SetHighlight(PlaytestLobbyRoleButton roleButton, bool on)
+        private static void EnsureLobbyEventSystem()
         {
-            if (roleButton != null && roleButton.Highlight != null)
-                roleButton.Highlight.enabled = on;
+            if (EventSystem.current != null)
+                return;
+
+            var eventSystemGo = new GameObject("EventSystem");
+            UnityEngine.Object.DontDestroyOnLoad(eventSystemGo);
+            eventSystemGo.AddComponent<EventSystem>();
+
+            var inputModule = eventSystemGo.AddComponent<StandaloneInputModule>();
+            inputModule.forceModuleActive = true;
         }
     }
 }

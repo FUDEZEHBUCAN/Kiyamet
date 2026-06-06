@@ -15,6 +15,7 @@ namespace _Root.Scripts.Editor
     public static class PlaytestLobbyPrefabSetup
     {
         private const string UiPrefabPath = "Assets/_Root/Prefabs/UI/PlaytestLobbyUI.prefab";
+        private const string ResourcesUiPrefabPath = "Assets/Resources/PlaytestLobbyUI.prefab";
         private const string SystemPrefabPath = "Assets/_Root/Prefabs/UI/PlaytestLobbySystem.prefab";
         private const string NetworkRunnerPrefabPath = "Assets/_Root/Prefabs/Network/Network Runner PF.prefab";
         private const string TankPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Tank.prefab";
@@ -31,12 +32,24 @@ namespace _Root.Scripts.Editor
                     return;
 
                 if (!File.Exists(SystemPrefabPath))
-                    GeneratePrefabs();
+                    GeneratePrefabsInternal();
             };
         }
 
         [MenuItem("Tools/Kiyamet/Lobby/Generate Playtest Lobby Prefabs")]
         public static void GeneratePrefabs()
+        {
+            if (EditorUtility.DisplayDialog(
+                    "Regenerate Lobby Prefabs",
+                    "This rebuilds PlaytestLobbyUI from scratch and will overwrite artist edits (background sprite, card art, etc.).\n\nUse 'Apply 1920x1080 Reference Layout' to reposition existing prefab elements instead.",
+                    "Regenerate",
+                    "Cancel"))
+            {
+                GeneratePrefabsInternal();
+            }
+        }
+
+        private static void GeneratePrefabsInternal()
         {
             EnsureFolder("Assets/_Root/Prefabs/UI");
 
@@ -44,13 +57,15 @@ namespace _Root.Scripts.Editor
             var uiPrefab = SavePrefab(uiRoot, UiPrefabPath);
             Object.DestroyImmediate(uiRoot);
 
+            EnsureResourcesLobbyUiCopy(uiPrefab);
+
             var systemRoot = BuildLobbySystemHierarchy(uiPrefab);
             SavePrefab(systemRoot, SystemPrefabPath);
             Object.DestroyImmediate(systemRoot);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[PlaytestLobby] TMP lobby prefabs created:\n  UI: {UiPrefabPath}\n  System: {SystemPrefabPath}");
+            Debug.Log($"[PlaytestLobby] Lobby prefabs created (manual RectTransform layout, no layout groups):\n  UI: {UiPrefabPath}\n  System: {SystemPrefabPath}");
         }
 
         private static GameObject BuildLobbySystemHierarchy(GameObject uiPrefabAsset)
@@ -77,6 +92,7 @@ namespace _Root.Scripts.Editor
             var controllerSo = new SerializedObject(controller);
             controllerSo.FindProperty("networkRunnerHandler").objectReferenceValue = networkHandler;
             controllerSo.FindProperty("lobbyView").objectReferenceValue = lobbyView;
+            controllerSo.FindProperty("lobbyUiPrefab").objectReferenceValue = uiPrefabAsset;
             controllerSo.FindProperty("tankPlayerPrefab").objectReferenceValue = tankPrefab;
             controllerSo.FindProperty("supportPlayerPrefab").objectReferenceValue = supportPrefab;
             controllerSo.FindProperty("duelistPlayerPrefab").objectReferenceValue = duelistPrefab;
@@ -103,48 +119,73 @@ namespace _Root.Scripts.Editor
 
             CreateFullscreenDim(root.transform);
 
-            var panel = CreateCenteredPanel(root.transform, "Panel", new Vector2(1280f, 920f));
-            var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(56, 56, 48, 48);
-            layout.spacing = 18f;
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
+            var panel = CreatePanel(root.transform, "Panel", Vector2.zero, new Vector2(1920f, 1080f));
+            panel.GetComponent<Image>().color = Color.white;
 
-            AddLabel(panel, "TitleLabel", "Kiyamet — Playtest Lobby", 48, FontStyles.Bold, 72f);
-            AddLabel(panel, "SessionHintLabel", "Session name (everyone must use the same):", 28, FontStyles.Normal, 40f);
-            var sessionField = AddInputField(panel, "SessionField", 72f);
-            var statusText = AddLabel(panel, "StatusText", string.Empty, 26, FontStyles.Normal, 100f);
+            var titleLabel = AddLabel(panel, "TitleLabel", "Kiyamet — Playtest Lobby", 48, FontStyles.Bold,
+                new Vector2(0f, 490f), new Vector2(1168f, 72f));
+            titleLabel.alignment = TextAlignmentOptions.Center;
+            var sessionHintLabel = AddLabel(panel, "SessionHintLabel", "Session name (everyone must use the same):", 28, FontStyles.Normal,
+                new Vector2(0f, 310f), new Vector2(1168f, 40f));
+            sessionHintLabel.gameObject.SetActive(false);
+
+            var sessionField = AddInputField(panel, "SessionField",
+                new Vector2(0f, -295f), new Vector2(620f, 52f));
+            var statusText = AddLabel(panel, "StatusText", string.Empty, 26, FontStyles.Normal,
+                new Vector2(0f, -465f), new Vector2(900f, 48f));
+            statusText.alignment = TextAlignmentOptions.Center;
             statusText.enableWordWrapping = true;
             statusText.overflowMode = TextOverflowModes.Overflow;
 
-            var connectButton = AddPrimaryButton(panel, "ConnectButton", "Join / Host", null);
-            var quitGameButton = AddSecondaryButton(panel, "QuitGameButton", "Quit Game", null);
+            var lobbyStatusText = AddLabel(panel, "LobbyStatusText", string.Empty, 26, FontStyles.Normal,
+                new Vector2(0f, 400f), new Vector2(900f, 48f));
+            lobbyStatusText.alignment = TextAlignmentOptions.Center;
+            lobbyStatusText.enableWordWrapping = true;
+            lobbyStatusText.overflowMode = TextOverflowModes.Overflow;
+            lobbyStatusText.gameObject.SetActive(false);
 
-            var inLobbySection = AddSection(panel, "InLobbySection");
-            AddLabel(inLobbySection.transform, "RoleHintLabel", "Choose your role, then lock it:", 28, FontStyles.Normal, 44f);
-            var roleRow = AddHorizontalRow(inLobbySection.transform, "RoleRow", 96f);
-            var tankRoleButton = AddRoleButton(roleRow.transform, "TankRoleButton", "Tank", PlayerRoleType.Tank);
-            var supportRoleButton = AddRoleButton(roleRow.transform, "SupportRoleButton", "Support", PlayerRoleType.Support);
-            var duelistRoleButton = AddRoleButton(roleRow.transform, "DuelistRoleButton", "Duelist", PlayerRoleType.Duelist);
-            var lockRoleButton = AddPrimaryButton(inLobbySection.transform, "LockRoleButton", "Lock Role", null);
-            var rosterText = AddLabel(inLobbySection.transform, "RosterText", string.Empty, 26, FontStyles.Normal, 140f);
+            var connectButton = AddPrimaryButton(panel, "ConnectButton", "Join / Host", null,
+                new Vector2(0f, -385f), new Vector2(460f, 70f));
+            var quitGameButton = AddSecondaryButton(panel, "QuitGameButton", "Quit Game", null,
+                new Vector2(820f, 490f), new Vector2(180f, 48f));
+
+            var inLobbySection = CreateContainer(panel, "InLobbySection",
+                new Vector2(0f, 85f), new Vector2(1240f, 520f));
+            var roleHintLabel = AddLabel(inLobbySection.transform, "RoleHintLabel", "Choose your role, then lock it:", 28, FontStyles.Normal,
+                new Vector2(0f, 170f), new Vector2(1168f, 44f));
+            roleHintLabel.gameObject.SetActive(false);
+
+            var roleRow = CreateContainer(inLobbySection.transform, "RoleRow",
+                new Vector2(0f, 0f), new Vector2(1240f, 500f));
+            var tankRoleButton = AddRoleButton(roleRow.transform, "TankRoleButton", "Tank", PlayerRoleType.Tank,
+                new Vector2(-410f, 0f), new Vector2(360f, 500f));
+            var supportRoleButton = AddRoleButton(roleRow.transform, "SupportRoleButton", "Support", PlayerRoleType.Support,
+                new Vector2(0f, 0f), new Vector2(360f, 500f));
+            var duelistRoleButton = AddRoleButton(roleRow.transform, "DuelistRoleButton", "Duelist", PlayerRoleType.Duelist,
+                new Vector2(410f, 0f), new Vector2(360f, 500f));
+
+            var lockRoleButton = AddPrimaryButton(panel, "LockRoleButton", "Lock Role", null,
+                new Vector2(0f, -385f), new Vector2(460f, 70f));
+            var rosterText = AddLabel(panel, "RosterText", string.Empty, 26, FontStyles.Normal,
+                new Vector2(0f, 310f), new Vector2(900f, 72f));
+            rosterText.alignment = TextAlignmentOptions.Center;
             rosterText.enableWordWrapping = true;
-            var leaveLobbyButton = AddSecondaryButton(inLobbySection.transform, "LeaveLobbyButton", "Leave Lobby", null);
+            var leaveLobbyButton = AddSecondaryButton(panel, "LeaveLobbyButton", "Leave Lobby", null,
+                new Vector2(-820f, 490f), new Vector2(180f, 48f));
 
-            var hostSection = AddSection(panel, "HostSection");
-            AddPrimaryButton(hostSection.transform, "StartGameButton", "Start Game", null);
+            var hostSection = CreateContainer(panel, "HostSection",
+                new Vector2(0f, -385f), new Vector2(460f, 70f));
+            AddPrimaryButton(hostSection.transform, "StartGameButton", "Start Game", null,
+                Vector2.zero, new Vector2(460f, 70f));
 
-            var clientWaitSection = AddSection(panel, "ClientWaitSection");
-            AddLabel(clientWaitSection.transform, "ClientWaitLabel", "Waiting for the host to start the game...", 30, FontStyles.Italic, 72f);
+            var clientWaitSection = CreateContainer(panel, "ClientWaitSection",
+                new Vector2(0f, -465f), new Vector2(900f, 48f));
+            AddLabel(clientWaitSection.transform, "ClientWaitLabel", "Waiting for the host to start the game...", 30, FontStyles.Italic,
+                Vector2.zero, new Vector2(900f, 48f)).alignment = TextAlignmentOptions.Center;
 
             inLobbySection.SetActive(false);
             hostSection.SetActive(false);
             clientWaitSection.SetActive(false);
-
-            LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
 
             var viewSo = new SerializedObject(view);
             viewSo.FindProperty("root").objectReferenceValue = root;
@@ -152,18 +193,31 @@ namespace _Root.Scripts.Editor
             viewSo.FindProperty("statusText").objectReferenceValue = statusText;
             viewSo.FindProperty("connectButton").objectReferenceValue = connectButton;
             viewSo.FindProperty("quitGameButton").objectReferenceValue = quitGameButton;
+            viewSo.FindProperty("titleLabel").objectReferenceValue = titleLabel;
             viewSo.FindProperty("inLobbySection").objectReferenceValue = inLobbySection;
             viewSo.FindProperty("tankRoleButton").objectReferenceValue = tankRoleButton;
             viewSo.FindProperty("supportRoleButton").objectReferenceValue = supportRoleButton;
             viewSo.FindProperty("duelistRoleButton").objectReferenceValue = duelistRoleButton;
             viewSo.FindProperty("lockRoleButton").objectReferenceValue = lockRoleButton;
             viewSo.FindProperty("rosterText").objectReferenceValue = rosterText;
+            viewSo.FindProperty("lobbyStatusText").objectReferenceValue = lobbyStatusText;
             viewSo.FindProperty("leaveLobbyButton").objectReferenceValue = leaveLobbyButton;
             viewSo.FindProperty("hostSection").objectReferenceValue = hostSection;
             viewSo.FindProperty("clientWaitSection").objectReferenceValue = clientWaitSection;
             viewSo.ApplyModifiedPropertiesWithoutUndo();
 
             return root;
+        }
+
+        private static void EnsureResourcesLobbyUiCopy(GameObject uiPrefabAsset)
+        {
+            EnsureFolder("Assets/Resources");
+            var existing = AssetDatabase.LoadAssetAtPath<GameObject>(ResourcesUiPrefabPath);
+            if (existing != null)
+                AssetDatabase.DeleteAsset(ResourcesUiPrefabPath);
+
+            if (!AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(uiPrefabAsset), ResourcesUiPrefabPath))
+                Debug.LogWarning($"[PlaytestLobby] Could not copy UI prefab to {ResourcesUiPrefabPath}");
         }
 
         private static GameObject SavePrefab(GameObject root, string path)
@@ -201,59 +255,45 @@ namespace _Root.Scripts.Editor
             go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.88f);
         }
 
-        private static RectTransform CreateCenteredPanel(Transform parent, string name, Vector2 size)
+        private static RectTransform CreatePanel(Transform parent, string name, Vector2 anchoredPosition, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             go.transform.SetParent(parent, false);
             var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0.5f, 0.5f);
-            rt.anchorMax = new Vector2(0.5f, 0.5f);
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = size;
+            SetCenterRect(rt, anchoredPosition, size);
             go.GetComponent<Image>().color = new Color(0.12f, 0.14f, 0.18f, 0.98f);
             return rt;
         }
 
-        private static GameObject AddSection(Transform parent, string name)
+        private static GameObject CreateContainer(Transform parent, string name, Vector2 anchoredPosition, Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.flexibleWidth = 1f;
-
-            var layout = go.AddComponent<VerticalLayoutGroup>();
-            layout.spacing = 14f;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = false;
+            SetCenterRect(go.GetComponent<RectTransform>(), anchoredPosition, size);
             return go;
         }
 
-        private static RectTransform AddHorizontalRow(Transform parent, string name, float height)
+        private static void SetCenterRect(RectTransform rt, Vector2 anchoredPosition, Vector2 size)
         {
-            var go = new GameObject(name, typeof(RectTransform));
-            go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = height;
-            le.minHeight = height;
-
-            var layout = go.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 20f;
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = true;
-            layout.childForceExpandHeight = true;
-            return go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0.5f, 0.5f);
+            rt.anchorMax = new Vector2(0.5f, 0.5f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = anchoredPosition;
+            rt.sizeDelta = size;
         }
 
-        private static TextMeshProUGUI AddLabel(Transform parent, string name, string content, float fontSize, FontStyles style, float height)
+        private static TextMeshProUGUI AddLabel(
+            Transform parent,
+            string name,
+            string content,
+            float fontSize,
+            FontStyles style,
+            Vector2 anchoredPosition,
+            Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = height;
-            le.minHeight = height;
+            SetCenterRect(go.GetComponent<RectTransform>(), anchoredPosition, size);
 
             var text = go.GetComponent<TextMeshProUGUI>();
             ApplyTmpFont(text, fontSize, style);
@@ -264,13 +304,15 @@ namespace _Root.Scripts.Editor
             return text;
         }
 
-        private static TMP_InputField AddInputField(Transform parent, string name, float height)
+        private static TMP_InputField AddInputField(
+            Transform parent,
+            string name,
+            Vector2 anchoredPosition,
+            Vector2 size)
         {
             var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
             root.transform.SetParent(parent, false);
-            var le = root.AddComponent<LayoutElement>();
-            le.preferredHeight = height;
-            le.minHeight = height;
+            SetCenterRect(root.GetComponent<RectTransform>(), anchoredPosition, size);
             root.GetComponent<Image>().color = new Color(0.08f, 0.09f, 0.11f, 1f);
 
             var textAreaGo = new GameObject("Text Area", typeof(RectTransform), typeof(RectMask2D));
@@ -303,14 +345,17 @@ namespace _Root.Scripts.Editor
             return field;
         }
 
-        private static PlaytestLobbyRoleButton AddRoleButton(Transform parent, string name, string label, PlayerRoleType role)
+        private static PlaytestLobbyRoleButton AddRoleButton(
+            Transform parent,
+            string name,
+            string label,
+            PlayerRoleType role,
+            Vector2 anchoredPosition,
+            Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.flexibleWidth = 1f;
-            le.minHeight = 80f;
-            le.preferredHeight = 80f;
+            SetCenterRect(go.GetComponent<RectTransform>(), anchoredPosition, size);
 
             var bg = go.GetComponent<Image>();
             bg.color = new Color(0.2f, 0.24f, 0.32f, 1f);
@@ -325,7 +370,12 @@ namespace _Root.Scripts.Editor
 
             var textGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
             textGo.transform.SetParent(go.transform, false);
-            StretchRect(textGo.GetComponent<RectTransform>());
+            var labelRect = textGo.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0f);
+            labelRect.anchorMax = new Vector2(1f, 0f);
+            labelRect.pivot = new Vector2(0.5f, 0f);
+            labelRect.anchoredPosition = new Vector2(0f, 12f);
+            labelRect.sizeDelta = new Vector2(-24f, 56f);
             var text = textGo.GetComponent<TextMeshProUGUI>();
             ApplyTmpFont(text, 32f, FontStyles.Bold);
             text.alignment = TextAlignmentOptions.Center;
@@ -343,19 +393,36 @@ namespace _Root.Scripts.Editor
             return roleButton;
         }
 
-        private static Button AddSecondaryButton(Transform parent, string name, string label, System.Action onClick) =>
-            AddButton(parent, name, label, onClick, new Color(0.45f, 0.18f, 0.18f, 1f), 72f);
+        private static Button AddSecondaryButton(
+            Transform parent,
+            string name,
+            string label,
+            System.Action onClick,
+            Vector2 anchoredPosition,
+            Vector2 size) =>
+            AddButton(parent, name, label, onClick, new Color(0.45f, 0.18f, 0.18f, 1f), anchoredPosition, size);
 
-        private static Button AddPrimaryButton(Transform parent, string name, string label, System.Action onClick) =>
-            AddButton(parent, name, label, onClick, new Color(0.22f, 0.48f, 0.32f, 1f), 84f);
+        private static Button AddPrimaryButton(
+            Transform parent,
+            string name,
+            string label,
+            System.Action onClick,
+            Vector2 anchoredPosition,
+            Vector2 size) =>
+            AddButton(parent, name, label, onClick, new Color(0.22f, 0.48f, 0.32f, 1f), anchoredPosition, size);
 
-        private static Button AddButton(Transform parent, string name, string label, System.Action onClick, Color backgroundColor, float height)
+        private static Button AddButton(
+            Transform parent,
+            string name,
+            string label,
+            System.Action onClick,
+            Color backgroundColor,
+            Vector2 anchoredPosition,
+            Vector2 size)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
-            var le = go.AddComponent<LayoutElement>();
-            le.preferredHeight = height;
-            le.minHeight = height;
+            SetCenterRect(go.GetComponent<RectTransform>(), anchoredPosition, size);
 
             var img = go.GetComponent<Image>();
             img.color = backgroundColor;

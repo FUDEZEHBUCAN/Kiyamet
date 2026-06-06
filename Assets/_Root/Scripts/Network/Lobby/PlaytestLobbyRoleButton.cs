@@ -11,21 +11,50 @@ namespace _Root.Scripts.Network.Lobby
         [SerializeField] private PlayerRoleType role;
         [SerializeField] private Image highlight;
 
+        private Button _button;
+
         public PlayerRoleType Role => role;
-        public Image Highlight => highlight;
-        public Button Button { get; private set; }
+
+        public Button Button
+        {
+            get
+            {
+                if (_button == null)
+                    _button = GetComponent<Button>();
+                return _button;
+            }
+        }
+
+        public Image Highlight
+        {
+            get
+            {
+                EnsureHighlightReference();
+                return highlight;
+            }
+        }
 
         private void Awake()
         {
-            if (Button == null)
-                Button = GetComponent<Button>();
+            _ = Button;
+            EnsureHighlightReference();
+        }
 
-            if (highlight == null)
-            {
-                var highlightTransform = transform.Find("Highlight");
-                if (highlightTransform != null)
-                    highlight = highlightTransform.GetComponent<Image>();
-            }
+        public void SetSelected(bool selected)
+        {
+            var highlightImage = Highlight;
+            if (highlightImage != null)
+                highlightImage.enabled = selected;
+        }
+
+        private void EnsureHighlightReference()
+        {
+            if (highlight != null)
+                return;
+
+            var highlightTransform = transform.Find("Highlight");
+            if (highlightTransform != null)
+                highlight = highlightTransform.GetComponent<Image>();
         }
     }
 }
