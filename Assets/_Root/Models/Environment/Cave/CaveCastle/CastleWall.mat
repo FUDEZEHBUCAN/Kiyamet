@@ -13,6 +13,7 @@ Material:
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - TCP2_DISABLE_WRAPPED_LIGHT
+  - TCP2_STYLIZED_FRESNEL
   - TCP2_UV_NORMALS_FULL
   - _NORMALMAP
   m_InvalidKeywords: []
@@ -89,8 +90,8 @@ Material:
     - _RampSmoothAdd: 0.279
     - _RampThreshold: 0.123
     - _RimMax: 0.85
-    - _RimMin: 0.6
-    - _RimStrength: 0
+    - _RimMin: 0.752
+    - _RimStrength: 0.09
     - _SmoothnessTextureChannel: 0
     - _SpecBlend: 1
     - _SpecSmooth: 1
@@ -101,7 +102,7 @@ Material:
     - _TCP2_OUTLINE_TEXTURED: 0
     - _TCP2_RAMPTEXT: 0
     - _TCP2_SPEC_TOON: 0
-    - _TCP2_STYLIZED_FRESNEL: 0
+    - _TCP2_STYLIZED_FRESNEL: 1
     - _TCP2_ZSMOOTH_ON: 0
     - _TexLod: 5
     - _UVSec: 0

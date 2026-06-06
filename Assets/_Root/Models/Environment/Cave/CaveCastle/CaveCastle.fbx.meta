@@ -7,8 +7,18 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: BrokenBridgeMat
+    second: {fileID: 2100000, guid: d4880c932a8e12b48a3039233e9634a0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CastleWall
     second: {fileID: 2100000, guid: b10deddc73266dc42b45f2887a260c40, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: StoneFloor
+    second: {fileID: 2100000, guid: d308cee9f7bd984429e8c9d262ae9679, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
