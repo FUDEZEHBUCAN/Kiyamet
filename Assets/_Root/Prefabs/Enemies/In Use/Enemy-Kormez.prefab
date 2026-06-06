@@ -2463,11 +2463,27 @@ MonoBehaviour:
   attackSwingSounds: []
   attackHitSounds:
   - {fileID: 8300000, guid: a1f7b375e82ca9140b869169c07a5262, type: 3}
-  takeDamageSounds: []
+  - {fileID: 8300000, guid: 163933141ff869a41b354157b53fb87a, type: 3}
+  leapWindupSounds: []
+  leapJumpSounds:
+  - {fileID: 8300000, guid: 4ba0ad81d82e27a4ea65121ec6b1c8c5, type: 3}
+  leapLandSounds: []
+  leapHitSounds: []
+  leapWindupVolume: 0.75
+  leapJumpVolume: 0.85
+  leapLandVolume: 0.9
+  leapHitVolume: 0.85
+  takeDamageSounds:
+  - {fileID: 8300000, guid: 73b04a77a94df2f428063dcb2e34f087, type: 3}
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
   audioSource: {fileID: 0}
   volume: 0.5
+  minDistance: 3
+  maxDistance: 28
+  minPitch: 0.92
+  maxPitch: 1.08
+  pitchVariance: 0.06
 --- !u!1 &8904997243945249687
 GameObject:
   m_ObjectHideFlags: 0

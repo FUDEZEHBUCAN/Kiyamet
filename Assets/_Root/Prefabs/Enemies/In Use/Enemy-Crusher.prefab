@@ -154,11 +154,14 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
+  startWithPlayerDetectionEnabled: 1
   detectionRange: 50
   disengageRangeMultiplier: 10
   hitEffectPrefab: {fileID: 168136, guid: 47c6eee70f9391f46a710b0592491a63, type: 3}
   attackEffectPrefab: {fileID: 176804, guid: 4889039938a567444827eafcfbc2b267, type: 3}
   _CurrentHealth: 0
+  _PlayerDetectionEnabled:
+    _value: 0
 --- !u!136 &5424480101873713277
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -197,11 +200,26 @@ MonoBehaviour:
   attackSwingSounds: []
   attackHitSounds:
   - {fileID: 8300000, guid: 908752cf12d712f4593b90f28f412f21, type: 3}
+  - {fileID: 8300000, guid: 65728c01bd8826c4889c56f3ef5717d8, type: 3}
+  leapWindupSounds: []
+  leapJumpSounds:
+  - {fileID: 8300000, guid: a420387785aae2f44afed071b50f0468, type: 3}
+  leapLandSounds: []
+  leapHitSounds: []
+  leapWindupVolume: 0.75
+  leapJumpVolume: 0.85
+  leapLandVolume: 0.9
+  leapHitVolume: 0.85
   takeDamageSounds: []
   deathSounds:
-  - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
+  - {fileID: 8300000, guid: 44d4fd128ab29c94ea7bc89eb8e55fa2, type: 3}
   audioSource: {fileID: 0}
-  volume: 0.7
+  volume: 0.697
+  minDistance: 3
+  maxDistance: 28
+  minPitch: 0.92
+  maxPitch: 1.08
+  pitchVariance: 0.06
 --- !u!1 &8983713113995190522
 GameObject:
   m_ObjectHideFlags: 0
