@@ -39,7 +39,7 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float dodgeAttackLockAfterRoll = 0.28f;
     
     [Header("Respawn Settings")]
-    [SerializeField] private float respawnYThreshold = -200f;
+    [SerializeField] private float respawnYThreshold = -80f;
 
     [Header("Ground Snap")]
     [SerializeField] private LayerMask groundSnapLayers;
@@ -48,6 +48,11 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float groundSnapSkin = 0.04f;
     [SerializeField] private float groundPenetrationStep = 0.12f;
     [SerializeField] private int groundPenetrationResolveAttempts = 10;
+
+    [Header("Environmental Fall")]
+    [SerializeField] private float environmentalFallMinHeight = 1.35f;
+    [SerializeField] private float environmentalFallMinAirTime = 0.14f;
+    [SerializeField] private float environmentalFallMinDownwardSpeed = 1.5f;
     
     private float BaseMaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
     private float RunningMaxSpeed
@@ -90,6 +95,7 @@ namespace _Root.Scripts.Controllers {
     [Networked] public Quaternion NetworkRotation { get; set; }
     [Networked] public Vector3 Velocity { get; set; }
     [Networked] public NetworkBool Grounded { get; set; }
+    [Networked] public NetworkBool IsEnvironmentalFalling { get; private set; }
     
     [Networked] private NetworkBool IsDashing { get; set; }
     [Networked] private TickTimer DashTimer { get; set; }
@@ -155,6 +161,10 @@ namespace _Root.Scripts.Controllers {
     public bool IsDeathPoseFrozen => _deathPoseFrozen;
     private Quaternion _frozenDeathRotation;
     private bool _wasDodgingForAnim;
+    private bool _wasGroundedForFall;
+    private bool _trackingEnvironmentalFall;
+    private float _environmentalFallStartHeight;
+    private float _environmentalAirTime;
     
     void Awake() {
       TryGetComponent(out _controller);
@@ -189,6 +199,7 @@ namespace _Root.Scripts.Controllers {
       
       NetworkPosition = transform.position;
       NetworkRotation = transform.rotation;
+      _wasGroundedForFall = true;
     }
 
     private void ConfigureRigidbodyForCharacterController() {
@@ -622,6 +633,9 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = transform.rotation;
       Velocity = moveVelocity;
       Grounded = _controller.isGrounded;
+
+      if (Object.HasStateAuthority)
+        TickEnvironmentalFall(isSupportFloating);
     }
     
     public void SetNetworkRotation(Quaternion rotation) {
@@ -732,10 +746,12 @@ namespace _Root.Scripts.Controllers {
       
       Velocity = Vector3.zero;
       Grounded = false;
+      IsEnvironmentalFalling = false;
       IsKnockedBack = false;
       KnockbackTimer = TickTimer.None;
       KnockbackVelocity = Vector3.zero;
       BossInputBlockTimer = TickTimer.None;
+      _wasGroundedForFall = true;
       NetworkPosition = spawnPosition;
       NetworkRotation = spawnRotation;
       ConfigureRigidbodyForCharacterController();
@@ -835,6 +851,63 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = transform.rotation;
       Velocity = vel;
       Grounded = _controller.isGrounded;
+    }
+
+    private void TickEnvironmentalFall(bool isSupportFloating)
+    {
+      if (isSupportFloating || _deathPoseFrozen)
+      {
+        ResetEnvironmentalFallTracking(clearActive: true);
+        return;
+      }
+
+      if (_networkPlayer != null && (!_networkPlayer.IsAlive || _networkPlayer.HasRecentKnockbackFall()))
+      {
+        ResetEnvironmentalFallTracking(clearActive: true);
+        return;
+      }
+
+      if (HasActiveKnockback || IsDodging || IsDashing)
+      {
+        ResetEnvironmentalFallTracking(clearActive: true);
+        return;
+      }
+
+      if (Grounded)
+      {
+        ResetEnvironmentalFallTracking(clearActive: true);
+        _wasGroundedForFall = true;
+        return;
+      }
+
+      _environmentalAirTime += Runner.DeltaTime;
+
+      if (_wasGroundedForFall)
+      {
+        _environmentalFallStartHeight = transform.position.y;
+        _trackingEnvironmentalFall = true;
+        _wasGroundedForFall = false;
+      }
+
+      if (!_trackingEnvironmentalFall || IsEnvironmentalFalling)
+        return;
+
+      float fallDistance = _environmentalFallStartHeight - transform.position.y;
+      bool enoughHeight = fallDistance >= environmentalFallMinHeight;
+      bool enoughAirTime = _environmentalAirTime >= environmentalFallMinAirTime;
+      bool fallingDown = Velocity.y <= -environmentalFallMinDownwardSpeed;
+
+      if (enoughHeight && enoughAirTime && fallingDown)
+        IsEnvironmentalFalling = true;
+    }
+
+    private void ResetEnvironmentalFallTracking(bool clearActive)
+    {
+      _trackingEnvironmentalFall = false;
+      _environmentalAirTime = 0f;
+
+      if (clearActive)
+        IsEnvironmentalFalling = false;
     }
 
     private void EndKnockback()

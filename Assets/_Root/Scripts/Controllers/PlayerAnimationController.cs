@@ -23,6 +23,7 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamMoveY = Animator.StringToHash("MoveY");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
         private static readonly int ParamIsGrounded = Animator.StringToHash("IsGrounded");
+        private static readonly int ParamIsFalling = Animator.StringToHash("IsFalling");
         private static readonly int ParamVerticalVelocity = Animator.StringToHash("VerticalVelocity");
         private static readonly int ParamIsBlocking = Animator.StringToHash("IsBlocking");
         private static readonly int ParamIsPushing = Animator.StringToHash("IsPushing");
@@ -118,6 +119,14 @@ namespace _Root.Scripts.Controllers
             if (animator != null)
             {
                 animator.SetBool(ParamIsGrounded, isGrounded);
+            }
+        }
+
+        public void SetFalling(bool isFalling)
+        {
+            if (animator != null)
+            {
+                animator.SetBool(ParamIsFalling, isFalling);
             }
         }
         
@@ -328,6 +337,7 @@ namespace _Root.Scripts.Controllers
             animator.SetBool(ParamIsDead, false);
             animator.SetBool(ParamIsMoving, false);
             animator.SetBool(ParamIsGrounded, true);
+            animator.SetBool(ParamIsFalling, false);
             animator.SetBool(ParamIsRunning, false);
             animator.SetBool(ParamIsBlocking, false);
             animator.SetBool(ParamIsPushing, false);
@@ -355,6 +365,7 @@ namespace _Root.Scripts.Controllers
                 animator.SetBool(ParamIsDead, false);
                 animator.SetBool(ParamIsMoving, false);
                 animator.SetBool(ParamIsGrounded, true);
+                animator.SetBool(ParamIsFalling, false);
                 animator.SetBool(ParamIsRunning, false);
                 animator.SetFloat(ParamMoveX, 0f);
                 animator.SetFloat(ParamMoveY, 0f);

@@ -153,6 +153,19 @@ namespace _Root.Scripts.Network
         // Health property
         public float Health => CurrentHealth;
         public bool IsAlive => CurrentHealth > 0f && !IsDead;
+
+        public bool HasRecentKnockbackFall(float withinSeconds = 1.75f)
+        {
+            if (Runner == null || LastFallTick <= 0)
+                return false;
+
+            int tickDelta = Runner.Tick - LastFallTick;
+            if (tickDelta < 0)
+                return false;
+
+            return tickDelta * Runner.DeltaTime <= withinSeconds;
+        }
+
         public bool IsUltimateReady => UltimateKillCount >= Mathf.Max(1, killsRequiredForUltimate);
         public int UltimateKillsRequired => Mathf.Max(1, killsRequiredForUltimate);
         public float UltimateDurationSeconds =>
@@ -235,8 +248,14 @@ namespace _Root.Scripts.Network
                 if (skillHud != null && skillHud.GetComponent<MeleeQueueHudFeedback>() == null)
                     skillHud.gameObject.AddComponent<MeleeQueueHudFeedback>();
 
+                if (skillHud != null && skillHud.GetComponent<ItemSlotHudController>() == null)
+                    skillHud.gameObject.AddComponent<ItemSlotHudController>();
+
                 if (GetComponent<CheckpointCapturedHudFeedback>() == null)
                     gameObject.AddComponent<CheckpointCapturedHudFeedback>();
+
+                if (GetComponent<ItemPickupHudFeedback>() == null)
+                    gameObject.AddComponent<ItemPickupHudFeedback>();
             }
 
             if (Object.HasStateAuthority)

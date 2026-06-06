@@ -424,7 +424,7 @@ MonoBehaviour:
   dodgeDuration: 0.5
   dodgeCooldown: 2
   dodgeAttackLockAfterRoll: 0.03
-  respawnYThreshold: -200
+  respawnYThreshold: -80
   groundSnapLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -433,11 +433,16 @@ MonoBehaviour:
   groundSnapSkin: 0.04
   groundPenetrationStep: 0.12
   groundPenetrationResolveAttempts: 10
+  environmentalFallMinHeight: 1
+  environmentalFallMinAirTime: 0.14
+  environmentalFallMinDownwardSpeed: 1
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
   _NetworkRotation: {x: 0, y: 0, z: 0, w: 0}
   _Velocity: {x: 0, y: 0, z: 0}
   _Grounded:
+    _value: 0
+  _IsEnvironmentalFalling:
     _value: 0
   _IsDodging:
     _value: 0

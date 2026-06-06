@@ -19,6 +19,7 @@ namespace _Root.Scripts.Enemy
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
         private static readonly int ParamAttack = Animator.StringToHash("Attack");
         private static readonly int ParamLeap = Animator.StringToHash("Leap");
+        private static readonly int ParamLeapJump = Animator.StringToHash("LeapJump");
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
         private static readonly int ParamIsMoving = Animator.StringToHash("IsMoving");
@@ -123,6 +124,12 @@ namespace _Root.Scripts.Enemy
                 animator.SetTrigger(ParamLeap);
         }
 
+        public void TriggerLeapJump()
+        {
+            if (animator != null)
+                animator.SetTrigger(ParamLeapJump);
+        }
+
         /// <summary>
         /// Leap inişinde combat katmanını boşalt; zıplama pozunda donmayı önler.
         /// </summary>
@@ -133,6 +140,7 @@ namespace _Root.Scripts.Enemy
 
             animator.ResetTrigger(ParamAttack);
             animator.ResetTrigger(ParamLeap);
+            animator.ResetTrigger(ParamLeapJump);
 
             int combatLayer = animator.GetLayerIndex("Combat Layer");
             if (combatLayer >= 0)
@@ -148,6 +156,7 @@ namespace _Root.Scripts.Enemy
             {
                 animator.ResetTrigger(ParamAttack);
                 animator.ResetTrigger(ParamLeap);
+                animator.ResetTrigger(ParamLeapJump);
             }
         }
         
@@ -198,6 +207,7 @@ namespace _Root.Scripts.Enemy
                 // Tüm trigger'ları resetle
                 animator.ResetTrigger(ParamAttack);
                 animator.ResetTrigger(ParamLeap);
+                animator.ResetTrigger(ParamLeapJump);
                 animator.ResetTrigger(ParamHit);
                 animator.ResetTrigger(ParamDie);
             }

@@ -192,6 +192,10 @@ MonoBehaviour:
   disengageRangeMultiplier: 10
   hitEffectPrefab: {fileID: 168136, guid: 47c6eee70f9391f46a710b0592491a63, type: 3}
   attackEffectPrefab: {fileID: 0}
+  dropKeyOnDeath: 0
+  droppedKeyId: 0
+  keyPickupPrefab: {fileID: 0}
+  keyDropHeight: 0.2
   _CurrentHealth: 0
   _PlayerDetectionEnabled:
     _value: 0
@@ -230,25 +234,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 406cc34aa9025485cafeaf1a1759fe8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackSwingSounds: []
+  attackSwingSounds:
+  - {fileID: 8300000, guid: 9397ae73cb465ea48ad76168b10479b6, type: 3}
+  - {fileID: 8300000, guid: 163933141ff869a41b354157b53fb87a, type: 3}
+  - {fileID: 8300000, guid: 65728c01bd8826c4889c56f3ef5717d8, type: 3}
   attackHitSounds:
-  - {fileID: 8300000, guid: ab96ab9a401c3d9478884a66074c279c, type: 3}
   - {fileID: 8300000, guid: 9397ae73cb465ea48ad76168b10479b6, type: 3}
   leapWindupSounds:
-  - {fileID: 8300000, guid: 19e67e40382b54042b461190af84f2bf, type: 3}
+  - {fileID: 8300000, guid: 207022ecdf4807340b5eb2f5c38c673d, type: 3}
   leapJumpSounds:
-  - {fileID: 8300000, guid: fb54ffe69f9f0624f82e61ca4332052a, type: 3}
+  - {fileID: 8300000, guid: 9397ae73cb465ea48ad76168b10479b6, type: 3}
   leapLandSounds:
-  - {fileID: 8300000, guid: e96d06eeece2346d78a851951225ea87, type: 3}
+  - {fileID: 8300000, guid: 9a673523a5544446ba7176f1ac13fe11, type: 3}
   leapHitSounds:
-  - {fileID: 8300000, guid: ab96ab9a401c3d9478884a66074c279c, type: 3}
-  leapWindupVolume: 0.7
+  - {fileID: 8300000, guid: 73b04a77a94df2f428063dcb2e34f087, type: 3}
+  leapWindupVolume: 0.736
   leapJumpVolume: 0.82
-  leapLandVolume: 0.88
+  leapLandVolume: 0.809
   leapHitVolume: 0.85
   takeDamageSounds: []
   deathSounds:
   - {fileID: 8300000, guid: 187ead484b969014892bf68fc41ef459, type: 3}
+  - {fileID: 8300000, guid: 44d4fd128ab29c94ea7bc89eb8e55fa2, type: 3}
+  - {fileID: 8300000, guid: 2e045b04fd728e34ca91bf4ececab57e, type: 3}
   audioSource: {fileID: 0}
   volume: 0.5
   minDistance: 3

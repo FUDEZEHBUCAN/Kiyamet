@@ -2,6 +2,7 @@ using Fusion;
 using UnityEngine;
 using UnityEngine.AI;
 using _Root.Scripts.Data;
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Network;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -46,6 +47,12 @@ namespace _Root.Scripts.Enemy
         [Header("Visual Effects")]
         [SerializeField] private GameObject hitEffectPrefab;
         [SerializeField] private GameObject attackEffectPrefab;
+
+        [Header("Key Drop")]
+        [SerializeField] private bool dropKeyOnDeath;
+        [SerializeField] private int droppedKeyId;
+        [SerializeField] private NetworkObject keyPickupPrefab;
+        [SerializeField] private float keyDropHeight = 0.2f;
         
         // Networked State
         [Networked] public float CurrentHealth { get; set; }
@@ -591,6 +598,12 @@ namespace _Root.Scripts.Enemy
             if (CurrentState != _lastState)
             {
                 SyncLeapAudio(_lastState, CurrentState);
+
+                if (CurrentState == EnemyState.LeapJump && _lastState == EnemyState.LeapWindup)
+                {
+                    if (animController != null)
+                        animController.TriggerLeapJump();
+                }
 
                 if (CurrentState == EnemyState.LeapRecover && _lastState == EnemyState.LeapJump)
                 {
@@ -1699,8 +1712,27 @@ namespace _Root.Scripts.Enemy
                 animController.TriggerDeath();
 
             _deathAnimTriggered = true;
+
+            TrySpawnKeyDrop();
             
             Invoke(nameof(DespawnEnemy), 3f);
+        }
+
+        private void TrySpawnKeyDrop()
+        {
+            if (!dropKeyOnDeath || keyPickupPrefab == null || !Object.HasStateAuthority)
+                return;
+
+            Vector3 dropPos = transform.position;
+            Vector3 sampleOrigin = transform.position + Vector3.up * 0.5f;
+            if (NavMesh.SamplePosition(sampleOrigin, out NavMeshHit hit, 2f, NavMesh.AllAreas))
+                dropPos = hit.position + Vector3.up * keyDropHeight;
+            else
+                dropPos += Vector3.up * keyDropHeight;
+
+            NetworkObject spawned = Runner.Spawn(keyPickupPrefab, dropPos, Quaternion.identity);
+            NetworkKeyPickup pickup = spawned != null ? spawned.GetComponent<NetworkKeyPickup>() : null;
+            pickup?.ServerConfigure(droppedKeyId, dropPos);
         }
         
         private void DespawnEnemy()

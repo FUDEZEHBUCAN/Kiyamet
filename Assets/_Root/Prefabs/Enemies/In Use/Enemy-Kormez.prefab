@@ -2422,6 +2422,10 @@ MonoBehaviour:
   disengageRangeMultiplier: 10
   hitEffectPrefab: {fileID: 168136, guid: 47c6eee70f9391f46a710b0592491a63, type: 3}
   attackEffectPrefab: {fileID: 0}
+  dropKeyOnDeath: 0
+  droppedKeyId: 0
+  keyPickupPrefab: {fileID: 0}
+  keyDropHeight: 0.2
   _CurrentHealth: 0
   _PlayerDetectionEnabled:
     _value: 0
@@ -2460,13 +2464,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 406cc34aa9025485cafeaf1a1759fe8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  attackSwingSounds: []
+  attackSwingSounds:
+  - {fileID: 8300000, guid: 65728c01bd8826c4889c56f3ef5717d8, type: 3}
+  - {fileID: 8300000, guid: 163933141ff869a41b354157b53fb87a, type: 3}
+  - {fileID: 8300000, guid: 9397ae73cb465ea48ad76168b10479b6, type: 3}
   attackHitSounds:
   - {fileID: 8300000, guid: a1f7b375e82ca9140b869169c07a5262, type: 3}
   - {fileID: 8300000, guid: 163933141ff869a41b354157b53fb87a, type: 3}
   leapWindupSounds: []
-  leapJumpSounds:
-  - {fileID: 8300000, guid: 4ba0ad81d82e27a4ea65121ec6b1c8c5, type: 3}
+  leapJumpSounds: []
   leapLandSounds: []
   leapHitSounds: []
   leapWindupVolume: 0.75
@@ -2477,6 +2483,9 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 73b04a77a94df2f428063dcb2e34f087, type: 3}
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
+  - {fileID: 8300000, guid: 187ead484b969014892bf68fc41ef459, type: 3}
+  - {fileID: 8300000, guid: 44d4fd128ab29c94ea7bc89eb8e55fa2, type: 3}
+  - {fileID: 8300000, guid: 2e045b04fd728e34ca91bf4ececab57e, type: 3}
   audioSource: {fileID: 0}
   volume: 0.5
   minDistance: 3

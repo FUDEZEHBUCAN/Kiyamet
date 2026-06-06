@@ -33,12 +33,12 @@ namespace _Root.Scripts.UI
 
             if (_interactionController == null
                 || _interactionController.IsInteracting
-                || !_interactionController.TryFindInteractableForPrompt(out _))
+                || !_interactionController.TryFindInteractableForPrompt(out _, out string prompt))
                 return;
 
             var scale = GetUiScale();
             EnsureStyles(scale);
-            DrawInteractHint(scale);
+            DrawInteractHint(scale, string.IsNullOrWhiteSpace(prompt) ? InteractPrompt : prompt);
         }
 
         private bool CanShowHints()
@@ -58,9 +58,9 @@ namespace _Root.Scripts.UI
             return true;
         }
 
-        private void DrawInteractHint(float scale)
+        private void DrawInteractHint(float scale, string prompt)
         {
-            var content = new GUIContent(InteractPrompt);
+            var content = new GUIContent(prompt);
             var textSize = _interactStyle.CalcSize(content);
             var drawWidth = textSize.x + 36f;
             var drawHeight = textSize.y + 14f;
@@ -70,7 +70,7 @@ namespace _Root.Scripts.UI
             var prevColor = GUI.color;
             GUI.color = new Color(1f, 1f, 1f, 0.94f);
             GUI.Label(new Rect(centerX - drawWidth * 0.5f, centerY - drawHeight * 0.5f, drawWidth, drawHeight),
-                InteractPrompt, _interactStyle);
+                prompt, _interactStyle);
             GUI.color = prevColor;
         }
 

@@ -332,9 +332,7 @@ namespace _Root.Scripts.Controllers
                 
                 // Yerde mi (server'dan gelen değeri kullan)
                 _animController.SetGrounded(_cc.Grounded);
-                
-                // Dikey hız (jump/fall)
-                _animController.SetVerticalVelocity(velocity.y);
+                _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
             }
         }
     }

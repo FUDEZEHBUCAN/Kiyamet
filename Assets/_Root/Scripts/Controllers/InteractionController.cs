@@ -43,13 +43,20 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public IInteractable FindInteractable()
         {
-            if (TryFindReflectorViaCameraRay(out var reflectorTarget))
+            return FindInteractable(requireCanInteract: true);
+        }
+
+        private IInteractable FindInteractable(bool requireCanInteract)
+        {
+            if (TryFindReflectorViaCameraRay(out var reflectorTarget, requireCanInteract))
                 return reflectorTarget;
 
-            if (TryFindInteractableViaRaycast(out var raycastTarget))
+            if (TryFindInteractableViaRaycast(out var raycastTarget, requireCanInteract))
                 return raycastTarget;
 
-            return TryFindNearestInteractableInRange(out var proximityTarget) ? proximityTarget : null;
+            return TryFindNearestInteractableInRange(out var proximityTarget, requireCanInteract)
+                ? proximityTarget
+                : null;
         }
 
         public void RequestToggleInteraction()
@@ -91,13 +98,21 @@ namespace _Root.Scripts.Controllers
             StartInteractionInternal(interactable);
         }
 
-        public bool TryFindInteractableForPrompt(out IInteractable interactable)
+        public bool TryFindInteractableForPrompt(out IInteractable interactable, out string prompt)
         {
-            interactable = FindInteractable();
+            interactable = FindInteractable(requireCanInteract: false);
+            prompt = interactable is IInteractablePrompt promptProvider
+                ? promptProvider.GetInteractionPrompt()
+                : null;
             return interactable != null;
         }
 
-        private bool TryFindReflectorViaCameraRay(out IInteractable interactable)
+        public bool TryFindInteractableForPrompt(out IInteractable interactable)
+        {
+            return TryFindInteractableForPrompt(out interactable, out _);
+        }
+
+        private bool TryFindReflectorViaCameraRay(out IInteractable interactable, bool requireCanInteract)
         {
             interactable = null;
             Vector3 rayOrigin = transform.position + Vector3.up * 1f;
@@ -107,7 +122,7 @@ namespace _Root.Scripts.Controllers
                 return false;
 
             var reflector = hit.collider.GetComponentInParent<ReflectorInteractable>();
-            if (reflector == null || !reflector.CanInteract(transform))
+            if (reflector == null || !IsEligibleForInteraction(reflector, requireCanInteract))
                 return false;
 
             if (!IsWithinInteractionDistance(reflector.transform))
@@ -128,7 +143,7 @@ namespace _Root.Scripts.Controllers
             return transform.forward;
         }
 
-        private bool TryFindInteractableViaRaycast(out IInteractable interactable)
+        private bool TryFindInteractableViaRaycast(out IInteractable interactable, bool requireCanInteract)
         {
             interactable = null;
             Vector3 rayOrigin = transform.position + Vector3.up * 1f;
@@ -138,10 +153,10 @@ namespace _Root.Scripts.Controllers
                 return false;
 
             interactable = hit.collider.GetComponentInParent<IInteractable>();
-            return interactable != null && interactable.CanInteract(transform);
+            return interactable != null && IsEligibleForInteraction(interactable, requireCanInteract);
         }
 
-        private bool TryFindNearestInteractableInRange(out IInteractable interactable)
+        private bool TryFindNearestInteractableInRange(out IInteractable interactable, bool requireCanInteract)
         {
             interactable = null;
             Vector3 sampleOrigin = transform.position + Vector3.up * 1f;
@@ -155,7 +170,7 @@ namespace _Root.Scripts.Controllers
                     continue;
 
                 var candidate = col.GetComponentInParent<IInteractable>();
-                if (candidate == null || !candidate.CanInteract(transform))
+                if (candidate == null || !IsEligibleForInteraction(candidate, requireCanInteract))
                     continue;
 
                 var candidateTransform = (candidate as MonoBehaviour)?.transform;
@@ -178,6 +193,20 @@ namespace _Root.Scripts.Controllers
             }
 
             return interactable != null;
+        }
+
+        private bool IsEligibleForInteraction(IInteractable candidate, bool requireCanInteract)
+        {
+            if (requireCanInteract)
+                return candidate.CanInteract(transform);
+
+            if (candidate.CanInteract(transform))
+                return true;
+
+            if (candidate is not IInteractablePrompt promptProvider)
+                return false;
+
+            return !string.IsNullOrWhiteSpace(promptProvider.GetInteractionPrompt());
         }
 
         private bool IsWithinInteractionDistance(Transform target)
@@ -235,6 +264,13 @@ namespace _Root.Scripts.Controllers
             _currentInteractable = interactable;
             _currentInteractableTransform = (interactable as MonoBehaviour)?.transform;
             _currentInteractable.OnInteractStart(transform);
+
+            if (interactable is IInstantInteractable)
+            {
+                EndInteractionInternal();
+                return;
+            }
+
             NotifyReflectorAimCameraState(true);
 
             if (_networkPlayer != null && interactable is not ReflectorInteractable)
