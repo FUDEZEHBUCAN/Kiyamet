@@ -101,6 +101,16 @@ namespace _Root.Scripts.Controllers
         [Tooltip("Normal TPS kameraya dönüş animasyonunun süresi (sn).")]
         [SerializeField] private float knockbackBlendOutDuration = 0.85f;
         [SerializeField] private float knockbackCinematicFov = 58f;
+
+        [Header("Boulder Crush Death Camera")]
+        [SerializeField] private float boulderCrushCameraHeight = 12f;
+        [SerializeField] private float boulderCrushCameraOrbitRadius = 3.5f;
+        [SerializeField] private float boulderCrushLookHeight = 0.85f;
+        [SerializeField] private float boulderCrushOrbitSpeed = 10f;
+        [SerializeField] private float boulderCrushPositionSmooth = 0.1f;
+        [SerializeField] private float boulderCrushRotationSmooth = 0.07f;
+        [SerializeField] private float boulderCrushBlendOutDuration = 0.85f;
+        [SerializeField] private float boulderCrushFov = 50f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -152,8 +162,18 @@ namespace _Root.Scripts.Controllers
         private bool _knockbackCinematicInitialized;
         private float _knockbackCameraStartTime;
         private float _knockbackPhysicsEndedTime = -1f;
+        private bool _boulderCrushDeathCameraActive;
+        private bool _boulderCrushDeathCameraBlendingOut;
+        private float _boulderCrushBlendOutElapsed;
+        private float _boulderCrushSavedPitch;
+        private float _boulderCrushSavedYaw;
+        private float _boulderCrushOrbitYaw;
+        private Vector3 _boulderCrushSmoothedCameraPos;
+        private Vector3 _boulderCrushCameraPosVelocity;
+        private bool _boulderCrushCinematicInitialized;
         private Camera _gameplayCamera;
         private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
+        private static readonly Collider[] CameraOverlapBuffer = new Collider[12];
 
         /// <summary>Kameranın yatay bakış açısı (°). Hareket ve melee yönü için kullanılır.</summary>
         public float HorizontalLookYawDegrees => _yaw;
@@ -164,9 +184,63 @@ namespace _Root.Scripts.Controllers
 
         public bool IsKnockbackCameraActive => _knockbackCameraActive || _knockbackCameraBlendingOut;
 
+        public bool IsBoulderCrushDeathCameraActive =>
+            _boulderCrushDeathCameraActive || _boulderCrushDeathCameraBlendingOut;
+
+        public void BeginBoulderCrushDeathCamera()
+        {
+            if (target == null || _mirageStepObserveActive)
+                return;
+
+            _knockbackCameraActive = false;
+            _knockbackCameraBlendingOut = false;
+            _knockbackCinematicInitialized = false;
+
+            _boulderCrushSavedPitch = _pitch;
+            _boulderCrushSavedYaw = _yaw;
+            _boulderCrushOrbitYaw = target.eulerAngles.y + 25f;
+            _boulderCrushSmoothedCameraPos = transform.position;
+            _boulderCrushCameraPosVelocity = Vector3.zero;
+            _boulderCrushCinematicInitialized = false;
+            _boulderCrushDeathCameraActive = true;
+            _boulderCrushDeathCameraBlendingOut = false;
+            _boulderCrushBlendOutElapsed = 0f;
+            _armLengthVelocity = 0f;
+            StopCameraShake();
+        }
+
+        public void EndBoulderCrushDeathCamera()
+        {
+            if (!_boulderCrushDeathCameraActive || _boulderCrushDeathCameraBlendingOut)
+                return;
+
+            _boulderCrushDeathCameraBlendingOut = true;
+            _boulderCrushBlendOutElapsed = 0f;
+            _boulderCrushCameraPosVelocity = Vector3.zero;
+            _armLengthVelocity = 0f;
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+        }
+
+        private void CompleteBoulderCrushDeathCameraBlendOut()
+        {
+            _pitch = _boulderCrushSavedPitch;
+            _yaw = GetGameplayCameraYaw(target);
+            _boulderCrushDeathCameraActive = false;
+            _boulderCrushDeathCameraBlendingOut = false;
+            _boulderCrushBlendOutElapsed = 0f;
+            _boulderCrushCinematicInitialized = false;
+            _armLengthVelocity = 0f;
+            RestoreDefaultCameraFov();
+        }
+
         public void BeginKnockbackCamera(Vector3 worldKnockbackDirection)
         {
-            if (target == null || _mirageStepObserveActive || _reflectorAimActive)
+            if (target == null || _mirageStepObserveActive || _reflectorAimActive || IsBoulderCrushDeathCameraActive)
                 return;
 
             Vector3 flat = worldKnockbackDirection;
@@ -964,6 +1038,19 @@ namespace _Root.Scripts.Controllers
                 return;
             }
 
+            UpdateBoulderCrushDeathCameraLifecycle();
+
+            if (_boulderCrushDeathCameraActive || _boulderCrushDeathCameraBlendingOut)
+            {
+                if (_boulderCrushDeathCameraBlendingOut)
+                    ApplyBoulderCrushDeathBlendOutCamera();
+                else
+                    ApplyBoulderCrushDeathCamera();
+
+                ApplyGameplayCursorLock();
+                return;
+            }
+
             UpdateKnockbackCameraLifecycle();
 
             if (_knockbackCameraActive || _knockbackCameraBlendingOut)
@@ -1165,7 +1252,7 @@ namespace _Root.Scripts.Controllers
         private void RestoreDefaultCameraFov()
         {
             EnsureGameplayCameraReference();
-            if (_gameplayCamera == null || IsReflectorAimActive || IsKnockbackCameraActive)
+            if (_gameplayCamera == null || IsReflectorAimActive || IsKnockbackCameraActive || IsBoulderCrushDeathCameraActive)
                 return;
 
             _gameplayCamera.fieldOfView = reflectorDefaultFov;
@@ -1173,6 +1260,9 @@ namespace _Root.Scripts.Controllers
 
         private void UpdateKnockbackCameraLifecycle()
         {
+            if (IsBoulderCrushDeathCameraActive)
+                return;
+
             var cc = GetLocalCharacterController();
             bool knockbackActive = cc != null && cc.HasActiveKnockback;
 
@@ -1312,6 +1402,110 @@ namespace _Root.Scripts.Controllers
                 transform.rotation,
                 desiredRot,
                 Time.deltaTime / Mathf.Max(0.001f, knockbackRotationSmooth));
+        }
+
+        private void UpdateBoulderCrushDeathCameraLifecycle()
+        {
+            if (!_boulderCrushDeathCameraActive || _boulderCrushDeathCameraBlendingOut)
+                return;
+
+            var local = NetworkPlayer.Local;
+            if (local != null && local.IsAlive)
+                EndBoulderCrushDeathCamera();
+        }
+
+        private void ApplyBoulderCrushDeathCamera()
+        {
+            if (target == null)
+                return;
+
+            ComputeBoulderCrushDeathCameraState(out Vector3 position, out Quaternion rotation);
+            transform.position = position;
+            transform.rotation = rotation;
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                _gameplayCamera.fieldOfView = boulderCrushFov;
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private void ApplyBoulderCrushDeathBlendOutCamera()
+        {
+            if (target == null)
+            {
+                CompleteBoulderCrushDeathCameraBlendOut();
+                return;
+            }
+
+            _boulderCrushBlendOutElapsed += Time.deltaTime;
+            float t = boulderCrushBlendOutDuration > 0.001f
+                ? Mathf.Clamp01(_boulderCrushBlendOutElapsed / boulderCrushBlendOutDuration)
+                : 1f;
+            float eased = EaseOutCubic(t);
+
+            ComputeBoulderCrushDeathCameraState(out Vector3 cinematicPos, out Quaternion cinematicRot);
+            float normalYaw = GetGameplayCameraYaw(target);
+            ComputeNormalTpsCameraState(target, _boulderCrushSavedPitch, normalYaw, out Vector3 normalPos, out Quaternion normalRot);
+
+            transform.position = Vector3.Lerp(cinematicPos, normalPos, eased);
+            transform.rotation = Quaternion.Slerp(cinematicRot, normalRot, eased);
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                _gameplayCamera.fieldOfView = Mathf.Lerp(boulderCrushFov, reflectorDefaultFov, eased);
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+
+            if (t >= 1f)
+                CompleteBoulderCrushDeathCameraBlendOut();
+        }
+
+        private void ComputeBoulderCrushDeathCameraState(out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+
+            if (target == null)
+                return;
+
+            _boulderCrushOrbitYaw += boulderCrushOrbitSpeed * Time.deltaTime;
+
+            Vector3 pivot = target.position + Vector3.up * boulderCrushLookHeight;
+            float orbitRad = _boulderCrushOrbitYaw * Mathf.Deg2Rad;
+            Vector3 orbitOffset = new Vector3(
+                Mathf.Sin(orbitRad) * boulderCrushCameraOrbitRadius,
+                boulderCrushCameraHeight,
+                Mathf.Cos(orbitRad) * boulderCrushCameraOrbitRadius);
+            Vector3 desiredPos = pivot + orbitOffset;
+            Vector3 safeDesiredPos = ResolveSafeWorldCameraPosition(pivot, desiredPos);
+
+            if (!_boulderCrushCinematicInitialized)
+            {
+                _boulderCrushSmoothedCameraPos = safeDesiredPos;
+                _boulderCrushCinematicInitialized = true;
+            }
+            else
+            {
+                _boulderCrushSmoothedCameraPos = Vector3.SmoothDamp(
+                    _boulderCrushSmoothedCameraPos,
+                    safeDesiredPos,
+                    ref _boulderCrushCameraPosVelocity,
+                    boulderCrushPositionSmooth);
+            }
+
+            Vector3 lookDir = pivot - _boulderCrushSmoothedCameraPos;
+            if (lookDir.sqrMagnitude < 0.0001f)
+                lookDir = Vector3.down;
+
+            Quaternion desiredRot = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+            position = _boulderCrushSmoothedCameraPos;
+            rotation = Quaternion.Slerp(
+                transform.rotation,
+                desiredRot,
+                Time.deltaTime / Mathf.Max(0.001f, boulderCrushRotationSmooth));
         }
 
         private void ApplyMirageStepBlendOutCamera(Transform observeTarget)
@@ -1520,6 +1714,52 @@ namespace _Root.Scripts.Controllers
             }
 
             return safeLength;
+        }
+
+        private Vector3 ResolveSafeWorldCameraPosition(Vector3 pivot, Vector3 desiredWorldPosition)
+        {
+            Vector3 toCamera = desiredWorldPosition - pivot;
+            float desiredLength = toCamera.magnitude;
+            if (desiredLength <= 0.001f)
+                return pivot + Vector3.up * minDistanceFromPivot;
+
+            Vector3 direction = toCamera / desiredLength;
+            float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
+            Vector3 safePos = pivot + direction * safeLength;
+
+            const int maxPullbackSteps = 10;
+            const float pullbackStep = 0.35f;
+            for (int i = 0; i < maxPullbackSteps && safeLength > minDistanceFromPivot + 0.01f; i++)
+            {
+                if (!IsCameraPositionBlocked(safePos))
+                    break;
+
+                safeLength = Mathf.Max(minDistanceFromPivot, safeLength - pullbackStep);
+                safePos = pivot + direction * safeLength;
+            }
+
+            return safePos;
+        }
+
+        private bool IsCameraPositionBlocked(Vector3 position)
+        {
+            if (collisionLayers.value == 0)
+                return false;
+
+            int count = Physics.OverlapSphereNonAlloc(
+                position,
+                collisionRadius,
+                CameraOverlapBuffer,
+                collisionLayers,
+                QueryTriggerInteraction.Ignore);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (!IsIgnoredCollider(CameraOverlapBuffer[i]))
+                    return true;
+            }
+
+            return false;
         }
 
         private float ApplyArmLengthSmoothing(float safeLength, float desiredLength)

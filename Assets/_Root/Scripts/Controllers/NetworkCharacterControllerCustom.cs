@@ -39,7 +39,7 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float dodgeAttackLockAfterRoll = 0.28f;
     
     [Header("Respawn Settings")]
-    [SerializeField] private float respawnYThreshold = -10f;
+    [SerializeField] private float respawnYThreshold = -200f;
 
     [Header("Ground Snap")]
     [SerializeField] private LayerMask groundSnapLayers;

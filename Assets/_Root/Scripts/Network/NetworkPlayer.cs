@@ -70,6 +70,7 @@ namespace _Root.Scripts.Network
         [Networked] private int LastFallTick { get; set; } // Boss savurma / Fall animasyonu
         [Networked] private byte LastKnockbackFallStyle { get; set; }
         [Networked] private int LastDeathTick { get; set; } // Death animasyonu için
+        [Networked] private int LastBoulderCrushTick { get; set; }
         [Networked] private int LastBossMeleeVfxTick { get; set; }
         [Networked] private byte LastBossMeleeVfxType { get; set; }
         
@@ -78,6 +79,7 @@ namespace _Root.Scripts.Network
         private int _lastVisualFallTick;
         private int _lastVisualBossMeleeVfxTick;
         private int _lastVisualDeathTick;
+        private int _lastVisualBoulderCrushTick;
         private bool _wasDead;
         private float _supportUltimateFloatVelocity;
         private bool _supportUltimateFloatCameraShakeActive;
@@ -242,6 +244,7 @@ namespace _Root.Scripts.Network
             
             // Local state initialize
             _wasDead = IsDead;
+            _lastVisualBoulderCrushTick = LastBoulderCrushTick;
             
             // Animator reset (respawn sonrası)
             if (animController != null)
@@ -344,6 +347,23 @@ namespace _Root.Scripts.Network
             }
 
             UpdateSupportUltimateFloatCameraShake();
+            SyncLocalBoulderCrushDeathCamera();
+        }
+
+        private void SyncLocalBoulderCrushDeathCamera()
+        {
+            if (!Object.HasInputAuthority)
+                return;
+
+            TpsCameraController camera = TpsCameraController.Instance;
+            if (camera == null)
+                return;
+
+            if (LastBoulderCrushTick > _lastVisualBoulderCrushTick && LastBoulderCrushTick > 0)
+            {
+                camera.BeginBoulderCrushDeathCamera();
+                _lastVisualBoulderCrushTick = LastBoulderCrushTick;
+            }
         }
 
         private void SyncBossMeleeHitVfx()
@@ -399,7 +419,7 @@ namespace _Root.Scripts.Network
 
         public void TakeDamage(float damage, bool isHeavyAttack = false, Vector3? damageOrigin = null,
             float knockbackForce = 0f, float knockbackDuration = 0f, float knockbackUpward = 0f,
-            float inputBlockDuration = 0f)
+            float inputBlockDuration = 0f, bool ignoreDirectionalBlock = false, bool fromBoulderCrush = false)
         {
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
@@ -423,7 +443,7 @@ namespace _Root.Scripts.Network
             if (damage <= 0.001f)
                 return;
             
-            if (TryConsumeDirectionalBlock(damageOrigin))
+            if (!ignoreDirectionalBlock && TryConsumeDirectionalBlock(damageOrigin))
                 return;
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
@@ -496,6 +516,9 @@ namespace _Root.Scripts.Network
 
             if (isLethal)
             {
+                if (fromBoulderCrush)
+                    LastBoulderCrushTick = Runner.Tick;
+
                 OnDeath(deferPresentationUntilKnockbackEnds: applyKnockback);
                 return;
             }
