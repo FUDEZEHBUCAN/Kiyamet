@@ -4,6 +4,7 @@ using _Root.Scripts.Enums;
 using _Root.Scripts.Network;
 using _Root.Scripts.Network.Lobby;
 using Fusion;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -19,6 +20,7 @@ namespace _Root.Scripts.Editor
         private const string TankPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Tank.prefab";
         private const string SupportPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Shaman.prefab";
         private const string DuelistPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Duelist.prefab";
+        private const string DefaultTmpFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
 
         [InitializeOnLoadMethod]
         private static void EnsurePrefabsExistOnLoad()
@@ -48,7 +50,7 @@ namespace _Root.Scripts.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log($"[PlaytestLobby] Prefabs created:\n  UI: {UiPrefabPath}\n  System: {SystemPrefabPath}");
+            Debug.Log($"[PlaytestLobby] TMP lobby prefabs created:\n  UI: {UiPrefabPath}\n  System: {SystemPrefabPath}");
         }
 
         private static GameObject BuildLobbySystemHierarchy(GameObject uiPrefabAsset)
@@ -111,32 +113,32 @@ namespace _Root.Scripts.Editor
             layout.childForceExpandWidth = true;
             layout.childForceExpandHeight = false;
 
-            AddLabel(panel, "TitleLabel", "Kiyamet — Playtest Lobby", 48, FontStyle.Bold, 72f);
-            AddLabel(panel, "SessionHintLabel", "Session name (everyone must use the same):", 28, FontStyle.Normal, 40f);
+            AddLabel(panel, "TitleLabel", "Kiyamet — Playtest Lobby", 48, FontStyles.Bold, 72f);
+            AddLabel(panel, "SessionHintLabel", "Session name (everyone must use the same):", 28, FontStyles.Normal, 40f);
             var sessionField = AddInputField(panel, "SessionField", 72f);
-            var statusText = AddLabel(panel, "StatusText", string.Empty, 26, FontStyle.Normal, 100f);
-            statusText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            statusText.verticalOverflow = VerticalWrapMode.Overflow;
+            var statusText = AddLabel(panel, "StatusText", string.Empty, 26, FontStyles.Normal, 100f);
+            statusText.enableWordWrapping = true;
+            statusText.overflowMode = TextOverflowModes.Overflow;
 
             var connectButton = AddPrimaryButton(panel, "ConnectButton", "Join / Host", null);
             var quitGameButton = AddSecondaryButton(panel, "QuitGameButton", "Quit Game", null);
 
             var inLobbySection = AddSection(panel, "InLobbySection");
-            AddLabel(inLobbySection.transform, "RoleHintLabel", "Choose your role, then lock it:", 28, FontStyle.Normal, 44f);
+            AddLabel(inLobbySection.transform, "RoleHintLabel", "Choose your role, then lock it:", 28, FontStyles.Normal, 44f);
             var roleRow = AddHorizontalRow(inLobbySection.transform, "RoleRow", 96f);
             var tankRoleButton = AddRoleButton(roleRow.transform, "TankRoleButton", "Tank", PlayerRoleType.Tank);
             var supportRoleButton = AddRoleButton(roleRow.transform, "SupportRoleButton", "Support", PlayerRoleType.Support);
             var duelistRoleButton = AddRoleButton(roleRow.transform, "DuelistRoleButton", "Duelist", PlayerRoleType.Duelist);
             var lockRoleButton = AddPrimaryButton(inLobbySection.transform, "LockRoleButton", "Lock Role", null);
-            var rosterText = AddLabel(inLobbySection.transform, "RosterText", string.Empty, 26, FontStyle.Normal, 140f);
-            rosterText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            var rosterText = AddLabel(inLobbySection.transform, "RosterText", string.Empty, 26, FontStyles.Normal, 140f);
+            rosterText.enableWordWrapping = true;
             var leaveLobbyButton = AddSecondaryButton(inLobbySection.transform, "LeaveLobbyButton", "Leave Lobby", null);
 
             var hostSection = AddSection(panel, "HostSection");
             AddPrimaryButton(hostSection.transform, "StartGameButton", "Start Game", null);
 
             var clientWaitSection = AddSection(panel, "ClientWaitSection");
-            AddLabel(clientWaitSection.transform, "ClientWaitLabel", "Waiting for the host to start the game...", 30, FontStyle.Italic, 72f);
+            AddLabel(clientWaitSection.transform, "ClientWaitLabel", "Waiting for the host to start the game...", 30, FontStyles.Italic, 72f);
 
             inLobbySection.SetActive(false);
             hostSection.SetActive(false);
@@ -245,52 +247,58 @@ namespace _Root.Scripts.Editor
             return go.GetComponent<RectTransform>();
         }
 
-        private static Text AddLabel(Transform parent, string name, string content, int fontSize, FontStyle style, float height)
+        private static TextMeshProUGUI AddLabel(Transform parent, string name, string content, float fontSize, FontStyles style, float height)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+            var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             var le = go.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.minHeight = height;
 
-            var text = go.GetComponent<Text>();
-            ApplyFont(text, fontSize, style);
-            text.alignment = TextAnchor.MiddleLeft;
+            var text = go.GetComponent<TextMeshProUGUI>();
+            ApplyTmpFont(text, fontSize, style);
+            text.alignment = TextAlignmentOptions.MidlineLeft;
             text.text = content;
             text.color = Color.white;
             text.raycastTarget = false;
             return text;
         }
 
-        private static InputField AddInputField(Transform parent, string name, float height)
+        private static TMP_InputField AddInputField(Transform parent, string name, float height)
         {
-            var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(InputField));
+            var root = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(TMP_InputField));
             root.transform.SetParent(parent, false);
             var le = root.AddComponent<LayoutElement>();
             le.preferredHeight = height;
             le.minHeight = height;
             root.GetComponent<Image>().color = new Color(0.08f, 0.09f, 0.11f, 1f);
 
-            var textGo = new GameObject("Text", typeof(RectTransform), typeof(Text));
-            textGo.transform.SetParent(root.transform, false);
-            StretchRect(textGo.GetComponent<RectTransform>(), new Vector2(16f, 8f), new Vector2(-16f, -8f));
-            var text = textGo.GetComponent<Text>();
-            ApplyFont(text, 30, FontStyle.Normal);
-            text.color = Color.white;
-            text.alignment = TextAnchor.MiddleLeft;
+            var textAreaGo = new GameObject("Text Area", typeof(RectTransform), typeof(RectMask2D));
+            textAreaGo.transform.SetParent(root.transform, false);
+            StretchRect(textAreaGo.GetComponent<RectTransform>(), new Vector2(16f, 8f), new Vector2(-16f, -8f));
 
-            var placeholderGo = new GameObject("Placeholder", typeof(RectTransform), typeof(Text));
-            placeholderGo.transform.SetParent(root.transform, false);
-            StretchRect(placeholderGo.GetComponent<RectTransform>(), new Vector2(16f, 8f), new Vector2(-16f, -8f));
-            var placeholder = placeholderGo.GetComponent<Text>();
-            ApplyFont(placeholder, 28, FontStyle.Italic);
+            var textGo = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            textGo.transform.SetParent(textAreaGo.transform, false);
+            StretchRect(textGo.GetComponent<RectTransform>());
+            var text = textGo.GetComponent<TextMeshProUGUI>();
+            ApplyTmpFont(text, 30f, FontStyles.Normal);
+            text.color = Color.white;
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+
+            var placeholderGo = new GameObject("Placeholder", typeof(RectTransform), typeof(TextMeshProUGUI));
+            placeholderGo.transform.SetParent(textAreaGo.transform, false);
+            StretchRect(placeholderGo.GetComponent<RectTransform>());
+            var placeholder = placeholderGo.GetComponent<TextMeshProUGUI>();
+            ApplyTmpFont(placeholder, 28f, FontStyles.Italic);
             placeholder.color = new Color(1f, 1f, 1f, 0.4f);
             placeholder.text = "e.g. Playtest-Group-A";
+            placeholder.alignment = TextAlignmentOptions.MidlineLeft;
 
-            var field = root.GetComponent<InputField>();
+            var field = root.GetComponent<TMP_InputField>();
+            field.textViewport = textAreaGo.GetComponent<RectTransform>();
             field.textComponent = text;
             field.placeholder = placeholder;
-            field.lineType = InputField.LineType.SingleLine;
+            field.lineType = TMP_InputField.LineType.SingleLine;
             field.characterLimit = 64;
             return field;
         }
@@ -315,12 +323,12 @@ namespace _Root.Scripts.Editor
             highlight.raycastTarget = false;
             highlight.enabled = false;
 
-            var textGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            var textGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
             textGo.transform.SetParent(go.transform, false);
             StretchRect(textGo.GetComponent<RectTransform>());
-            var text = textGo.GetComponent<Text>();
-            ApplyFont(text, 32, FontStyle.Bold);
-            text.alignment = TextAnchor.MiddleCenter;
+            var text = textGo.GetComponent<TextMeshProUGUI>();
+            ApplyTmpFont(text, 32f, FontStyles.Bold);
+            text.alignment = TextAlignmentOptions.Center;
             text.text = label;
             text.raycastTarget = false;
 
@@ -352,12 +360,12 @@ namespace _Root.Scripts.Editor
             var img = go.GetComponent<Image>();
             img.color = backgroundColor;
 
-            var textGo = new GameObject("Label", typeof(RectTransform), typeof(Text));
+            var textGo = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
             textGo.transform.SetParent(go.transform, false);
             StretchRect(textGo.GetComponent<RectTransform>());
-            var text = textGo.GetComponent<Text>();
-            ApplyFont(text, 34, FontStyle.Bold);
-            text.alignment = TextAnchor.MiddleCenter;
+            var text = textGo.GetComponent<TextMeshProUGUI>();
+            ApplyTmpFont(text, 34f, FontStyles.Bold);
+            text.alignment = TextAlignmentOptions.Center;
             text.text = label;
             text.raycastTarget = false;
 
@@ -369,12 +377,20 @@ namespace _Root.Scripts.Editor
             return button;
         }
 
-        private static void ApplyFont(Text text, int fontSize, FontStyle style)
+        private static void ApplyTmpFont(TextMeshProUGUI text, float fontSize, FontStyles style)
         {
-            text.font = GetUiFont();
+            text.font = GetDefaultFontAsset();
             text.fontSize = fontSize;
             text.fontStyle = style;
-            text.supportRichText = false;
+            text.richText = false;
+        }
+
+        private static TMP_FontAsset GetDefaultFontAsset()
+        {
+            var font = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(DefaultTmpFontPath);
+            if (font == null)
+                Debug.LogWarning($"[PlaytestLobby] TMP font not found at {DefaultTmpFontPath}");
+            return font;
         }
 
         private static void StretchRect(RectTransform rt, Vector2? offsetMin = null, Vector2? offsetMax = null)
@@ -383,23 +399,6 @@ namespace _Root.Scripts.Editor
             rt.anchorMax = Vector2.one;
             rt.offsetMin = offsetMin ?? Vector2.zero;
             rt.offsetMax = offsetMax ?? Vector2.zero;
-        }
-
-        private static Font GetUiFont()
-        {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font != null)
-                return font;
-
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            if (font != null)
-                return font;
-
-            var osFont = Font.CreateDynamicFontFromOSFont("Arial", 32);
-            if (osFont != null)
-                return osFont;
-
-            return Font.CreateDynamicFontFromOSFont("Helvetica", 32);
         }
     }
 }

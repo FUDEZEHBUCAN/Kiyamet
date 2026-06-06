@@ -1,5 +1,6 @@
 using System;
 using _Root.Scripts.Enums;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,8 +19,8 @@ namespace _Root.Scripts.Network.Lobby
         [SerializeField] private GameObject root;
 
         [Header("Pre-connect")]
-        [SerializeField] private InputField sessionField;
-        [SerializeField] private Text statusText;
+        [SerializeField] private TMP_InputField sessionField;
+        [SerializeField] private TMP_Text statusText;
         [SerializeField] private Button connectButton;
         [SerializeField] private Button quitGameButton;
 
@@ -29,7 +30,7 @@ namespace _Root.Scripts.Network.Lobby
         [SerializeField] private PlaytestLobbyRoleButton supportRoleButton;
         [SerializeField] private PlaytestLobbyRoleButton duelistRoleButton;
         [SerializeField] private Button lockRoleButton;
-        [SerializeField] private Text rosterText;
+        [SerializeField] private TMP_Text rosterText;
         [SerializeField] private Button leaveLobbyButton;
 
         [Header("Host / Client")]
@@ -231,9 +232,9 @@ namespace _Root.Scripts.Network.Lobby
             if (button == null || string.IsNullOrEmpty(label))
                 return;
 
-            var text = button.GetComponentInChildren<Text>();
-            if (text != null)
-                text.text = label;
+            var tmpText = button.GetComponentInChildren<TMP_Text>(true);
+            if (tmpText != null)
+                tmpText.text = label;
         }
 
         private static void SetHighlight(PlaytestLobbyRoleButton roleButton, bool on)
