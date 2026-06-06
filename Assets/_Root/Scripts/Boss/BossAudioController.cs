@@ -1,4 +1,5 @@
 using UnityEngine;
+using _Root.Scripts.Controllers;
 
 namespace _Root.Scripts.Boss
 {
@@ -37,6 +38,8 @@ namespace _Root.Scripts.Boss
         [SerializeField] private AudioClip sleepingSound;
         [SerializeField] [Range(0f, 1f)] private float sleepingVolume = 0.45f;
         [SerializeField] private bool sleepingLoop = true;
+        [SerializeField] private float sleepingMinDistance = 4f;
+        [SerializeField] private float sleepingMaxDistance = 16f;
 
         [Header("Uyanış")]
         [SerializeField] private AudioClip[] wakeUpSounds;
@@ -225,6 +228,7 @@ namespace _Root.Scripts.Boss
             _sleepingSoundActive = active;
             if (active)
             {
+                ConfigureSleepingSource();
                 sleepingSource.clip = sleepingSound;
                 sleepingSource.volume = sleepingVolume;
                 sleepingSource.loop = sleepingLoop;
@@ -239,11 +243,23 @@ namespace _Root.Scripts.Boss
 
         private void EnsureSleepingSource()
         {
-            if (sleepingSource != null)
+            if (sleepingSource == null)
+                sleepingSource = gameObject.AddComponent<AudioSource>();
+
+            ConfigureSleepingSource();
+        }
+
+        private void ConfigureSleepingSource()
+        {
+            if (sleepingSource == null)
                 return;
 
-            sleepingSource = gameObject.AddComponent<AudioSource>();
-            ConfigureSource(sleepingSource);
+            sleepingSource.playOnAwake = false;
+            SpatialAudioUtility.ConfigureAs3D(
+                sleepingSource,
+                sleepingMinDistance,
+                sleepingMaxDistance);
+            sleepingSource.dopplerLevel = 0f;
         }
 
         private void PlayRandom(AudioClip[] clips, AudioSource source, float volume, float pitchVariance = 0.06f)

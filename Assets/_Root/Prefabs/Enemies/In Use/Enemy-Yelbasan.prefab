@@ -233,11 +233,28 @@ MonoBehaviour:
   attackSwingSounds: []
   attackHitSounds:
   - {fileID: 8300000, guid: ab96ab9a401c3d9478884a66074c279c, type: 3}
+  leapWindupSounds:
+  - {fileID: 8300000, guid: 19e67e40382b54042b461190af84f2bf, type: 3}
+  leapJumpSounds:
+  - {fileID: 8300000, guid: 4a3737a4d31e74492a156ff0260248a6, type: 3}
+  leapLandSounds:
+  - {fileID: 8300000, guid: e96d06eeece2346d78a851951225ea87, type: 3}
+  leapHitSounds:
+  - {fileID: 8300000, guid: ab96ab9a401c3d9478884a66074c279c, type: 3}
+  leapWindupVolume: 0.7
+  leapJumpVolume: 0.82
+  leapLandVolume: 0.88
+  leapHitVolume: 0.85
   takeDamageSounds: []
   deathSounds:
   - {fileID: 8300000, guid: 06bf8c1c299c35e4897577e34d868eef, type: 3}
   audioSource: {fileID: 0}
   volume: 0.5
+  minDistance: 3
+  maxDistance: 28
+  minPitch: 0.92
+  maxPitch: 1.08
+  pitchVariance: 0.06
 --- !u!1001 &2422467028582667105
 PrefabInstance:
   m_ObjectHideFlags: 0

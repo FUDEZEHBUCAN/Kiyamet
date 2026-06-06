@@ -122,6 +122,22 @@ namespace _Root.Scripts.Enemy
             if (animator != null)
                 animator.SetTrigger(ParamLeap);
         }
+
+        /// <summary>
+        /// Leap inişinde combat katmanını boşalt; zıplama pozunda donmayı önler.
+        /// </summary>
+        public void EndLeapAnimation()
+        {
+            if (animator == null)
+                return;
+
+            animator.ResetTrigger(ParamAttack);
+            animator.ResetTrigger(ParamLeap);
+
+            int combatLayer = animator.GetLayerIndex("Combat Layer");
+            if (combatLayer >= 0)
+                animator.Play("Empty", combatLayer, 0f);
+        }
         
         /// <summary>
         /// Saldırı animasyonunu iptal et (hasar aldığında)

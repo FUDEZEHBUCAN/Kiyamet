@@ -340,7 +340,8 @@ namespace _Root.Scripts.Enemy
             }
             
             // Agent pozisyon senkronu (Network). Off-mesh link sırasında agent kendi hareketini yönetir.
-            if (agent != null && agent.enabled && agent.isOnNavMesh && !agent.isOnOffMeshLink)
+            if (agent != null && agent.enabled && agent.isOnNavMesh && !agent.isOnOffMeshLink
+                && CurrentState != EnemyState.LeapJump && CurrentState != EnemyState.LeapRecover)
             {
                 if (agent.hasPath && agent.velocity.sqrMagnitude > 0.01f)
                     transform.position = agent.nextPosition;
@@ -560,6 +561,12 @@ namespace _Root.Scripts.Enemy
                 if (LastAttackEffectTick > _lastVisualAttackEffectTick && LastAttackEffectTick > 0)
                 {
                     SpawnAttackEffect();
+                    if (audioController != null && UsesLeapAttack
+                        && (CurrentState == EnemyState.LeapRecover || CurrentState == EnemyState.LeapJump))
+                    {
+                        audioController.PlayLeapHit();
+                    }
+
                     _lastVisualAttackEffectTick = LastAttackEffectTick;
                 }
                 
@@ -583,6 +590,14 @@ namespace _Root.Scripts.Enemy
             // State değişikliğini kontrol et (death animasyonu için)
             if (CurrentState != _lastState)
             {
+                SyncLeapAudio(_lastState, CurrentState);
+
+                if (CurrentState == EnemyState.LeapRecover && _lastState == EnemyState.LeapJump)
+                {
+                    if (animController != null)
+                        animController.EndLeapAnimation();
+                }
+
                 if (CurrentState == EnemyState.Dead && !_deathAnimTriggered)
                 {
                     if (animController != null)
@@ -859,12 +874,7 @@ namespace _Root.Scripts.Enemy
 
         private void UpdateLeapRecover()
         {
-            if (agent != null && agent.enabled)
-            {
-                agent.isStopped = true;
-                agent.velocity = Vector3.zero;
-                agent.ResetPath();
-            }
+            transform.position = LeapLockedPosition;
 
             if (_currentTarget != null && _currentTarget.IsAlive)
                 FacePosition(_currentTarget.transform.position, 1f);
@@ -873,9 +883,15 @@ namespace _Root.Scripts.Enemy
                 return;
 
             LeapPhaseTimer = TickTimer.None;
+            EnableAgentForNavigation();
 
-            if (agent != null && agent.enabled)
+            if (agent != null)
+            {
+                agent.Warp(LeapLockedPosition);
                 agent.isStopped = false;
+            }
+
+            transform.position = LeapLockedPosition;
 
             if (_currentTarget != null && _currentTarget.IsAlive)
             {
@@ -1095,27 +1111,39 @@ namespace _Root.Scripts.Enemy
             }
 
             _nextAttackAllowedTime = Runner.SimulationTime + RollAttackCooldownDuration();
+        }
 
-            if (audioController != null)
-                audioController.PlayAttackSwing();
+        private void SyncLeapAudio(EnemyState previousState, EnemyState newState)
+        {
+            if (audioController == null || !UsesLeapAttack)
+                return;
+
+            switch (newState)
+            {
+                case EnemyState.LeapWindup when previousState != EnemyState.LeapWindup:
+                    if (audioController.HasLeapWindupSounds)
+                        audioController.PlayLeapWindup();
+                    break;
+                case EnemyState.LeapJump when previousState == EnemyState.LeapWindup:
+                    if (audioController.HasLeapJumpSounds)
+                        audioController.PlayLeapJump();
+                    break;
+                case EnemyState.LeapRecover when previousState == EnemyState.LeapJump:
+                    if (audioController.HasLeapLandSounds)
+                        audioController.PlayLeapLand();
+                    break;
+            }
         }
 
         private void CompleteLeapJump()
         {
-            transform.position = LeapLockedPosition;
+            transform.position = EvaluateLeapArcPosition(
+                LeapStartPosition,
+                LeapLockedPosition,
+                enemyData.LeapArcHeight,
+                1f);
 
             DealLeapDamage(LeapLockedPosition);
-            EnableAgentForNavigation();
-
-            if (agent != null && agent.isOnNavMesh)
-                agent.Warp(LeapLockedPosition);
-
-            if (agent != null && agent.enabled)
-            {
-                agent.isStopped = true;
-                agent.velocity = Vector3.zero;
-                agent.ResetPath();
-            }
 
             LeapPhaseTimer = TickTimer.CreateFromSeconds(Runner, LeapRecoverDuration);
             CurrentState = EnemyState.LeapRecover;
@@ -1172,6 +1200,9 @@ namespace _Root.Scripts.Enemy
 
             LeapPhaseTimer = TickTimer.None;
             EnableAgentForNavigation();
+
+            if (agent != null && IsAlive)
+                agent.Warp(transform.position);
 
             if (animController != null)
                 animController.InterruptAttack();
@@ -1466,7 +1497,7 @@ namespace _Root.Scripts.Enemy
 
             SpawnAttackEffectAt(landingPosition);
             LastAttackEffectTick = Runner.Tick;
-            audioController?.PlayAttackHit();
+            audioController?.PlayLeapHit();
         }
 
         private void SpawnAttackEffectAt(Vector3 position)
