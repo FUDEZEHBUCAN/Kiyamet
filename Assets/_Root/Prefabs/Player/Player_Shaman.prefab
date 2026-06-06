@@ -116,6 +116,7 @@ MonoBehaviour:
   hitStunDuration: 0.5
   blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
+  postReviveInputBlockDuration: 2
   startWithUltimateReadyForTesting: 0
   killsRequiredForUltimate: 5
   ultimateDuration: 10
@@ -250,9 +251,6 @@ MonoBehaviour:
   dodgeDuration: 0.38
   dodgeCooldown: 1.1
   dodgeAttackLockAfterRoll: 0.28
-  reflectorLayer:
-    serializedVersion: 2
-    m_Bits: 256
   respawnYThreshold: -10
   groundSnapLayers:
     serializedVersion: 2

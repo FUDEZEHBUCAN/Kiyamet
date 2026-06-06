@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e24a186c97bfd471ca33e40dd60c52bd, type: 3}
+  m_Name: BossData
+  m_EditorClassIdentifier: 
+  maxHealth: 600
+  cameraShakeSettings: {fileID: 11400000, guid: 49554529d8054fe4948d0c2223eb4737, type: 2}
+  petrifyEnabled: 1
+  petrifyHealthThreshold: 200
+  movementSpeed: 4.5
+  rotationSpeed: 180
+  postAttackReorientDuration: 0.25
+  postAttackRotationSpeed: 300
+  attackFacingMaxAngle: 42
+  postAttackReorientAngleThreshold: 50
+  stoppingDistance: 6
+  locomotionSpeedForAnim: 6
+  detectionRange: 200
+  disengageRangeMultiplier: 1.35
+  normalAttackDamage: 35
+  normalAttackRange: 6.75
+  normalAttackRadius: 3
+  normalAttackCooldown: 5
+  normalAttackDamageDelay: 0.625
+  normalAttackLockDuration: 2
+  heavyAttackDamage: 65
+  heavyAttackRange: 7.28
+  heavyAttackRadius: 4
+  heavyAttackCooldown: 7
+  heavyAttackDamageDelay: 1.81
+  heavyAttackLockDuration: 4
+  heavyAttackPickChance: 0.4
+  laserCombatEnabled: 1
+  laserAttackDamage: 20
+  laserMinRange: 15
+  laserMaxRange: 20
+  laserWidth: 2
+  laserLength: 40
+  laserCooldown: 8
+  laserChargeDuration: 1.35
+  laserBeamDuration: 9
+  laserDamageTickInterval: 0.25
+  laserAttemptChance: 0.4
+  postLaserAttackLockDuration: 2
+  rushAttackEnabled: 1
+  rushMinRange: 2
+  rushMaxRange: 22
+  rushAttemptChance: 0.2
+  rushWindupDuration: 0
+  rushMoveSpeed: 11
+  rushAnimPlaybackSpeed: 1
+  linkRushAnimSpeedToMoveSpeed: 0
+  rushRunAnimReferenceSpeed: 5.5
+  rushMaxChargeDuration: 4.5
+  rushHitRange: 2.6
+  rushAttackDamage: 48
+  rushHitRadius: 1.85
+  rushStrikeDuration: 0.85
+  rushDamageDelay: 0.38
+  rushCooldown: 7
+  postRushAttackLockDuration: 1.1
+  jumpAttackEnabled: 1
+  jumpMinRange: 10
+  jumpMaxRange: 25
+  jumpAttemptChance: 0.2
+  jumpWindupDuration: 2.3
+  jumpDuration: 1
+  jumpArcHeight: 5
+  jumpAttackDamage: 50
+  jumpLandingRadius: 8
+  jumpCooldown: 9
+  postJumpMeleeLockDuration: 2
+  postMeleeAttackLockDuration: 2
+  playerKnockbackForcePerDamage: 0.3
+  playerKnockbackMinForce: 5
+  playerKnockbackMaxForce: 20
+  playerKnockbackUpward: 5
+  playerKnockbackDuration: 0.5
+  playerInputBlockDuration: 1.7

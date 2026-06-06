@@ -1,5 +1,7 @@
 using System;
+using _Root.Scripts.Boss;
 using _Root.Scripts.Enums;
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Network.Lobby;
 using DG.Tweening;
 using UnityEngine;
@@ -78,6 +80,27 @@ namespace _Root.Scripts.Controllers
         [SerializeField] private float mirageWindUpDistanceMultiplier = 1.05f;
         [SerializeField] private float mirageReturnDistanceMultiplier = 0.95f;
         [SerializeField] private float mirageReturnBlendDuration = 0.45f;
+
+        [Header("Reflector Aim Camera")]
+        [SerializeField] private float reflectorAimBlendDuration = 0.3f;
+        [SerializeField] private Vector3 reflectorFpsLocalOffset = new Vector3(0f, 0.14f, -0.38f);
+        [SerializeField] private float reflectorAimFov = 58f;
+        [SerializeField] private float reflectorDefaultFov = 60f;
+
+        [Header("Boss Knockback Camera")]
+        [SerializeField] private float knockbackCinematicDistance = 6.8f;
+        [SerializeField] private float knockbackCinematicHeight = 2.35f;
+        [SerializeField] private float knockbackLookHeight = 1.25f;
+        [SerializeField] private float knockbackSideOffset = 0.85f;
+        [SerializeField] private float knockbackPositionSmooth = 0.08f;
+        [SerializeField] private float knockbackRotationSmooth = 0.055f;
+        [Tooltip("Knockback fiziksel hareketi bittikten sonra blend-out başlamadan önce sinematik kamerada kalınacak ek süre (sn).")]
+        [SerializeField] private float knockbackBlendOutStartDelay = 0.35f;
+        [Tooltip("Sinematik kameranın knockback başlangıcından itibaren en az kalacağı süre (sn). Knockback erken bitse bile bu süre dolana blend-out başlamaz.")]
+        [SerializeField] private float knockbackCinematicMinDuration = 0.55f;
+        [Tooltip("Normal TPS kameraya dönüş animasyonunun süresi (sn).")]
+        [SerializeField] private float knockbackBlendOutDuration = 0.85f;
+        [SerializeField] private float knockbackCinematicFov = 58f;
         
         [Header("Damage Vignette")]
         [SerializeField] private float vignetteFadeInDuration = 0.15f;
@@ -94,6 +117,9 @@ namespace _Root.Scripts.Controllers
         private float _floatShakeStartTime;
         private float _floatShakeEndTime;
         private float _floatShakeDuration;
+        private bool _bossContinuousShaking;
+        private BossCameraShakeProfile _bossContinuousProfile;
+        private float _bossContinuousIntensity;
         private float _smoothedArmLength;
         private float _armLengthVelocity;
         private bool _mirageStepObserveActive;
@@ -107,12 +133,153 @@ namespace _Root.Scripts.Controllers
         private float _mirageSavedYaw;
         private bool _mirageCameraBlendingOut;
         private float _mirageBlendOutElapsed;
+        private bool _reflectorAimActive;
+        private bool _reflectorAimBlendingOut;
+        private bool _reflectorAimBlendInComplete;
+        private float _reflectorAimBlendElapsed;
+        private ReflectorInteractable _reflectorAimTarget;
+        private float _reflectorSavedPitch;
+        private float _reflectorSavedYaw;
+        private bool _knockbackCameraActive;
+        private bool _knockbackCameraBlendingOut;
+        private bool _wasLocalKnockbackActive;
+        private float _knockbackBlendOutElapsed;
+        private float _knockbackSavedPitch;
+        private float _knockbackSavedYaw;
+        private Vector3 _knockbackDirection = Vector3.back;
+        private Vector3 _knockbackSmoothedCameraPos;
+        private Vector3 _knockbackCameraPosVelocity;
+        private bool _knockbackCinematicInitialized;
+        private float _knockbackCameraStartTime;
+        private float _knockbackPhysicsEndedTime = -1f;
+        private Camera _gameplayCamera;
         private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
 
         /// <summary>Kameranın yatay bakış açısı (°). Hareket ve melee yönü için kullanılır.</summary>
         public float HorizontalLookYawDegrees => _yaw;
 
         public bool IsMirageStepObserveActive => _mirageStepObserveActive || _mirageCameraBlendingOut;
+
+        public bool IsReflectorAimActive => _reflectorAimActive || _reflectorAimBlendingOut;
+
+        public bool IsKnockbackCameraActive => _knockbackCameraActive || _knockbackCameraBlendingOut;
+
+        public void BeginKnockbackCamera(Vector3 worldKnockbackDirection)
+        {
+            if (target == null || _mirageStepObserveActive || _reflectorAimActive)
+                return;
+
+            Vector3 flat = worldKnockbackDirection;
+            flat.y = 0f;
+            if (flat.sqrMagnitude < 0.0001f)
+                flat = target.forward;
+            flat.Normalize();
+
+            _knockbackDirection = flat;
+            _knockbackSavedPitch = _pitch;
+            _knockbackSavedYaw = _yaw;
+            _knockbackSmoothedCameraPos = transform.position;
+            _knockbackCameraPosVelocity = Vector3.zero;
+            _knockbackCinematicInitialized = false;
+            _knockbackCameraActive = true;
+            _knockbackCameraBlendingOut = false;
+            _knockbackBlendOutElapsed = 0f;
+            _knockbackCameraStartTime = Time.time;
+            _knockbackPhysicsEndedTime = -1f;
+            _armLengthVelocity = 0f;
+            StopCameraShake();
+        }
+
+        public void EndKnockbackCamera()
+        {
+            if (!_knockbackCameraActive || _knockbackCameraBlendingOut)
+                return;
+
+            _knockbackCameraBlendingOut = true;
+            _knockbackBlendOutElapsed = 0f;
+            _knockbackCameraPosVelocity = Vector3.zero;
+            _armLengthVelocity = 0f;
+            StopCameraShake();
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+        }
+
+        private void CompleteKnockbackCameraBlendOut()
+        {
+            Vector3 euler = transform.rotation.eulerAngles;
+            _pitch = euler.x;
+            if (_pitch > 180f)
+                _pitch -= 360f;
+            _pitch = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
+            _yaw = GetGameplayCameraYaw(target);
+            _knockbackCameraActive = false;
+            _knockbackCameraBlendingOut = false;
+            _knockbackBlendOutElapsed = 0f;
+            _knockbackCinematicInitialized = false;
+            _armLengthVelocity = 0f;
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+
+            RestoreDefaultCameraFov();
+        }
+
+        public void BeginReflectorAimCamera(ReflectorInteractable reflector)
+        {
+            if (reflector == null || _mirageStepObserveActive)
+                return;
+
+            if (_reflectorAimActive && _reflectorAimTarget == reflector && !_reflectorAimBlendingOut)
+                return;
+
+            _reflectorAimTarget = reflector;
+            _reflectorSavedPitch = _pitch;
+            _reflectorSavedYaw = GetGameplayCameraYaw(target);
+            _reflectorAimActive = true;
+            _reflectorAimBlendingOut = false;
+            _reflectorAimBlendInComplete = false;
+            _reflectorAimBlendElapsed = 0f;
+            EnsureGameplayCameraReference();
+            StopCameraShake();
+        }
+
+        public void EndReflectorAimCamera()
+        {
+            if (!_reflectorAimActive && !_reflectorAimBlendingOut)
+                return;
+
+            if (_reflectorAimBlendingOut)
+                return;
+
+            _reflectorAimBlendingOut = true;
+            _reflectorAimBlendElapsed = 0f;
+            _armLengthVelocity = 0f;
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+        }
+
+        private void CompleteReflectorAimBlendOut()
+        {
+            _pitch = _reflectorSavedPitch;
+            _yaw = GetGameplayCameraYaw(target);
+            _reflectorAimActive = false;
+            _reflectorAimBlendingOut = false;
+            _reflectorAimBlendInComplete = false;
+            _reflectorAimBlendElapsed = 0f;
+            _reflectorAimTarget = null;
+            RestoreDefaultCameraFov();
+        }
 
         /// <summary>
         /// Mirage Step boyunca duelist etrafında yumuşak orbit + faz bazlı zoom ile sinematik kamera.
@@ -172,6 +339,7 @@ namespace _Root.Scripts.Controllers
         private void Start()
         {
             _cameraTransform = transform.GetChild(0);
+            EnsureGameplayCameraReference();
             if (target == null && NetworkPlayer.Local != null)
             {
                 target = NetworkPlayer.Local.transform;
@@ -185,6 +353,9 @@ namespace _Root.Scripts.Controllers
             FindDamageVignetteImage();
 
             _smoothedArmLength = distance;
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                reflectorDefaultFov = _gameplayCamera.fieldOfView;
             EnsureDefaultCollisionLayers();
         }
 
@@ -300,7 +471,7 @@ namespace _Root.Scripts.Controllers
 
         public void ShakeCamera(CameraShakeType shakeType)
         {
-            if (_cameraTransform == null)
+            if (_cameraTransform == null || ShouldSuppressTransientCameraShake())
                 return;
             
             // Önceki shake'i durdur ve rotasyonu sıfırla
@@ -399,7 +570,7 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public void ShakeMeleeDirectional(int swingType, bool isHit)
         {
-            if (_cameraTransform == null || _supportUltimateFloatShaking)
+            if (_cameraTransform == null || _supportUltimateFloatShaking || ShouldSuppressTransientCameraShake())
                 return;
 
             if (isHit)
@@ -641,6 +812,93 @@ namespace _Root.Scripts.Controllers
         public void StopCameraShake()
         {
             StopSupportUltimateFloatShake();
+            StopBossContinuousShake();
+
+            if (_cameraTransform == null)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private bool ShouldSuppressTransientCameraShake() => IsKnockbackCameraActive;
+
+        /// <summary>Boss uyanış ışığı — sürekli hafif sarsıntı (yalnızca local kamera).</summary>
+        public void SetBossContinuousShake(BossCameraShakeProfile profile, float intensityScale)
+        {
+            if (_cameraTransform == null || _mirageStepObserveActive || IsKnockbackCameraActive)
+                return;
+
+            intensityScale = Mathf.Clamp(intensityScale, 0f, 1.5f);
+            if (intensityScale <= 0.001f)
+            {
+                StopBossContinuousShake();
+                return;
+            }
+
+            if (!_bossContinuousShaking)
+            {
+                _cameraTransform.DOKill();
+                _cameraTransform.localRotation = Quaternion.identity;
+            }
+
+            _bossContinuousShaking = true;
+            _bossContinuousProfile = profile;
+            _bossContinuousIntensity = intensityScale;
+        }
+
+        public void StopBossContinuousShake()
+        {
+            if (!_bossContinuousShaking)
+                return;
+
+            _bossContinuousShaking = false;
+            _bossContinuousIntensity = 0f;
+
+            if (_cameraTransform == null || _supportUltimateFloatShaking)
+                return;
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        /// <summary>Boss savaşı — mesafe ile ölçeklenmiş devasa sarsıntı preset'i.</summary>
+        public void PlayBossShake(BossCameraShakeProfile profile, float intensityScale = 1f)
+        {
+            if (_cameraTransform == null || _supportUltimateFloatShaking || _mirageStepObserveActive
+                || _bossContinuousShaking || IsKnockbackCameraActive)
+                return;
+
+            float scale = Mathf.Clamp(intensityScale, 0.05f, 1.5f);
+            float strength = profile.Strength * scale;
+            float duration = profile.Duration * Mathf.Lerp(0.85f, 1f, scale);
+            Vector3 shakeVec = new Vector3(
+                profile.ShakeVector.x * strength,
+                profile.ShakeVector.y * strength,
+                profile.ShakeVector.z * strength);
+
+            _cameraTransform.DOKill();
+            _cameraTransform.localRotation = Quaternion.identity;
+
+            var seq = DOTween.Sequence();
+
+            if (profile.PunchStrength > 0.001f)
+            {
+                float punch = profile.PunchStrength * scale;
+                seq.Append(_cameraTransform.DOPunchRotation(
+                    new Vector3(-punch * 0.85f, punch * 0.42f, punch * 0.55f),
+                    Mathf.Max(0.05f, profile.PunchDuration),
+                    14,
+                    0.08f));
+            }
+
+            seq.Append(_cameraTransform.DOShakeRotation(
+                Mathf.Max(0.08f, duration),
+                shakeVec,
+                11,
+                85f,
+                true));
+            seq.OnComplete(ResetCameraChildRotation);
         }
 
         private void ApplySupportUltimateFloatShake()
@@ -662,6 +920,22 @@ namespace _Root.Scripts.Controllers
             float pitch = Mathf.Sin(phase) * supportUltimateFloatPitchAmplitude * envelope;
             float roll = Mathf.Sin(phase * 0.73f + 1.2f) * supportUltimateFloatRollAmplitude * envelope;
             float yaw = Mathf.Sin(phase * 0.51f + 0.4f) * supportUltimateFloatYawAmplitude * envelope;
+            _cameraTransform.localRotation = Quaternion.Euler(pitch, yaw, roll);
+        }
+
+        private void ApplyBossContinuousShake()
+        {
+            if (!_bossContinuousShaking || _cameraTransform == null || _supportUltimateFloatShaking)
+                return;
+
+            float strength = _bossContinuousProfile.Strength * _bossContinuousIntensity;
+            if (strength <= 0.001f)
+                return;
+
+            float phase = Time.time * 16f;
+            float pitch = Mathf.Sin(phase) * strength * _bossContinuousProfile.ShakeVector.y;
+            float roll = Mathf.Sin(phase * 0.71f + 1.1f) * strength * _bossContinuousProfile.ShakeVector.z * 0.85f;
+            float yaw = Mathf.Sin(phase * 0.53f + 0.35f) * strength * _bossContinuousProfile.ShakeVector.x * 0.65f;
             _cameraTransform.localRotation = Quaternion.Euler(pitch, yaw, roll);
         }
         
@@ -690,7 +964,30 @@ namespace _Root.Scripts.Controllers
                 return;
             }
 
+            UpdateKnockbackCameraLifecycle();
+
+            if (_knockbackCameraActive || _knockbackCameraBlendingOut)
+            {
+                if (_knockbackCameraBlendingOut)
+                    ApplyKnockbackBlendOutCamera();
+                else
+                    ApplyKnockbackCinematicCamera();
+
+                ApplyGameplayCursorLock();
+                return;
+            }
+
+            if (_reflectorAimActive || _reflectorAimBlendingOut)
+            {
+                ApplyReflectorAimCamera();
+                ApplyBossContinuousShake();
+                ApplySupportUltimateFloatShake();
+                ApplyGameplayCursorLock();
+                return;
+            }
+
             ApplyNormalTpsCamera(readMouseInput: !IsLocalShadowDashInputLocked());
+            ApplyBossContinuousShake();
             ApplySupportUltimateFloatShake();
             ApplyGameplayCursorLock();
         }
@@ -707,6 +1004,8 @@ namespace _Root.Scripts.Controllers
 
         private void ApplyNormalTpsCamera(bool readMouseInput)
         {
+            RestoreDefaultCameraFov();
+
             bool tankFreeLook = NetworkPlayer.Local != null &&
                                 NetworkPlayer.Local.RoleRules.UsesKeyboardCharacterRotation;
 
@@ -771,6 +1070,248 @@ namespace _Root.Scripts.Controllers
             float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
             float finalLength = ApplyArmLengthSmoothing(safeLength, desiredLength);
             position = pivot + direction * finalLength;
+        }
+
+        private void ApplyReflectorAimCamera()
+        {
+            if (_reflectorAimTarget == null)
+            {
+                CompleteReflectorAimBlendOut();
+                return;
+            }
+
+            Transform aimTransform = _reflectorAimTarget.GetAimTransformForCamera();
+            if (aimTransform == null)
+            {
+                CompleteReflectorAimBlendOut();
+                return;
+            }
+
+            EnsureGameplayCameraReference();
+            ApplyReflectorAimFov();
+
+            Vector3 fpsPosition = aimTransform.position + aimTransform.rotation * reflectorFpsLocalOffset;
+            Quaternion fpsRotation = aimTransform.rotation;
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+
+            if (_reflectorAimBlendingOut)
+            {
+                _reflectorAimBlendElapsed += Time.deltaTime;
+                float t = reflectorAimBlendDuration > 0.001f
+                    ? Mathf.Clamp01(_reflectorAimBlendElapsed / reflectorAimBlendDuration)
+                    : 1f;
+                float eased = EaseOutCubic(t);
+
+                float normalYaw = GetGameplayCameraYaw(target);
+                ComputeNormalTpsCameraState(target, _reflectorSavedPitch, normalYaw, out Vector3 normalPos, out Quaternion normalRot);
+
+                transform.position = Vector3.Lerp(fpsPosition, normalPos, eased);
+                transform.rotation = Quaternion.Slerp(fpsRotation, normalRot, eased);
+                _gameplayCamera.fieldOfView = Mathf.Lerp(reflectorAimFov, reflectorDefaultFov, eased);
+
+                if (t >= 1f)
+                    CompleteReflectorAimBlendOut();
+                return;
+            }
+
+            if (!_reflectorAimBlendInComplete)
+            {
+                _reflectorAimBlendElapsed += Time.deltaTime;
+                float t = reflectorAimBlendDuration > 0.001f
+                    ? Mathf.Clamp01(_reflectorAimBlendElapsed / reflectorAimBlendDuration)
+                    : 1f;
+                float eased = EaseOutCubic(t);
+
+                ComputeNormalTpsCameraState(target, _reflectorSavedPitch, _reflectorSavedYaw, out Vector3 startPos, out Quaternion startRot);
+                transform.position = Vector3.Lerp(startPos, fpsPosition, eased);
+                transform.rotation = Quaternion.Slerp(startRot, fpsRotation, eased);
+                _gameplayCamera.fieldOfView = Mathf.Lerp(reflectorDefaultFov, reflectorAimFov, eased);
+
+                if (t >= 1f)
+                    _reflectorAimBlendInComplete = true;
+                return;
+            }
+
+            transform.position = fpsPosition;
+            transform.rotation = fpsRotation;
+        }
+
+        private void EnsureGameplayCameraReference()
+        {
+            if (_gameplayCamera != null)
+                return;
+
+            if (_cameraTransform != null)
+                _gameplayCamera = _cameraTransform.GetComponent<Camera>();
+
+            if (_gameplayCamera == null)
+                _gameplayCamera = GetComponentInChildren<Camera>(true);
+
+            if (_gameplayCamera != null && reflectorDefaultFov <= 0.01f)
+                reflectorDefaultFov = _gameplayCamera.fieldOfView;
+        }
+
+        private void ApplyReflectorAimFov()
+        {
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera == null)
+                return;
+
+            _gameplayCamera.fieldOfView = reflectorAimFov;
+        }
+
+        private void RestoreDefaultCameraFov()
+        {
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera == null || IsReflectorAimActive || IsKnockbackCameraActive)
+                return;
+
+            _gameplayCamera.fieldOfView = reflectorDefaultFov;
+        }
+
+        private void UpdateKnockbackCameraLifecycle()
+        {
+            var cc = GetLocalCharacterController();
+            bool knockbackActive = cc != null && cc.HasActiveKnockback;
+
+            if (knockbackActive && !_wasLocalKnockbackActive && !_knockbackCameraActive && !_knockbackCameraBlendingOut)
+                BeginKnockbackCamera(cc.ActiveKnockbackPlanarDirection);
+            else if (_knockbackCameraActive && !_knockbackCameraBlendingOut)
+            {
+                if (_wasLocalKnockbackActive && !knockbackActive)
+                    _knockbackPhysicsEndedTime = Time.time;
+
+                if (ShouldStartKnockbackBlendOut(knockbackActive))
+                    EndKnockbackCamera();
+            }
+
+            _wasLocalKnockbackActive = knockbackActive;
+        }
+
+        private bool ShouldStartKnockbackBlendOut(bool knockbackActive)
+        {
+            if (knockbackActive)
+                return false;
+
+            if (_knockbackPhysicsEndedTime < 0f)
+                _knockbackPhysicsEndedTime = Time.time;
+
+            float minHoldEndTime = _knockbackCameraStartTime + Mathf.Max(0f, knockbackCinematicMinDuration);
+            float delayEndTime = _knockbackPhysicsEndedTime + Mathf.Max(0f, knockbackBlendOutStartDelay);
+            return Time.time >= minHoldEndTime && Time.time >= delayEndTime;
+        }
+
+        private static NetworkCharacterControllerCustom GetLocalCharacterController()
+        {
+            var local = NetworkPlayer.Local;
+            if (local == null)
+                return null;
+
+            return local.GetComponent<NetworkCharacterControllerCustom>();
+        }
+
+        private void ApplyKnockbackBlendOutCamera()
+        {
+            if (target == null)
+            {
+                CompleteKnockbackCameraBlendOut();
+                return;
+            }
+
+            _knockbackBlendOutElapsed += Time.deltaTime;
+            float t = knockbackBlendOutDuration > 0.001f
+                ? Mathf.Clamp01(_knockbackBlendOutElapsed / knockbackBlendOutDuration)
+                : 1f;
+            float eased = EaseOutCubic(t);
+
+            ComputeKnockbackCinematicCameraState(out Vector3 cinematicPos, out Quaternion cinematicRot);
+            float normalYaw = GetGameplayCameraYaw(target);
+            float blendPitch = Mathf.LerpAngle(_knockbackSavedPitch, _pitch, eased);
+            ComputeNormalTpsCameraState(target, blendPitch, normalYaw, out Vector3 normalPos, out Quaternion normalRot);
+
+            transform.position = Vector3.Lerp(cinematicPos, normalPos, eased);
+            transform.rotation = Quaternion.Slerp(cinematicRot, normalRot, eased);
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                _gameplayCamera.fieldOfView = Mathf.Lerp(knockbackCinematicFov, reflectorDefaultFov, eased);
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+
+            if (t >= 1f)
+                CompleteKnockbackCameraBlendOut();
+        }
+
+        private void ApplyKnockbackCinematicCamera()
+        {
+            if (target == null)
+                return;
+
+            ComputeKnockbackCinematicCameraState(out Vector3 position, out Quaternion rotation);
+            transform.position = position;
+            transform.rotation = rotation;
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                _gameplayCamera.fieldOfView = knockbackCinematicFov;
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private void ComputeKnockbackCinematicCameraState(out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+
+            if (target == null)
+                return;
+
+            var cc = GetLocalCharacterController();
+            if (cc != null && cc.HasActiveKnockback)
+                _knockbackDirection = cc.ActiveKnockbackPlanarDirection;
+
+            Vector3 pivot = target.position + Vector3.up * knockbackLookHeight;
+            Vector3 backDir = -_knockbackDirection;
+            Vector3 sideDir = Vector3.Cross(Vector3.up, _knockbackDirection).normalized;
+            Vector3 desiredPos = pivot
+                + backDir * knockbackCinematicDistance
+                + Vector3.up * knockbackCinematicHeight
+                + sideDir * knockbackSideOffset;
+
+            Vector3 toCamera = desiredPos - pivot;
+            float desiredLength = toCamera.magnitude;
+            Vector3 direction = desiredLength > 0.001f ? toCamera / desiredLength : backDir;
+            float safeLength = ComputeSafeArmLength(pivot, direction, desiredLength);
+            desiredPos = pivot + direction * safeLength;
+
+            if (!_knockbackCinematicInitialized)
+            {
+                _knockbackSmoothedCameraPos = desiredPos;
+                _knockbackCinematicInitialized = true;
+            }
+            else
+            {
+                _knockbackSmoothedCameraPos = Vector3.SmoothDamp(
+                    _knockbackSmoothedCameraPos,
+                    desiredPos,
+                    ref _knockbackCameraPosVelocity,
+                    knockbackPositionSmooth);
+            }
+
+            Vector3 lookDir = pivot - _knockbackSmoothedCameraPos;
+            if (lookDir.sqrMagnitude < 0.0001f)
+                lookDir = _knockbackDirection;
+
+            Quaternion desiredRot = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+            position = _knockbackSmoothedCameraPos;
+            rotation = Quaternion.Slerp(
+                transform.rotation,
+                desiredRot,
+                Time.deltaTime / Mathf.Max(0.001f, knockbackRotationSmooth));
         }
 
         private void ApplyMirageStepBlendOutCamera(Transform observeTarget)

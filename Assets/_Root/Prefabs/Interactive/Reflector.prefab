@@ -301,18 +301,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1339670526ac14fff9d378164ee22ac0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  holdDistance: 1.2
-  followSpeed: 20
+  barrelPivot: {fileID: 6073318728951047572}
+  barrelAimSensitivity: 0.65
+  barrelYawMin: -75
+  barrelYawMax: 75
   maxInteractionDistance: 4
-  keepCurrentHeight: 1
   rayObject: {fileID: 6229780932246294343}
-  launchForce: 12
-  launchUpwardForce: 0.15
-  proximityHintRadius: 5
-  showAbilityProximityHint: 1
+  rayEmitTransform: {fileID: 6073318728951047572}
+  beamOriginTransform: {fileID: 6073318728951047572}
+  startsWithExternalLight: 0
+  rayMaxDistance: 40
+  rayHitRadius: 0.35
+  rayCastOriginOffset: 0.25
+  rayHitLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  lightReceiverTransform: {fileID: 0}
   hiddenDoorTrigger: {fileID: 0}
   alignmentTarget: {fileID: 0}
-  aimDirectionTransform: {fileID: 0}
+  aimDirectionTransform: {fileID: 4624706091595027954}
   alignmentAngleThreshold: 8
   requireRayActiveForDoorTrigger: 1
 --- !u!65 &175099678491712891
@@ -421,7 +428,7 @@ Light:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5427009286195118241}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 10
   m_Type: 0
   m_Shape: 0

@@ -20,6 +20,7 @@ namespace _Root.Scripts.Network.Lobby
         [Header("References")]
         [SerializeField] private NetworkRunnerHandler networkRunnerHandler;
         [SerializeField] private Spawner spawner;
+        [SerializeField] private PlaytestLobbyView lobbyView;
 
         [Header("Player prefabs")]
         [SerializeField] private NetworkPlayer tankPlayerPrefab;
@@ -71,10 +72,14 @@ namespace _Root.Scripts.Network.Lobby
 
             EnsurePlayerPrefabReferences();
 
-            _view = GetComponent<PlaytestLobbyView>();
+            _view = lobbyView != null ? lobbyView : GetComponentInChildren<PlaytestLobbyView>(true);
             if (_view == null)
-                _view = gameObject.AddComponent<PlaytestLobbyView>();
-            _view.Build();
+            {
+                Debug.LogError("[PlaytestLobby] PlaytestLobbyView not found. Assign PlaytestLobbyUI prefab as a child or set lobbyView on PlaytestLobbyController.");
+                return;
+            }
+
+            _view.Initialize();
             _view.SetSessionName(_sessionName);
             _view.ConnectClicked += OnViewConnectClicked;
             _view.QuitGameClicked += OnViewQuitGameClicked;

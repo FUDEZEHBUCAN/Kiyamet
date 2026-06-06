@@ -2,7 +2,6 @@ using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
 using _Root.Scripts.Enemy;
-using _Root.Scripts.Interactable;
 using _Root.Scripts.Enums;
 using System.Collections.Generic;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
@@ -34,12 +33,10 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float dodgeDuration = 0.38f;
     [SerializeField] private float dodgeCooldown = 1.1f;
 
+
     [Header("Dodge Attack Lock")]
     [Tooltip("Roll bittikten sonra hareket + saldırı komutlarının kilitli kalacağı süre (saniye).")]
     [SerializeField] private float dodgeAttackLockAfterRoll = 0.28f;
-    
-    [Header("Dash Reflector Settings")]
-    [SerializeField] private LayerMask reflectorLayer = -1;
     
     [Header("Respawn Settings")]
     [SerializeField] private float respawnYThreshold = -10f;
@@ -109,7 +106,34 @@ namespace _Root.Scripts.Controllers {
     [Networked] private float MirageReturnTargetYaw { get; set; }
     [Networked] private float MirageReturnDodgeSpeed { get; set; }
 
+    [Networked] private NetworkBool IsKnockedBack { get; set; }
+    [Networked] private Vector3 KnockbackVelocity { get; set; }
+    [Networked] private TickTimer KnockbackTimer { get; set; }
+    [Networked] private TickTimer BossInputBlockTimer { get; set; }
+
     public bool IsMirageReturnDodgeActive => IsMirageReturnDodge;
+    public bool HasActiveKnockback =>
+        Object != null && Object.IsValid && Runner != null && IsKnockedBack
+        && !KnockbackTimer.ExpiredOrNotRunning(Runner);
+
+    public Vector3 ActiveKnockbackPlanarDirection
+    {
+      get
+      {
+        Vector3 dir = KnockbackVelocity;
+        dir.y = 0f;
+        if (dir.sqrMagnitude > 0.0001f)
+          return dir.normalized;
+
+        dir = transform.forward;
+        dir.y = 0f;
+        return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector3.forward;
+      }
+    }
+
+    public bool HasBossInputBlock =>
+        Object != null && Object.IsValid && Runner != null
+        && !BossInputBlockTimer.ExpiredOrNotRunning(Runner);
     public float DodgeDurationSeconds => dodgeDuration;
 
     public bool IsPostDodgeAttackLocked =>
@@ -117,15 +141,18 @@ namespace _Root.Scripts.Controllers {
 
     public bool BlocksAttacksFromDodge => IsDodging || IsPostDodgeAttackLocked;
 
-    public bool BlocksMovementFromDodge => BlocksAttacksFromDodge;
+    public bool BlocksPlayerInput => BlocksAttacksFromDodge || HasBossInputBlock;
+
+    public bool BlocksMovementFromDodge => BlocksPlayerInput;
 
     private CharacterController _controller;
     private Rigidbody _rigidbody;
     private NetworkPlayer _networkPlayer;
     private PlayerAnimationController _animController;
     private DuelistSignatureSkillController _duelistSignatureSkill;
-    private readonly HashSet<ReflectorInteractable> _reflectorsHitThisDash = new HashSet<ReflectorInteractable>();
     private bool _deathPoseFrozen;
+
+    public bool IsDeathPoseFrozen => _deathPoseFrozen;
     private Quaternion _frozenDeathRotation;
     private bool _wasDodgingForAnim;
     
@@ -187,6 +214,9 @@ namespace _Root.Scripts.Controllers {
       DodgeTimer = TickTimer.None;
       PostDodgeAttackLockTimer = TickTimer.None;
       IsMirageReturnDodge = false;
+      IsKnockedBack = false;
+      KnockbackTimer = TickTimer.None;
+      BossInputBlockTimer = TickTimer.None;
 
       if (_rigidbody != null) {
         _rigidbody.velocity = Vector3.zero;
@@ -215,7 +245,62 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = _frozenDeathRotation;
     }
 
+    /// <summary>Boss vb. dış kaynaklı yatay savurma (state authority).</summary>
+    public void ApplyKnockback(Vector3 worldDirection, float force, float knockbackDuration, float upwardForce,
+        float inputBlockDuration = 0f)
+    {
+      if (!Object.HasStateAuthority)
+        return;
+
+      if (_deathPoseFrozen)
+        return;
+
+      worldDirection.y = 0f;
+      if (worldDirection.sqrMagnitude < 0.0001f)
+        worldDirection = -transform.forward;
+      else
+        worldDirection.Normalize();
+
+      float up = Mathf.Max(0f, upwardForce);
+      Vector3 knockbackVel = worldDirection * force;
+      knockbackVel.y = up;
+
+      IsDashing = false;
+      DashTimer = TickTimer.None;
+      IsDodging = false;
+      DodgeTimer = TickTimer.None;
+      PostDodgeAttackLockTimer = TickTimer.None;
+      IsMirageReturnDodge = false;
+
+      ApplyInputBlock(inputBlockDuration);
+
+      IsKnockedBack = true;
+      KnockbackVelocity = knockbackVel;
+      KnockbackTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, knockbackDuration));
+      Velocity = knockbackVel;
+
+      // CharacterController yerdeyken dikey Move uygulanmaz — yerden kopar.
+      if (up > 0.001f)
+      {
+        Grounded = false;
+        float lift = Mathf.Clamp(up * 0.06f, 0.1f, 1.5f);
+        _controller.Move(Vector3.up * lift);
+      }
+    }
+
+    public void ApplyInputBlock(float duration)
+    {
+      if (!Object.HasStateAuthority || duration <= 0.001f)
+        return;
+
+      float remaining = BossInputBlockTimer.RemainingTime(Runner) ?? 0f;
+      BossInputBlockTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(duration, remaining));
+    }
+
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
+      if (HasActiveKnockback)
+        return;
+
       if (Grounded || ignoreGrounded) {
         var vel = Velocity;
         vel.y += overrideImpulse ?? JumpImpulse;
@@ -225,6 +310,10 @@ namespace _Root.Scripts.Controllers {
     
     public void Dash() {
       if (!Object.HasStateAuthority) {
+        return;
+      }
+
+      if (HasActiveKnockback) {
         return;
       }
       
@@ -255,7 +344,6 @@ namespace _Root.Scripts.Controllers {
       DashDirection = transform.forward;
       DashTimer = TickTimer.CreateFromSeconds(Runner, dashDuration);
       DashCooldownTimer = TickTimer.CreateFromSeconds(Runner, SignatureSkillCooldown);
-      _reflectorsHitThisDash.Clear();
       
       if (_animController != null)
       {
@@ -274,6 +362,9 @@ namespace _Root.Scripts.Controllers {
     public bool TryDodge(Vector3 worldDirection, float facingYawDegrees)
     {
       if (!Object.HasStateAuthority)
+        return false;
+
+      if (HasActiveKnockback)
         return false;
 
       if (!DodgeCooldownTimer.ExpiredOrNotRunning(Runner))
@@ -425,28 +516,7 @@ namespace _Root.Scripts.Controllers {
         }
       }
       
-      bool hitReflector = false;
-      Collider[] reflectorColliders = Physics.OverlapSphere(detectionCenter, detectionRadius, reflectorLayer);
-      foreach (var col in reflectorColliders)
-      {
-        var reflector = col.GetComponentInParent<ReflectorInteractable>();
-        if (reflector == null)
-          continue;
-        
-        if (_reflectorsHitThisDash.Contains(reflector))
-          continue;
-        
-        Vector3 toReflector = (reflector.transform.position - transform.position).normalized;
-        float dot = Vector3.Dot(DashDirection, toReflector);
-        if (dot <= 0.5f)
-          continue;
-        
-        reflector.ActivateByExternalLaunch(DashDirection);
-        _reflectorsHitThisDash.Add(reflector);
-        hitReflector = true;
-      }
-      
-      if (hitEnemy || hitReflector)
+      if (hitEnemy)
       {
         if (_networkPlayer != null && _networkPlayer.AudioController != null)
         {
@@ -498,6 +568,9 @@ namespace _Root.Scripts.Controllers {
       }
 
       if (_networkPlayer != null && !_networkPlayer.IsAlive) {
+        if (HasActiveKnockback)
+          return;
+
         if (!_deathPoseFrozen)
           FreezeDeathPose();
         else
@@ -510,7 +583,7 @@ namespace _Root.Scripts.Controllers {
       if (_duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing)
         return;
 
-      if (IsDashing || IsDodging) {
+      if (IsDashing || IsDodging || HasActiveKnockback) {
         return;
       }
 
@@ -659,6 +732,10 @@ namespace _Root.Scripts.Controllers {
       
       Velocity = Vector3.zero;
       Grounded = false;
+      IsKnockedBack = false;
+      KnockbackTimer = TickTimer.None;
+      KnockbackVelocity = Vector3.zero;
+      BossInputBlockTimer = TickTimer.None;
       NetworkPosition = spawnPosition;
       NetworkRotation = spawnRotation;
       ConfigureRigidbodyForCharacterController();
@@ -670,6 +747,15 @@ namespace _Root.Scripts.Controllers {
         return;
       }
 
+      if (Object.HasStateAuthority)
+        TickBossInputBlock();
+
+      if (Object.HasStateAuthority && IsKnockedBack)
+      {
+        TickKnockback();
+        return;
+      }
+
       if (Object.HasStateAuthority && _networkPlayer != null && !_networkPlayer.IsAlive)
         return;
       
@@ -677,7 +763,6 @@ namespace _Root.Scripts.Controllers {
         if (DashTimer.Expired(Runner)) {
           IsDashing = false;
           DashTimer = TickTimer.None;
-          _reflectorsHitThisDash.Clear();
         } else {
           Vector3 dashMovement = DashDirection * dashSpeed * Runner.DeltaTime;
           _controller.Move(dashMovement);
@@ -712,6 +797,60 @@ namespace _Root.Scripts.Controllers {
           Velocity = vel;
         }
       }
+    }
+
+    private void TickBossInputBlock()
+    {
+      if (BossInputBlockTimer.Expired(Runner))
+        BossInputBlockTimer = TickTimer.None;
+    }
+
+    private void TickKnockback()
+    {
+      if (KnockbackTimer.ExpiredOrNotRunning(Runner) || KnockbackTimer.Expired(Runner))
+      {
+        EndKnockback();
+        return;
+      }
+
+      var vel = KnockbackVelocity;
+      vel.y += gravity * Runner.DeltaTime;
+
+      Vector3 delta = vel * Runner.DeltaTime;
+      _controller.Move(new Vector3(delta.x, 0f, delta.z));
+
+      bool applyVertical = delta.y > 0f || !_controller.isGrounded;
+      if (applyVertical)
+        _controller.Move(Vector3.up * delta.y);
+
+      if (_controller.isGrounded && vel.y < 0f)
+        vel.y = 0f;
+
+      // Yükselirken ground snap yukarı kuvveti sıfırlar.
+      if (vel.y <= 0.05f)
+        ApplyGroundSnapToTransform();
+
+      KnockbackVelocity = vel;
+      NetworkPosition = transform.position;
+      NetworkRotation = transform.rotation;
+      Velocity = vel;
+      Grounded = _controller.isGrounded;
+    }
+
+    private void EndKnockback()
+    {
+      IsKnockedBack = false;
+      KnockbackTimer = TickTimer.None;
+      var vel = Velocity;
+      vel.x = 0f;
+      vel.z = 0f;
+      if (Grounded && vel.y < 0f)
+        vel.y = 0f;
+      Velocity = vel;
+      KnockbackVelocity = Vector3.zero;
+
+      if (_networkPlayer != null)
+        _networkPlayer.OnKnockbackEndedWhileDead();
     }
 
     private void TickMirageReturnDodge()

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using _Root.Scripts.Combat;
 using _Root.Scripts.Enemy;
 using _Root.Scripts.Enums;
 using _Root.Scripts.Input;
@@ -45,7 +46,7 @@ namespace _Root.Scripts.Controllers
         private MeleeController _meleeController;
         private PlayerAnimationController _animController;
 
-        private readonly HashSet<NetworkEnemy> _damagedThisDash = new HashSet<NetworkEnemy>();
+        private readonly HashSet<NetworkBehaviour> _damagedThisDash = new HashSet<NetworkBehaviour>();
 
         private float SignatureCooldownSeconds =>
             _characterController != null ? _characterController.SignatureSkillCooldown : 15f;
@@ -432,16 +433,21 @@ namespace _Root.Scripts.Controllers
 
             foreach (var col in hits)
             {
-                var enemy = col.GetComponentInParent<NetworkEnemy>();
-                if (enemy == null || !enemy.IsAlive || _damagedThisDash.Contains(enemy))
+                if (!CombatDamageTarget.TryFromCollider(col, out var target) || !target.IsAlive)
                     continue;
 
-                _damagedThisDash.Add(enemy);
-                ApplySlashDamage(enemy, col);
+                NetworkBehaviour damageKey = target.Boss != null
+                    ? target.Boss
+                    : (NetworkBehaviour)target.Enemy;
+                if (_damagedThisDash.Contains(damageKey))
+                    continue;
+
+                _damagedThisDash.Add(damageKey);
+                ApplySlashDamage(target, col);
             }
         }
 
-        private void ApplySlashDamage(NetworkEnemy enemy, Collider col)
+        private void ApplySlashDamage(CombatDamageTarget target, Collider col)
         {
             float damage = GetBaseMeleeDamage() * mediumDamageMultiplier;
             if (_networkPlayer != null)
@@ -451,20 +457,20 @@ namespace _Root.Scripts.Controllers
             if (isCritical)
                 damage *= criticalDamageMultiplier;
 
-            bool wasAlive = enemy.IsAlive;
+            bool wasAlive = target.IsAlive;
             Vector3 hitPoint = col.ClosestPoint(transform.position + Vector3.up);
             Vector3 hitNormal = (hitPoint - transform.position).normalized;
 
-            if (!enemy.IsEliteEnemy)
+            if (target.Enemy != null && !target.IsEliteEnemy)
             {
                 float knockbackScale = isCritical ? criticalKnockbackMultiplier : 1f;
-                enemy.ApplyKnockback((ShadowDashDirection * knockbackForce * knockbackScale)
+                target.Enemy.ApplyKnockback((ShadowDashDirection * knockbackForce * knockbackScale)
                     + Vector3.up * (isCritical ? 0.75f : 0.5f));
             }
 
-            enemy.TakeDamage(damage, hitPoint, hitNormal);
+            target.TakeDamage(damage, hitPoint, hitNormal);
 
-            if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
+            if (wasAlive && !target.IsAlive && _networkPlayer != null)
                 _networkPlayer.RegisterEnemyKill();
 
             if (Object.HasStateAuthority)

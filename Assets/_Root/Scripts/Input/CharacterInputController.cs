@@ -1,3 +1,4 @@
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Network;
 using _Root.Scripts.Network.Lobby;
 using _Root.Scripts.UI;
@@ -22,6 +23,7 @@ namespace _Root.Scripts.Input
 
         private NetworkPlayer _networkPlayer;
         private NetworkCharacterControllerCustom _characterController;
+        private InteractionController _interactionController;
 
         private Vector2 _moveInput;
         private float _accumulatedRotation;
@@ -34,7 +36,6 @@ namespace _Root.Scripts.Input
         private int _dashPressFrame = NoPress;
         private int _dodgePressFrame = NoPress;
         private int _ultimatePressFrame = NoPress;
-        private int _interactPressFrame = NoPress;
 
         public bool IsRunHeld =>
             UnityEngine.Input.GetKey(KeyCode.LeftShift) || UnityEngine.Input.GetKey(KeyCode.RightShift);
@@ -45,6 +46,7 @@ namespace _Root.Scripts.Input
         {
             TryGetComponent(out _networkPlayer);
             TryGetComponent(out _characterController);
+            TryGetComponent(out _interactionController);
         }
 
         private void Start()
@@ -54,10 +56,42 @@ namespace _Root.Scripts.Input
 
         private void Update()
         {
-            if (IsInputBlocked())
+            if (IsInputBlocked() || IsPlayerInputBlocked())
                 return;
 
             BufferEdgeTriggeredInput();
+            TryHandleLocalInteractToggle();
+            TrySubmitReflectorAimInput();
+        }
+
+        private void TrySubmitReflectorAimInput()
+        {
+            if (_interactionController == null || !_interactionController.IsInteractingWithReflector)
+                return;
+
+            if (_networkPlayer == null || _networkPlayer.Object == null || !_networkPlayer.Object.HasInputAuthority)
+                return;
+
+            if (_interactionController.CurrentInteractable is not ReflectorInteractable reflector)
+                return;
+
+            float mouseX = UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
+            float mouseY = UnityEngine.Input.GetAxis("Mouse Y") * mouseSensitivity;
+            reflector.SubmitAimInputFromInteractor(transform, mouseX, mouseY);
+        }
+
+        private void TryHandleLocalInteractToggle()
+        {
+            if (_networkPlayer == null || _networkPlayer.Object == null || !_networkPlayer.Object.HasInputAuthority)
+                return;
+
+            if (_interactionController == null)
+                TryGetComponent(out _interactionController);
+
+            if (_interactionController == null || !UnityEngine.Input.GetKeyDown(KeyCode.F))
+                return;
+
+            _interactionController.RequestToggleInteraction();
         }
 
         private void LateUpdate()
@@ -86,7 +120,7 @@ namespace _Root.Scripts.Input
         /// </summary>
         public NetworkInputData GetNetworkInput()
         {
-            if (IsInputBlocked())
+            if (IsInputBlocked() || IsPlayerInputBlocked())
                 return new NetworkInputData();
 
             PollInputThisTick();
@@ -119,7 +153,6 @@ namespace _Root.Scripts.Input
                 IsDashPressed = IsPressActive(_dashPressFrame, currentFrame),
                 IsDodgePressed = IsPressActive(_dodgePressFrame, currentFrame),
                 IsUltimatePressed = IsPressActive(_ultimatePressFrame, currentFrame),
-                IsInteractPressed = IsPressActive(_interactPressFrame, currentFrame),
                 IsRunning = IsRunHeld,
                 AimPoint = aimPoint,
                 MovementBasisYawDegrees = movementBasisYawDegrees
@@ -161,7 +194,7 @@ namespace _Root.Scripts.Input
         /// </summary>
         private void BufferEdgeTriggeredInput()
         {
-            if (IsDodgeMovementBlocked())
+            if (IsPlayerInputBlocked())
                 return;
 
             int frame = Time.frameCount;
@@ -169,7 +202,7 @@ namespace _Root.Scripts.Input
             if (UnityEngine.Input.GetButtonDown("Jump"))
                 _jumpPressFrame = frame;
 
-            if (UnityEngine.Input.GetMouseButtonDown(0) && !IsAttackBlockedByDodge())
+            if (UnityEngine.Input.GetMouseButtonDown(0) && !IsPlayerInputBlocked())
                 _meleePressFrame = frame;
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.E))
@@ -181,9 +214,6 @@ namespace _Root.Scripts.Input
 
             if (UnityEngine.Input.GetKeyDown(KeyCode.X))
                 _ultimatePressFrame = frame;
-
-            if (UnityEngine.Input.GetKeyDown(KeyCode.F))
-                _interactPressFrame = frame;
         }
 
         private static bool IsPressActive(int pressFrame, int currentFrame)
@@ -207,8 +237,6 @@ namespace _Root.Scripts.Input
                 _dodgePressFrame = NoPress;
             if (_ultimatePressFrame != NoPress && currentFrame - _ultimatePressFrame > PressBufferFrames)
                 _ultimatePressFrame = NoPress;
-            if (_interactPressFrame != NoPress && currentFrame - _interactPressFrame > PressBufferFrames)
-                _interactPressFrame = NoPress;
         }
 
         private void PollInputThisTick()
@@ -221,10 +249,13 @@ namespace _Root.Scripts.Input
                 return;
             }
 
-            if (IsDodgeMovementBlocked())
+            if (IsPlayerInputBlocked())
             {
                 _moveInput = Vector2.zero;
                 _accumulatedRotation = 0f;
+                _blockPressed = false;
+                _shootPressed = false;
+                ClearPressBuffers();
                 return;
             }
 
@@ -232,14 +263,15 @@ namespace _Root.Scripts.Input
             _moveInput.y = UnityEngine.Input.GetAxis("Vertical");
 
             bool keyboardTurnBody = _networkPlayer != null && _networkPlayer.RoleRules.UsesKeyboardCharacterRotation;
-            if (!keyboardTurnBody)
+            bool reflectorAimActive = _interactionController != null && _interactionController.IsInteractingWithReflector;
+            if (!keyboardTurnBody && !reflectorAimActive)
                 _accumulatedRotation += UnityEngine.Input.GetAxis("Mouse X") * mouseSensitivity;
 
             _blockPressed = UnityEngine.Input.GetMouseButton(1);
             _shootPressed = UnityEngine.Input.GetKey(KeyCode.Q);
         }
 
-        private bool IsDodgeMovementBlocked()
+        private bool IsPlayerInputBlocked()
         {
             if (_characterController == null)
                 TryGetComponent(out _characterController);
@@ -247,18 +279,16 @@ namespace _Root.Scripts.Input
             return _characterController != null
                 && _characterController.Object != null
                 && _characterController.Object.IsValid
-                && _characterController.BlocksMovementFromDodge;
+                && _characterController.BlocksPlayerInput;
         }
 
-        private bool IsAttackBlockedByDodge()
+        private void ClearPressBuffers()
         {
-            if (_characterController == null)
-                TryGetComponent(out _characterController);
-
-            return _characterController != null
-                && _characterController.Object != null
-                && _characterController.Object.IsValid
-                && _characterController.BlocksAttacksFromDodge;
+            _jumpPressFrame = NoPress;
+            _meleePressFrame = NoPress;
+            _dashPressFrame = NoPress;
+            _dodgePressFrame = NoPress;
+            _ultimatePressFrame = NoPress;
         }
     }
 }

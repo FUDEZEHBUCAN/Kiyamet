@@ -50,7 +50,7 @@ MonoBehaviour:
   height: 2
   collisionLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 65
   collisionRadius: 0.3
   collisionSkin: 0.25
   minDistanceFromPivot: 0.75
@@ -95,6 +95,20 @@ MonoBehaviour:
   mirageWindUpDistanceMultiplier: 1.05
   mirageReturnDistanceMultiplier: 0.95
   mirageReturnBlendDuration: 1
+  reflectorAimBlendDuration: 1
+  reflectorFpsLocalOffset: {x: 0, y: 0.15, z: -0.63}
+  reflectorAimFov: 46.5
+  reflectorDefaultFov: 54.51366
+  knockbackCinematicDistance: 5
+  knockbackCinematicHeight: 2.35
+  knockbackLookHeight: 1.25
+  knockbackSideOffset: 0.85
+  knockbackPositionSmooth: 0.08
+  knockbackRotationSmooth: 0.055
+  knockbackBlendOutStartDelay: 1.2
+  knockbackCinematicMinDuration: 0.55
+  knockbackBlendOutDuration: 0.5
+  knockbackCinematicFov: 58
   vignetteFadeInDuration: 0.15
   vignetteFadeOutDuration: 0.3
 --- !u!1 &6027347942890513018

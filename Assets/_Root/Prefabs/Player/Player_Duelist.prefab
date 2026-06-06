@@ -164,7 +164,7 @@ Transform:
   m_GameObject: {fileID: 4562111171032563951}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0.61, z: -0}
+  m_LocalPosition: {x: 0, y: -1.36, z: -0.142}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -289,6 +289,7 @@ MonoBehaviour:
   hitStunDuration: 0.4
   blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
+  postReviveInputBlockDuration: 2
   startWithUltimateReadyForTesting: 1
   killsRequiredForUltimate: 6
   ultimateDuration: 10
@@ -319,7 +320,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   meleeDamage: 25
   meleeRange: 3
-  meleeRadius: 1.7
+  meleeRadius: 2.23
   meleeCooldown: 0.8
   damageDelay: 0.27
   movementLockDuration: 0.8
@@ -423,9 +424,6 @@ MonoBehaviour:
   dodgeDuration: 0.5
   dodgeCooldown: 2
   dodgeAttackLockAfterRoll: 0.03
-  reflectorLayer:
-    serializedVersion: 2
-    m_Bits: 256
   respawnYThreshold: -10
   groundSnapLayers:
     serializedVersion: 2

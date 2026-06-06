@@ -1,4 +1,5 @@
 using _Root.Scripts.Input;
+using _Root.Scripts.Interactable;
 using _Root.Scripts.Network;
 using _Root.Scripts.Roles;
 using _Root.Scripts.Enums;
@@ -77,7 +78,7 @@ namespace _Root.Scripts.Controllers
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
                     bool roleMelee = roleRules == null || roleRules.CanMelee(_networkPlayer);
                     bool roleRanged = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
-                    bool blockAttackForDodge = _cc.BlocksAttacksFromDodge || localInput.IsDodgePressed;
+                    bool blockAttackForDodge = _cc.BlocksPlayerInput || localInput.IsDodgePressed;
                     if (!localInput.IsBlockPressed && canAttack && !blockAttackForDodge)
                     {
                         if (_weaponController != null && localInput.IsShootPressed && roleRanged)
@@ -118,9 +119,11 @@ namespace _Root.Scripts.Controllers
                     (_supportSignatureSkill != null && _supportSignatureSkill.IsInputLocked)
                     || (_duelistSignatureSkill != null && _duelistSignatureSkill.IsInputLocked);
                 bool isDodging = _cc.IsDodging;
-                bool isDodgeRollBlockingMovement = _cc.BlocksMovementFromDodge;
+                bool isPlayerInputLocked = _cc.BlocksPlayerInput;
+                bool isReflectorAiming = _interactionController != null && _interactionController.IsInteractingWithReflector;
                 bool isMovementLocked = isMeleeMovementLocked || isSupportUltimateCastLocked
-                    || isMirageStepLocked || isSignatureCastMovementLocked || isDodgeRollBlockingMovement;
+                    || isMirageStepLocked || isSignatureCastMovementLocked || isPlayerInputLocked
+                    || isReflectorAiming;
 
                 NetworkedIsRunning = input.IsRunning && !isMovementLocked;
 
@@ -161,9 +164,10 @@ namespace _Root.Scripts.Controllers
                     yaw += Mathf.Clamp(delta, -maxStep, maxStep);
                 }
 
-                bool canDodge = !isDodgeRollBlockingMovement
+                bool canDodge = !isPlayerInputLocked
                     && !isSupportUltimateCastLocked
                     && !isSignatureCastMovementLocked
+                    && !isReflectorAiming
                     && (_networkPlayer == null || !_networkPlayer.IsPushing)
                     && (roleRules == null || roleRules.CanDodge(_networkPlayer));
 
@@ -234,40 +238,15 @@ namespace _Root.Scripts.Controllers
                     }
                 }
 
-                if (input.IsUltimatePressed && _networkPlayer != null && !isSignatureInputLocked)
+                if (input.IsUltimatePressed && _networkPlayer != null && !isSignatureInputLocked && !isPlayerInputLocked)
                 {
                     _networkPlayer.TryActivateUltimate();
                 }
                 
-                if (input.IsInteractPressed && _interactionController != null
-                    && !isSupportUltimateCastLocked && !isSignatureInputLocked)
-                {
-                    if (_interactionController.IsInteracting)
-                    {
-                        _interactionController.EndInteraction();
-                        if (_networkPlayer != null)
-                        {
-                            _networkPlayer.IsPushing = false;
-                        }
-                    }
-                    else
-                    {
-                        // Etkileşime başla
-                        var interactable = _interactionController.FindInteractable();
-                        if (interactable != null)
-                        {
-                            _interactionController.StartInteraction(interactable);
-                            if (_networkPlayer != null)
-                            {
-                                _networkPlayer.IsPushing = true;
-                            }
-                        }
-                    }
-                }
-                
                 if (_networkPlayer != null)
                 {
-                    bool canBlock = !isSupportUltimateCastLocked
+                    bool canBlock = !isPlayerInputLocked
+                        && !isSupportUltimateCastLocked
                         && !isSignatureInputLocked
                         && !_networkPlayer.IsPushing
                         && (roleRules == null || roleRules.CanBlock(_networkPlayer));
@@ -279,8 +258,10 @@ namespace _Root.Scripts.Controllers
                     _animController.SetPushing(_networkPlayer.IsPushing);
                 }
                 
-                bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack && !_networkPlayer.IsPushing;
-                bool blockAttackForDodge = _cc.BlocksAttacksFromDodge || input.IsDodgePressed;
+                bool isWorldInteracting = _interactionController != null && _interactionController.IsInteracting;
+                bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack
+                    && !_networkPlayer.IsPushing && !isWorldInteracting;
+                bool blockAttackForDodge = _cc.BlocksPlayerInput || input.IsDodgePressed;
                 bool roleMeleeAuth = roleRules == null || roleRules.CanMelee(_networkPlayer);
                 bool roleRangedAuth = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
                 if (!input.IsBlockPressed && canAttack && !blockAttackForDodge)

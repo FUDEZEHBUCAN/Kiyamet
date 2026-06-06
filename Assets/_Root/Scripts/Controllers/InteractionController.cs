@@ -18,6 +18,10 @@ namespace _Root.Scripts.Controllers
         private NetworkPlayer _networkPlayer;
         private IInteractable _currentInteractable;
         private Transform _currentInteractableTransform;
+
+        public IInteractable CurrentInteractable => _currentInteractable;
+        public bool IsInteractingWithReflector =>
+            _currentInteractable is ReflectorInteractable;
         
         private void Awake()
         {
@@ -39,10 +43,52 @@ namespace _Root.Scripts.Controllers
         /// </summary>
         public IInteractable FindInteractable()
         {
+            if (TryFindReflectorViaCameraRay(out var reflectorTarget))
+                return reflectorTarget;
+
             if (TryFindInteractableViaRaycast(out var raycastTarget))
                 return raycastTarget;
 
             return TryFindNearestInteractableInRange(out var proximityTarget) ? proximityTarget : null;
+        }
+
+        public void RequestToggleInteraction()
+        {
+            if (_networkPlayer != null && !_networkPlayer.IsAlive)
+                return;
+
+            if (Object.HasStateAuthority)
+            {
+                ToggleInteractionAuthority();
+                return;
+            }
+
+            if (Object.HasInputAuthority)
+                RpcToggleInteraction();
+        }
+
+        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+        private void RpcToggleInteraction()
+        {
+            ToggleInteractionAuthority();
+        }
+
+        private void ToggleInteractionAuthority()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (_currentInteractable != null)
+            {
+                EndInteractionInternal();
+                return;
+            }
+
+            IInteractable interactable = FindInteractable();
+            if (interactable == null)
+                return;
+
+            StartInteractionInternal(interactable);
         }
 
         public bool TryFindInteractableForPrompt(out IInteractable interactable)
@@ -51,11 +97,42 @@ namespace _Root.Scripts.Controllers
             return interactable != null;
         }
 
+        private bool TryFindReflectorViaCameraRay(out IInteractable interactable)
+        {
+            interactable = null;
+            Vector3 rayOrigin = transform.position + Vector3.up * 1f;
+            Vector3 rayDirection = GetInteractionLookDirection();
+
+            if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer))
+                return false;
+
+            var reflector = hit.collider.GetComponentInParent<ReflectorInteractable>();
+            if (reflector == null || !reflector.CanInteract(transform))
+                return false;
+
+            if (!IsWithinInteractionDistance(reflector.transform))
+                return false;
+
+            interactable = reflector;
+            return true;
+        }
+
+        private Vector3 GetInteractionLookDirection()
+        {
+            if (TpsCameraController.Instance != null)
+            {
+                float yaw = TpsCameraController.Instance.HorizontalLookYawDegrees;
+                return Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+            }
+
+            return transform.forward;
+        }
+
         private bool TryFindInteractableViaRaycast(out IInteractable interactable)
         {
             interactable = null;
             Vector3 rayOrigin = transform.position + Vector3.up * 1f;
-            Vector3 rayDirection = transform.forward;
+            Vector3 rayDirection = GetInteractionLookDirection();
 
             if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer))
                 return false;
@@ -85,8 +162,11 @@ namespace _Root.Scripts.Controllers
                 if (candidateTransform == null)
                     continue;
 
-                if (!IsWithinInteractionDistance(candidateTransform)
-                    || !IsFacingInteractable(candidateTransform))
+                if (!IsWithinInteractionDistance(candidateTransform))
+                    continue;
+
+                bool isReflector = candidate is ReflectorInteractable;
+                if (!isReflector && !IsFacingInteractable(candidateTransform))
                     continue;
 
                 float sqrDistance = GetInteractionSqrDistance(candidateTransform);
@@ -140,35 +220,62 @@ namespace _Root.Scripts.Controllers
         {
             if (!Object.HasStateAuthority)
                 return;
-            
+
+            StartInteractionInternal(interactable);
+        }
+
+        private void StartInteractionInternal(IInteractable interactable)
+        {
+            if (interactable == null)
+                return;
+
             if (_currentInteractable != null)
-            {
-                EndInteraction();
-            }
+                EndInteractionInternal();
             
             _currentInteractable = interactable;
             _currentInteractableTransform = (interactable as MonoBehaviour)?.transform;
-            
-            if (_currentInteractable != null)
-            {
-                _currentInteractable.OnInteractStart(transform);
-            }
+            _currentInteractable.OnInteractStart(transform);
+            NotifyReflectorAimCameraState(true);
+
+            if (_networkPlayer != null && interactable is not ReflectorInteractable)
+                _networkPlayer.IsPushing = true;
         }
         
-        /// <summary>
-        /// Etkileşimi bitir
-        /// </summary>
         public void EndInteraction()
         {
             if (!Object.HasStateAuthority)
                 return;
-            
-            if (_currentInteractable != null)
-            {
-                _currentInteractable.OnInteractEnd(transform);
-                _currentInteractable = null;
-                _currentInteractableTransform = null;
-            }
+
+            EndInteractionInternal();
+        }
+
+        private void EndInteractionInternal()
+        {
+            if (_currentInteractable == null)
+                return;
+
+            bool shouldEndReflectorCamera = _currentInteractable is ReflectorInteractable;
+
+            _currentInteractable.OnInteractEnd(transform);
+            _currentInteractable = null;
+            _currentInteractableTransform = null;
+
+            if (_networkPlayer != null)
+                _networkPlayer.IsPushing = false;
+
+            if (shouldEndReflectorCamera)
+                NotifyReflectorAimCameraState(false);
+        }
+
+        private void NotifyReflectorAimCameraState(bool active)
+        {
+            if (!Object.HasInputAuthority || TpsCameraController.Instance == null)
+                return;
+
+            if (active && _currentInteractable is ReflectorInteractable reflector)
+                TpsCameraController.Instance.BeginReflectorAimCamera(reflector);
+            else
+                TpsCameraController.Instance.EndReflectorAimCamera();
         }
         
         public override void FixedUpdateNetwork()
@@ -197,11 +304,7 @@ namespace _Root.Scripts.Controllers
                     var reflectorInteractable = _currentInteractableTransform.GetComponent<ReflectorInteractable>();
                     if (reflectorInteractable != null && reflectorInteractable.ShouldEndInteraction(transform))
                     {
-                        EndInteraction();
-                        if (_networkPlayer != null)
-                        {
-                            _networkPlayer.IsPushing = false;
-                        }
+                        EndInteractionInternal();
                         return;
                     }
                 }

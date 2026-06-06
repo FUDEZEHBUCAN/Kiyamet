@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Network;
+using _Root.Scripts.Combat;
 using _Root.Scripts.Enemy;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -216,11 +217,10 @@ namespace _Root.Scripts.Controllers
                     if (hit.collider.transform.IsChildOf(transform))
                         continue;
                     
-                    // Enemy veya Player mı kontrol et
-                    var enemy = hit.collider.GetComponentInParent<NetworkEnemy>();
                     var player = hit.collider.GetComponentInParent<NetworkPlayer>();
-                    
-                    if (enemy != null || player != null)
+                    CombatDamageTarget.TryFromCollider(hit.collider, out var damageTarget);
+
+                    if (damageTarget.IsValid || player != null)
                     {
                         damageableHit = hit;
                         break; // İlk hasara duyarlı objeyi bulduk
@@ -285,24 +285,25 @@ namespace _Root.Scripts.Controllers
                 return;
             }
             
-            // Enemy kontrolü
-            var hitEnemy = hit.collider.GetComponentInParent<NetworkEnemy>();
-            if (hitEnemy != null)
+            if (CombatDamageTarget.TryFromCollider(hit.collider, out var damageTarget) && damageTarget.IsAlive)
             {
-                bool wasAlive = hitEnemy.IsAlive;
-                hitEnemy.TakeDamage(BulletDamage, hit.point, hit.normal);
-                
-                // Enemy öldürüldüyse mana kazan
-                if (wasAlive && !hitEnemy.IsAlive && _networkPlayer != null)
-                {
+                bool wasAlive = damageTarget.IsAlive;
+                damageTarget.TakeDamage(BulletDamage, hit.point, hit.normal);
+
+                if (wasAlive && !damageTarget.IsAlive && _networkPlayer != null)
                     _networkPlayer.RegisterEnemyKill();
-                }
-                
-                Debug.Log($"[WeaponController] → Damaged ENEMY: {hitEnemy.name}, Health: {hitEnemy.CurrentHealth}");
+
+                var name = damageTarget.Boss != null
+                    ? damageTarget.Boss.name
+                    : damageTarget.Enemy.name;
+                var health = damageTarget.Boss != null
+                    ? damageTarget.Boss.CurrentHealth
+                    : damageTarget.Enemy.CurrentHealth;
+                Debug.Log($"[WeaponController] → Damaged target: {name}, Health: {health}");
             }
             else
             {
-                Debug.Log($"[WeaponController] → Hit {hit.collider.name} but NO NetworkEnemy found in parent!");
+                Debug.Log($"[WeaponController] → Hit {hit.collider.name} but no damageable boss/enemy on parent!");
             }
         }
 

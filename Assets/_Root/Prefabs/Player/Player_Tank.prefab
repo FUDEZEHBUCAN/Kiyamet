@@ -223,6 +223,7 @@ MonoBehaviour:
   hitStunDuration: 0.4
   blockFrontHalfAngleDegrees: 80
   respawnDelay: 5
+  postReviveInputBlockDuration: 2
   startWithUltimateReadyForTesting: 0
   killsRequiredForUltimate: 6
   ultimateDuration: 10
@@ -355,10 +356,15 @@ MonoBehaviour:
   dodgeDuration: 0.5
   dodgeCooldown: 2
   dodgeAttackLockAfterRoll: 0.03
-  reflectorLayer:
-    serializedVersion: 2
-    m_Bits: 256
   respawnYThreshold: -10
+  groundSnapLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  groundSnapRayStartHeight: 4
+  groundSnapRayDistance: 12
+  groundSnapSkin: 0.04
+  groundPenetrationStep: 0.12
+  groundPenetrationResolveAttempts: 10
   pushSpeedMultiplier: 0.7
   _NetworkPosition: {x: 0, y: 0, z: 0}
   _NetworkRotation: {x: 0, y: 0, z: 0, w: 0}
@@ -521,6 +527,10 @@ MonoBehaviour:
   dashHitSounds:
   - {fileID: 8300000, guid: 885e3ea6454d8bf4abf2c2e166ef7d48, type: 3}
   - {fileID: 8300000, guid: 384ce61d6d059964c87a5933b8274726, type: 3}
+  shadowDashSounds: []
+  mirageStepActivateSounds: []
+  mirageStepMoveSounds: []
+  globalAudioSource: {fileID: 0}
   meleeQueueWindowOpen:
     clips:
     - {fileID: 8300000, guid: 5fdb13d3756c84fecac96f5a2d124370, type: 3}

@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4341b7ef793d425e972240c71f6c9f00, type: 3}
+  m_Name: BossCameraShakeSettings
+  m_EditorClassIdentifier: 
+  profiles:
+  - type: 1
+    maxRange: 42
+    minIntensity: 0.45
+    strength: 2.6
+    duration: 0.38
+    punchStrength: 2.1
+    punchDuration: 0.14
+    shakeVector: {x: 1, y: 0.55, z: 0.85}
+  - type: 2
+    maxRange: 24
+    minIntensity: 0.28
+    strength: 1.35
+    duration: 0.22
+    punchStrength: 0.9
+    punchDuration: 0.08
+    shakeVector: {x: 0.9, y: 0.4, z: 0.65}
+  - type: 3
+    maxRange: 30
+    minIntensity: 0.35
+    strength: 2.15
+    duration: 0.28
+    punchStrength: 1.65
+    punchDuration: 0.11
+    shakeVector: {x: 1.1, y: 0.5, z: 0.9}
+  - type: 4
+    maxRange: 0
+    minIntensity: 1
+    strength: 3.85
+    duration: 0.34
+    punchStrength: 2.4
+    punchDuration: 0.12
+    shakeVector: {x: 1.15, y: 0.65, z: 1}
+  - type: 5
+    maxRange: 38
+    minIntensity: 0.5
+    strength: 4.2
+    duration: 0.45
+    punchStrength: 3.1
+    punchDuration: 0.16
+    shakeVector: {x: 1.2, y: 0.7, z: 1.1}
+  - type: 6
+    maxRange: 32
+    minIntensity: 0.32
+    strength: 1.55
+    duration: 0.32
+    punchStrength: 0
+    punchDuration: 0
+    shakeVector: {x: 0.75, y: 0.35, z: 0.55}
+  - type: 7
+    maxRange: 36
+    minIntensity: 0.4
+    strength: 2.75
+    duration: 0.36
+    punchStrength: 1.2
+    punchDuration: 0.1
+    shakeVector: {x: 1, y: 0.5, z: 0.8}
+  - type: 8
+    maxRange: 22
+    minIntensity: 0.22
+    strength: 0.85
+    duration: 0.18
+    punchStrength: 0
+    punchDuration: 0
+    shakeVector: {x: 0.6, y: 0.25, z: 0.45}
+  - type: 9
+    maxRange: 30
+    minIntensity: 0.38
+    strength: 3.5
+    duration: 0.32
+    punchStrength: 2.5
+    punchDuration: 0.13
+    shakeVector: {x: 1.1, y: 0.55, z: 0.95}
+  - type: 10
+    maxRange: 48
+    minIntensity: 0.55
+    strength: 3.4
+    duration: 0.52
+    punchStrength: 2.2
+    punchDuration: 0.18
+    shakeVector: {x: 1.05, y: 0.45, z: 1.15}
+  - type: 11
+    maxRange: 55
+    minIntensity: 0.5
+    strength: 3.8
+    duration: 0.48
+    punchStrength: 2.8
+    punchDuration: 0.15
+    shakeVector: {x: 1.15, y: 0.6, z: 1}
+  - type: 12
+    maxRange: 20
+    minIntensity: 0.16
+    strength: 0.72
+    duration: 0.14
+    punchStrength: 0.42
+    punchDuration: 0.05
+    shakeVector: {x: 0.75, y: 0.4, z: 0.6}
+  - type: 13
+    maxRange: 40
+    minIntensity: 0.2
+    strength: 2.2
+    duration: 0.28
+    punchStrength: 0
+    punchDuration: 0
+    shakeVector: {x: 1, y: 0.65, z: 0.85}

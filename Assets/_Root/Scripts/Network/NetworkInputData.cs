@@ -14,7 +14,6 @@ namespace _Root.Scripts.Network
         public NetworkBool IsDashPressed;
         public NetworkBool IsDodgePressed;
         public NetworkBool IsUltimatePressed;
-        public NetworkBool IsInteractPressed;
         public NetworkBool IsRunning;
         public Vector3 AimPoint;
 

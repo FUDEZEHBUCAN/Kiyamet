@@ -1,5 +1,6 @@
 using Fusion;
 using UnityEngine;
+using _Root.Scripts.Combat;
 using _Root.Scripts.Network;
 using _Root.Scripts.Enemy;
 using _Root.Scripts.Enums;
@@ -128,7 +129,7 @@ namespace _Root.Scripts.Controllers
             return _characterController != null
                 && _characterController.Object != null
                 && _characterController.Object.IsValid
-                && _characterController.BlocksAttacksFromDodge;
+                && _characterController.BlocksPlayerInput;
         }
 
         private void Awake()
@@ -507,27 +508,29 @@ namespace _Root.Scripts.Controllers
                 if (col.transform.IsChildOf(transform))
                     continue;
                 
-                var enemy = col.GetComponentInParent<NetworkEnemy>();
-                if (enemy != null && enemy.IsAlive)
-                {
-                    bool wasAlive = enemy.IsAlive;
-
-                    if (!enemy.IsEliteEnemy)
-                        ApplyMeleeKnockbackToEnemy(enemy);
-
-                    enemy.TakeDamage(finalDamage, col.ClosestPoint(attackPos), (col.transform.position - attackPos).normalized);
-
-                    if (!enemy.IsEliteEnemy && !enemy.HasActiveKnockback)
-                        ApplyMeleeKnockbackToEnemy(enemy);
-                    
-                    if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
-                    {
-                        _networkPlayer.RegisterEnemyKill();
-                    }
-                    
-                    didHit = true;
+                if (!CombatDamageTarget.TryFromCollider(col, out var damageTarget) || !damageTarget.IsAlive)
                     continue;
-                }
+
+                bool wasAlive = damageTarget.IsAlive;
+
+                if (damageTarget.Enemy != null && !damageTarget.IsEliteEnemy)
+                    ApplyMeleeKnockbackToEnemy(damageTarget.Enemy);
+
+                damageTarget.TakeDamage(
+                    finalDamage,
+                    col.ClosestPoint(attackPos),
+                    (col.transform.position - attackPos).normalized);
+
+                if (damageTarget.Enemy != null
+                    && !damageTarget.IsEliteEnemy
+                    && !damageTarget.HasActiveKnockback)
+                    ApplyMeleeKnockbackToEnemy(damageTarget.Enemy);
+
+                if (wasAlive && !damageTarget.IsAlive && _networkPlayer != null)
+                    _networkPlayer.RegisterEnemyKill();
+
+                didHit = true;
+                continue;
                 
                 var player = col.GetComponentInParent<NetworkPlayer>();
                 if (player != null && player.IsAlive && player != _networkPlayer)

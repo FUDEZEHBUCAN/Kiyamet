@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using _Root.Scripts.Combat;
 using _Root.Scripts.Enemy;
 using _Root.Scripts.Enums;
 using _Root.Scripts.Network;
@@ -571,18 +572,24 @@ namespace _Root.Scripts.Controllers
             Collider[] hits = Physics.OverlapSphere(transform.position, spinRadius, enemyLayers);
             var damaged = new HashSet<NetworkEnemy>();
 
+            var damagedTargets = new HashSet<NetworkBehaviour>();
             foreach (var col in hits)
             {
-                var enemy = col.GetComponentInParent<NetworkEnemy>();
-                if (enemy == null || !enemy.IsAlive || damaged.Contains(enemy))
+                if (!CombatDamageTarget.TryFromCollider(col, out var target) || !target.IsAlive)
                     continue;
 
-                damaged.Add(enemy);
-                bool wasAlive = enemy.IsAlive;
-                Vector3 hitPoint = col.ClosestPoint(transform.position + Vector3.up);
-                enemy.TakeDamage(damage, hitPoint, (hitPoint - transform.position).normalized);
+                NetworkBehaviour damageKey = target.Boss != null
+                    ? target.Boss
+                    : (NetworkBehaviour)target.Enemy;
+                if (damagedTargets.Contains(damageKey))
+                    continue;
 
-                if (wasAlive && !enemy.IsAlive && _networkPlayer != null)
+                damagedTargets.Add(damageKey);
+                bool wasAlive = target.IsAlive;
+                Vector3 hitPoint = col.ClosestPoint(transform.position + Vector3.up);
+                target.TakeDamage(damage, hitPoint, (hitPoint - transform.position).normalized);
+
+                if (wasAlive && !target.IsAlive && _networkPlayer != null)
                     _networkPlayer.RegisterEnemyKill();
             }
         }

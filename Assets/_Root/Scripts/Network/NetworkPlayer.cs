@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Data;
+using _Root.Scripts.Boss;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
 using _Root.Scripts.Roles;
@@ -26,6 +27,8 @@ namespace _Root.Scripts.Network
         [Header("Respawn")]
         [Tooltip("Öldükten sonra respawn süresi (saniye)")]
         [SerializeField] private float respawnDelay = 5f;
+        [Tooltip("Ölüm sonrası revive olduğunda hareket/saldırı girdisinin kilitli kalacağı süre (sn).")]
+        [SerializeField] private float postReviveInputBlockDuration = 3f;
 
         [Header("Ultimate")]
         [Tooltip("Açıkken oyuncu spawn/respawn sonrası ulti hazır başlar (test için).")]
@@ -64,10 +67,16 @@ namespace _Root.Scripts.Network
         [Networked] public NetworkBool IsUltimateActive { get; set; }
         [Networked] public int UltimateKillCount { get; set; }
         [Networked] private int LastHitTick { get; set; } // Hit animasyonu için
+        [Networked] private int LastFallTick { get; set; } // Boss savurma / Fall animasyonu
+        [Networked] private byte LastKnockbackFallStyle { get; set; }
         [Networked] private int LastDeathTick { get; set; } // Death animasyonu için
+        [Networked] private int LastBossMeleeVfxTick { get; set; }
+        [Networked] private byte LastBossMeleeVfxType { get; set; }
         
         // Local variables
         private int _lastVisualHitTick;
+        private int _lastVisualFallTick;
+        private int _lastVisualBossMeleeVfxTick;
         private int _lastVisualDeathTick;
         private bool _wasDead;
         private float _supportUltimateFloatVelocity;
@@ -87,10 +96,13 @@ namespace _Root.Scripts.Network
                 if (_characterController == null)
                     _characterController = GetComponent<NetworkCharacterControllerCustom>();
 
-                return _characterController != null
-                    && _characterController.Object != null
-                    && _characterController.Object.IsValid
-                    && _characterController.BlocksAttacksFromDodge;
+                if (_characterController == null
+                    || _characterController.Object == null
+                    || !_characterController.Object.IsValid)
+                    return false;
+
+                return _characterController.BlocksAttacksFromDodge
+                    || _characterController.HasBossInputBlock;
             }
         }
 
@@ -271,6 +283,8 @@ namespace _Root.Scripts.Network
         
         public override void Render()
         {
+            SyncBossMeleeHitVfx();
+
             // Remote clientlar için animasyon senkronizasyonu (Render'da - her frame kontrol edilir)
             if (!Object.HasStateAuthority)
             {
@@ -286,8 +300,27 @@ namespace _Root.Scripts.Network
                 if (!_wasDead && IsDead)
                 {
                     _wasDead = true;
+
+                    // Ölümcül knockback: fall sırasında stand up'ı engelle (Die henüz tetiklenmedi).
+                    if (animController != null && LastDeathTick <= _lastVisualDeathTick)
+                        animController.SetAnimatorIsDead(true);
                 }
                 
+                // Fall animasyonu (boss savurma)
+                if (LastFallTick > _lastVisualFallTick && LastFallTick > 0)
+                {
+                    if (animController != null && IsAlive)
+                    {
+                        animController.InterruptAttack();
+                        animController.TriggerBossKnockbackFall(ResolveKnockbackFallStyleFromNetwork());
+                    }
+
+                    if (Object.HasInputAuthority && IsAlive && !ShouldSuppressBossHitCameraShake())
+                        BossCameraShake.TryShakeLocalPlayer(BossCameraShakeType.HitPlayer, transform.position);
+
+                    _lastVisualFallTick = LastFallTick;
+                }
+
                 // Hit animasyonu
                 if (LastHitTick > _lastVisualHitTick && LastHitTick > 0)
                 {
@@ -311,6 +344,21 @@ namespace _Root.Scripts.Network
             }
 
             UpdateSupportUltimateFloatCameraShake();
+        }
+
+        private void SyncBossMeleeHitVfx()
+        {
+            if (LastBossMeleeVfxTick <= _lastVisualBossMeleeVfxTick || LastBossMeleeVfxTick <= 0)
+                return;
+
+            var boss = FindFirstObjectByType<NetworkBoss>();
+            if (boss != null)
+            {
+                var attackType = (BossAttackType)LastBossMeleeVfxType;
+                boss.SpawnMeleeHitVfxAt(transform.position, attackType);
+            }
+
+            _lastVisualBossMeleeVfxTick = LastBossMeleeVfxTick;
         }
 
         private void UpdateSupportUltimateFloatCameraShake()
@@ -340,7 +388,18 @@ namespace _Root.Scripts.Network
             }
         }
         
-        public void TakeDamage(float damage, bool isHeavyAttack = false, Vector3? damageOrigin = null)
+        public void NotifyBossMeleeHit(BossAttackType attackType)
+        {
+            if (!Object.HasStateAuthority || attackType is BossAttackType.None)
+                return;
+
+            LastBossMeleeVfxType = (byte)attackType;
+            LastBossMeleeVfxTick = Runner.Tick;
+        }
+
+        public void TakeDamage(float damage, bool isHeavyAttack = false, Vector3? damageOrigin = null,
+            float knockbackForce = 0f, float knockbackDuration = 0f, float knockbackUpward = 0f,
+            float inputBlockDuration = 0f)
         {
             if (!Object.HasStateAuthority)
                 return; // Sadece server hasar hesaplayabilir
@@ -369,40 +428,104 @@ namespace _Root.Scripts.Network
             
             CurrentHealth = Mathf.Max(0f, CurrentHealth - damage);
             
+            bool applyKnockback = knockbackForce > 0.001f;
+            float stunSeconds = applyKnockback && inputBlockDuration > 0.001f
+                ? Mathf.Max(hitStunDuration, inputBlockDuration)
+                : hitStunDuration;
+
             // Hit stun başlat
-            HitStunTimer = TickTimer.CreateFromSeconds(Runner, hitStunDuration);
+            HitStunTimer = TickTimer.CreateFromSeconds(Runner, stunSeconds);
             
             // Saldırıyı iptal et (eğer saldırı animasyonu başlamışsa)
             if (_meleeController != null)
                 _meleeController.InterruptAttack();
-            
-            if (CurrentHealth <= 0f)
+
+            bool isLethal = CurrentHealth <= 0f;
+
+            // Savurma + Fall (ölümcül vuruşta da — ölüm pozu knockback bitince)
+            if (applyKnockback)
             {
-                OnDeath();
-                return;
+                if (IsBlocking)
+                    SetBlocking(false);
+
+                if (_characterController == null)
+                    _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+                Vector3 knockDir = ResolveKnockbackDirection(damageOrigin);
+                if (_characterController != null)
+                {
+                    float kbDuration = knockbackDuration > 0.001f ? knockbackDuration : hitStunDuration;
+                    float blockDuration = inputBlockDuration > 0.001f ? inputBlockDuration : kbDuration;
+                    _characterController.ApplyKnockback(knockDir, knockbackForce, kbDuration, knockbackUpward, blockDuration);
+                }
+
+                if (animController != null)
+                {
+                    animController.InterruptAttack();
+                    KnockbackFallStyle fallStyle = ResolveBossKnockbackFallStyle(damageOrigin);
+                    animController.TriggerBossKnockbackFall(fallStyle);
+                    LastKnockbackFallStyle = (byte)fallStyle;
+                }
+
+                LastFallTick = Runner.Tick;
+
+                if (Object.HasInputAuthority)
+                {
+                    TpsCameraController.Instance?.TriggerDamageVignette();
+                }
             }
-            
-            // Hasar alma sesi
-            if (audioController != null)
-                audioController.PlayTakeDamage();
-            
-            // Camera shake ve vignette (sadece local player için)
-            if (Object.HasInputAuthority && TpsCameraController.Instance != null)
+            else if (!isLethal && animController != null)
+            {
+                animController.InterruptAttack();
+                animController.TriggerHit();
+                LastHitTick = Runner.Tick;
+            }
+
+            if (!applyKnockback && Object.HasInputAuthority && TpsCameraController.Instance != null)
             {
                 var shakeType = isHeavyAttack ? CameraShakeType.HeavyAttackTaken : CameraShakeType.DamageTaken;
                 TpsCameraController.Instance.ShakeCamera(shakeType);
                 TpsCameraController.Instance.TriggerDamageVignette();
             }
-            
-            // Animasyonları iptal et ve hit animasyonu başlat (server)
-            if (animController != null)
+
+            if (!isLethal)
             {
-                animController.InterruptAttack();
-                animController.TriggerHit();
+                if (audioController != null)
+                    audioController.PlayTakeDamage();
             }
-            
-            // Remote clientlar için tick güncelle
-            LastHitTick = Runner.Tick;
+
+            if (isLethal)
+            {
+                OnDeath(deferPresentationUntilKnockbackEnds: applyKnockback);
+                return;
+            }
+        }
+
+        private bool ShouldSuppressBossHitCameraShake()
+        {
+            if (_characterController == null)
+                _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+            if (_characterController != null && _characterController.HasActiveKnockback)
+                return true;
+
+            var camera = TpsCameraController.Instance;
+            return camera != null && camera.IsKnockbackCameraActive;
+        }
+
+        private Vector3 ResolveKnockbackDirection(Vector3? damageOrigin)
+        {
+            if (damageOrigin.HasValue)
+            {
+                Vector3 away = transform.position - damageOrigin.Value;
+                away.y = 0f;
+                if (away.sqrMagnitude > 0.0001f)
+                    return away.normalized;
+            }
+
+            Vector3 back = -transform.forward;
+            back.y = 0f;
+            return back.sqrMagnitude > 0.0001f ? back.normalized : Vector3.back;
         }
         
         private bool TryConsumeDirectionalBlock(Vector3? damageOrigin)
@@ -441,6 +564,41 @@ namespace _Root.Scripts.Network
             forward.Normalize();
             float minDot = Mathf.Cos(blockFrontHalfAngleDegrees * Mathf.Deg2Rad);
             return Vector3.Dot(forward, toThreat) >= minDot;
+        }
+
+        private bool IsIncomingDamageFromBehind(Vector3? damageOrigin)
+        {
+            if (!damageOrigin.HasValue)
+                return false;
+
+            Vector3 toThreat = damageOrigin.Value - transform.position;
+            toThreat.y = 0f;
+            if (toThreat.sqrMagnitude < 0.0001f)
+                return false;
+
+            toThreat.Normalize();
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+            if (forward.sqrMagnitude < 0.0001f)
+                return false;
+
+            forward.Normalize();
+            float minDot = Mathf.Cos(blockFrontHalfAngleDegrees * Mathf.Deg2Rad);
+            return Vector3.Dot(forward, toThreat) <= -minDot;
+        }
+
+        private KnockbackFallStyle ResolveBossKnockbackFallStyle(Vector3? damageOrigin)
+        {
+            return IsIncomingDamageFromBehind(damageOrigin)
+                ? KnockbackFallStyle.FallingFlat
+                : KnockbackFallStyle.FallBack;
+        }
+
+        private KnockbackFallStyle ResolveKnockbackFallStyleFromNetwork()
+        {
+            return LastKnockbackFallStyle == (byte)KnockbackFallStyle.FallBack
+                ? KnockbackFallStyle.FallBack
+                : KnockbackFallStyle.FallingFlat;
         }
 
         /// <summary>
@@ -791,28 +949,55 @@ namespace _Root.Scripts.Network
             UltimateKillCount = Mathf.Max(1, killsRequiredForUltimate);
         }
         
-        private void OnDeath()
+        private void OnDeath(bool deferPresentationUntilKnockbackEnds = false)
         {
             IsDead = true;
             DeactivateUltimate();
             IsPushing = false;
 
-            if (_characterController != null)
-                _characterController.FreezeDeathPose();
-            
-            // Death sesi
             if (audioController != null)
                 audioController.PlayDeath();
-            
-            // Death animasyonu (server)
+
+            if (deferPresentationUntilKnockbackEnds)
+            {
+                // Fall animasyonu bitince Stand up'a geçmesin; Die knockback bitince CompleteDeathPresentation'da.
+                animController?.SetAnimatorIsDead(true);
+            }
+            else
+            {
+                CompleteDeathPresentation();
+            }
+
+            RespawnTimer = TickTimer.CreateFromSeconds(Runner, respawnDelay);
+        }
+
+        /// <summary>Ölümcül boss knockback bittikten sonra çağrılır (state authority).</summary>
+        public void CompleteDeathPresentation()
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (_characterController == null)
+                _characterController = GetComponent<NetworkCharacterControllerCustom>();
+
+            if (_characterController != null && _characterController.IsDeathPoseFrozen)
+                return;
+
+            if (_characterController != null)
+                _characterController.FreezeDeathPose();
+
             if (animController != null)
                 animController.TriggerDeath();
-            
-            // Remote clientlar için tick güncelle
+
             LastDeathTick = Runner.Tick;
-            
-            // Respawn timer başlat
-            RespawnTimer = TickTimer.CreateFromSeconds(Runner, respawnDelay);
+        }
+
+        public void OnKnockbackEndedWhileDead()
+        {
+            if (!IsDead)
+                return;
+
+            CompleteDeathPresentation();
         }
         
         private void PerformRespawn()
@@ -828,6 +1013,7 @@ namespace _Root.Scripts.Network
             if (_characterController != null)
             {
                 _characterController.Respawn();
+                _characterController.ApplyInputBlock(postReviveInputBlockDuration);
                 CurrentHealth = MaxHealth;
                 CurrentMana = MaxMana;
                 

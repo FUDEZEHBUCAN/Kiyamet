@@ -2,6 +2,12 @@ using UnityEngine;
 
 namespace _Root.Scripts.Controllers
 {
+    public enum KnockbackFallStyle : byte
+    {
+        FallingFlat = 0,
+        FallBack = 1
+    }
+
     [RequireComponent(typeof(Animator))]
     public class PlayerAnimationController : MonoBehaviour
     {
@@ -42,6 +48,8 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamDash = Animator.StringToHash("Dash");
         private static readonly int ParamDodge = Animator.StringToHash("Dodge");
         private static readonly int ParamHit = Animator.StringToHash("Hit");
+        private static readonly int ParamFall = Animator.StringToHash("Fall");
+        private static readonly int ParamFallBack = Animator.StringToHash("FallBack");
         private static readonly int ParamDie = Animator.StringToHash("Die");
         private static readonly int ParamRevive = Animator.StringToHash("Revive");
         private static readonly int ParamIsDead = Animator.StringToHash("IsDead");
@@ -268,7 +276,38 @@ namespace _Root.Scripts.Controllers
                 animator.SetTrigger(ParamHit);
             }
         }
+
+        public void TriggerFall()
+        {
+            TriggerBossKnockbackFall(KnockbackFallStyle.FallingFlat);
+        }
+
+        public void TriggerBossKnockbackFall(KnockbackFallStyle style)
+        {
+            if (animator == null || !animator.enabled || !animator.isActiveAndEnabled)
+                return;
+
+            animator.ResetTrigger(ParamFall);
+            animator.ResetTrigger(ParamFallBack);
+
+            if (style == KnockbackFallStyle.FallBack)
+                animator.SetTrigger(ParamFallBack);
+            else
+                animator.SetTrigger(ParamFall);
+        }
         
+        /// <summary>
+        /// Fall → Stand up geçişini engellemek için IsDead'i Die tetiklemeden işaretler
+        /// (ölümcül knockback sırasında kullanılır).
+        /// </summary>
+        public void SetAnimatorIsDead(bool isDead)
+        {
+            if (animator == null || !animator.enabled || !animator.isActiveAndEnabled)
+                return;
+
+            animator.SetBool(ParamIsDead, isDead);
+        }
+
         public void TriggerDeath()
         {
             if (animator != null && animator.enabled && animator.isActiveAndEnabled)
@@ -299,6 +338,8 @@ namespace _Root.Scripts.Controllers
             animator.ResetTrigger(ParamDie);
             animator.ResetTrigger(ParamMeleeAttack);
             animator.ResetTrigger(ParamHit);
+            animator.ResetTrigger(ParamFall);
+            animator.ResetTrigger(ParamFallBack);
             animator.ResetTrigger(ParamShoot);
             animator.ResetTrigger(ParamDash);
             animator.ResetTrigger(ParamDodge);
@@ -321,6 +362,8 @@ namespace _Root.Scripts.Controllers
                 
                 animator.ResetTrigger(ParamMeleeAttack);
                 animator.ResetTrigger(ParamHit);
+                animator.ResetTrigger(ParamFall);
+                animator.ResetTrigger(ParamFallBack);
                 animator.ResetTrigger(ParamDie);
                 animator.ResetTrigger(ParamRevive);
                 animator.SetInteger(ParamAttackType, 0);
