@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6714461776283281534}
   - component: {fileID: 8944829643144928294}
   - component: {fileID: 1834381809291320705}
+  - component: {fileID: 4081869309982498475}
   m_Layer: 0
   m_Name: CaveCastleCircularPlatform_Small
   m_TagString: Untagged
@@ -84,3 +85,25 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4081869309982498475
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 457814651927478150}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -1527045735664061686, guid: 5c8c3920794c4d142990cf251dcddef8, type: 3}
