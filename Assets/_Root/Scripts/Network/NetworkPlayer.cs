@@ -1,11 +1,12 @@
 using Fusion;
+using _Root.Scripts.UI;
 using UnityEngine;
+using UnityEngine.UI;
 using _Root.Scripts.Data;
 using _Root.Scripts.Boss;
 using _Root.Scripts.Controllers;
 using _Root.Scripts.Enums;
 using _Root.Scripts.Roles;
-using _Root.Scripts.UI;
 
 namespace _Root.Scripts.Network
 {
@@ -80,6 +81,8 @@ namespace _Root.Scripts.Network
         private int _lastVisualBossMeleeVfxTick;
         private int _lastVisualDeathTick;
         private int _lastVisualBoulderCrushTick;
+        private int _lastDamageFlashHitTick;
+        private int _lastDamageFlashFallTick;
         private bool _wasDead;
         private float _supportUltimateFloatVelocity;
         private bool _supportUltimateFloatCameraShakeActive;
@@ -256,6 +259,8 @@ namespace _Root.Scripts.Network
 
                 if (GetComponent<ItemPickupHudFeedback>() == null)
                     gameObject.AddComponent<ItemPickupHudFeedback>();
+
+                EnsureDamageFlashOverlay();
             }
 
             if (Object.HasStateAuthority)
@@ -264,6 +269,8 @@ namespace _Root.Scripts.Network
             // Local state initialize
             _wasDead = IsDead;
             _lastVisualBoulderCrushTick = LastBoulderCrushTick;
+            _lastDamageFlashHitTick = LastHitTick;
+            _lastDamageFlashFallTick = LastFallTick;
             
             // Animator reset (respawn sonrası)
             if (animController != null)
@@ -367,6 +374,50 @@ namespace _Root.Scripts.Network
 
             UpdateSupportUltimateFloatCameraShake();
             SyncLocalBoulderCrushDeathCamera();
+            SyncLocalDamageFlash();
+        }
+
+        private void EnsureDamageFlashOverlay()
+        {
+            if (GetComponentInChildren<PlayerDamageFlashOverlay>(true) != null)
+                return;
+
+            Image[] images = GetComponentsInChildren<Image>(true);
+            for (int i = 0; i < images.Length; i++)
+            {
+                Image image = images[i];
+                if (image == null)
+                    continue;
+
+                if (!image.name.Contains("Damage Vignette") && !image.name.Contains("DamageVignette"))
+                    continue;
+
+                image.gameObject.AddComponent<PlayerDamageFlashOverlay>();
+                return;
+            }
+        }
+
+        private void SyncLocalDamageFlash()
+        {
+            if (!Object.HasInputAuthority || !IsAlive)
+                return;
+
+            bool shouldFlash = false;
+
+            if (LastHitTick > _lastDamageFlashHitTick && LastHitTick > 0)
+            {
+                _lastDamageFlashHitTick = LastHitTick;
+                shouldFlash = true;
+            }
+
+            if (LastFallTick > _lastDamageFlashFallTick && LastFallTick > 0)
+            {
+                _lastDamageFlashFallTick = LastFallTick;
+                shouldFlash = true;
+            }
+
+            if (shouldFlash)
+                PlayerDamageFlashOverlay.PlayForLocalPlayer();
         }
 
         private void SyncLocalBoulderCrushDeathCamera()
@@ -507,11 +558,6 @@ namespace _Root.Scripts.Network
                 }
 
                 LastFallTick = Runner.Tick;
-
-                if (Object.HasInputAuthority)
-                {
-                    TpsCameraController.Instance?.TriggerDamageVignette();
-                }
             }
             else if (!isLethal && animController != null)
             {
@@ -524,7 +570,6 @@ namespace _Root.Scripts.Network
             {
                 var shakeType = isHeavyAttack ? CameraShakeType.HeavyAttackTaken : CameraShakeType.DamageTaken;
                 TpsCameraController.Instance.ShakeCamera(shakeType);
-                TpsCameraController.Instance.TriggerDamageVignette();
             }
 
             if (!isLethal)

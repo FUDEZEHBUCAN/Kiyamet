@@ -14,6 +14,8 @@ namespace _Root.Scripts.Data
         
         [Header("Movement")]
         [SerializeField] private float movementSpeed = 5f;
+        [Tooltip("Animasyon Speed (0-1) normalizasyonu için referans hız (m/s). Boş bırakılırsa MovementSpeed kullanılır.")]
+        [SerializeField] private float locomotionSpeedForAnim = 0f;
         [SerializeField] private float rotationSpeed = 720f; // Hızlı dönüş
         [SerializeField] private float acceleration = 100f; // Hızlı ivmelenme
         [SerializeField] private float stoppingDistance = 1.5f;
@@ -66,6 +68,9 @@ namespace _Root.Scripts.Data
         public bool IsElite => isElite;
         public float MaxHealth => maxHealth;
         public float MovementSpeed => movementSpeed;
+        public float LocomotionSpeedForAnim => locomotionSpeedForAnim > 0.001f
+            ? locomotionSpeedForAnim
+            : Mathf.Max(0.01f, movementSpeed);
         public float RotationSpeed => rotationSpeed;
         public float Acceleration => acceleration;
         public float StoppingDistance => stoppingDistance;

@@ -6,12 +6,16 @@ namespace _Root.Scripts.Enemy
     public class EnemyAnimationController : MonoBehaviour
     {
         public const string LocomotionPlaybackMultParam = "LocomotionPlaybackMult";
+        public const string DeathLayerName = "Death Layer";
+
+        private const string DeathStateName = "Death";
 
         [Header("References")]
         [SerializeField] private Animator animator;
         
         [Header("Animation Settings")]
         [SerializeField] private float locomotionSmoothTime = 0.1f;
+        [SerializeField] private float maxLocomotionAnimSpeed = 1.35f;
         [SerializeField] private float deathPlaybackSpeedMin = 1f;
         [SerializeField] private float deathPlaybackSpeedMax = 2f;
         
@@ -32,11 +36,31 @@ namespace _Root.Scripts.Enemy
         private float _locomotionPlaybackMult = 1f;
         private bool _usesLocomotionPlaybackParameter;
         private bool _locomotionPlaybackParameterResolved;
+        private int _deathLayerIndex = -2;
         
         private void Awake()
         {
             if (animator == null)
                 animator = GetComponent<Animator>();
+
+            ResolveDeathLayerIndex();
+            SetDeathLayerWeight(0f);
+        }
+
+        private void ResolveDeathLayerIndex()
+        {
+            if (_deathLayerIndex != -2 || animator == null)
+                return;
+
+            _deathLayerIndex = animator.GetLayerIndex(DeathLayerName);
+        }
+
+        private void SetDeathLayerWeight(float weight)
+        {
+            if (animator == null || _deathLayerIndex < 0)
+                return;
+
+            animator.SetLayerWeight(_deathLayerIndex, weight);
         }
 
         private void ResolveLocomotionPlaybackParameter()
@@ -78,33 +102,39 @@ namespace _Root.Scripts.Enemy
         public float PlaybackSpeed => _locomotionPlaybackMult;
         
         /// <summary>
-        /// Hareket hızını günceller (Idle/Run blend için)
+        /// Base Layer 1D locomotion — Speed 0-1 (Idle↔Run blend), referans hız worldSpeed ile normalize edilir.
         /// </summary>
-        public void SetSpeed(float speed)
-            {
-            // Smooth geçiş
-            _currentSpeed = Mathf.SmoothDamp(_currentSpeed, speed, ref _speedVelocity, locomotionSmoothTime);
-            
-            if (animator != null)
-            {
-                animator.SetFloat(ParamSpeed, _currentSpeed);
-                animator.SetBool(ParamIsMoving, speed > 0.1f);
-            }
-        }
-        
-        /// <summary>
-        /// Anlık hız set etme (smooth yok)
-        /// </summary>
-        public void SetSpeedImmediate(float speed)
+        public void SetLocomotionSpeed(float worldSpeed, float referenceMaxSpeed)
         {
-            _currentSpeed = speed;
+            float normalized = referenceMaxSpeed > 0.001f
+                ? Mathf.Clamp01(worldSpeed / referenceMaxSpeed)
+                : 0f;
+
+            normalized = Mathf.Min(normalized * maxLocomotionAnimSpeed, 1f);
+            _currentSpeed = Mathf.SmoothDamp(_currentSpeed, normalized, ref _speedVelocity, locomotionSmoothTime);
+
+            if (animator == null)
+                return;
+
+            animator.SetFloat(ParamSpeed, _currentSpeed);
+            animator.SetBool(ParamIsMoving, _currentSpeed > 0.08f);
+        }
+
+        public void SetLocomotionSpeedImmediate(float worldSpeed, float referenceMaxSpeed)
+        {
+            float normalized = referenceMaxSpeed > 0.001f
+                ? Mathf.Clamp01(worldSpeed / referenceMaxSpeed)
+                : 0f;
+
+            normalized = Mathf.Min(normalized * maxLocomotionAnimSpeed, 1f);
+            _currentSpeed = normalized;
             _speedVelocity = 0f;
-            
-            if (animator != null)
-            {
-                animator.SetFloat(ParamSpeed, speed);
-                animator.SetBool(ParamIsMoving, speed > 0.1f);
-            }
+
+            if (animator == null)
+                return;
+
+            animator.SetFloat(ParamSpeed, _currentSpeed);
+            animator.SetBool(ParamIsMoving, _currentSpeed > 0.08f);
         }
         
         /// <summary>
@@ -143,8 +173,14 @@ namespace _Root.Scripts.Enemy
             animator.ResetTrigger(ParamLeapJump);
 
             int combatLayer = animator.GetLayerIndex("Combat Layer");
-            if (combatLayer >= 0)
-                animator.Play("Empty", combatLayer, 0f);
+            if (combatLayer < 0)
+                return;
+
+            AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(combatLayer);
+            if (state.IsName("Empty"))
+                return;
+
+            animator.Play("Empty", combatLayer, 0f);
         }
         
         /// <summary>
@@ -183,13 +219,31 @@ namespace _Root.Scripts.Enemy
             float max = Mathf.Max(deathPlaybackSpeedMin, deathPlaybackSpeedMax);
             float deathSpeed = Random.Range(min, max);
 
+            InterruptAttack();
+            EndLeapAnimation();
+
+            ResolveLocomotionPlaybackParameter();
+            ResolveDeathLayerIndex();
+
+            animator.SetBool(ParamIsDead, true);
+            SetLocomotionSpeedImmediate(0f, 1f);
+
+            if (_deathLayerIndex >= 0)
+            {
+                animator.speed = deathSpeed;
+                if (_usesLocomotionPlaybackParameter)
+                    animator.SetFloat(ParamLocomotionPlaybackMult, 1f);
+
+                SetDeathLayerWeight(1f);
+                animator.Play(DeathStateName, _deathLayerIndex, 0f);
+                return;
+            }
+
             animator.speed = deathSpeed;
             if (_usesLocomotionPlaybackParameter)
                 animator.SetFloat(ParamLocomotionPlaybackMult, 1f);
 
-            animator.SetBool(ParamIsDead, true);
             animator.SetTrigger(ParamDie);
-            SetSpeedImmediate(0f);
         }
         
         /// <summary>
@@ -202,7 +256,8 @@ namespace _Root.Scripts.Enemy
                 SetPlaybackSpeed(1f);
                 animator.SetBool(ParamIsDead, false);
                 animator.SetBool(ParamIsMoving, false);
-                SetSpeedImmediate(0f);
+                SetLocomotionSpeedImmediate(0f, 1f);
+                SetDeathLayerWeight(0f);
                 
                 // Tüm trigger'ları resetle
                 animator.ResetTrigger(ParamAttack);

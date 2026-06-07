@@ -4,6 +4,7 @@ using UnityEngine.AI;
 using System.Collections.Generic;
 using _Root.Scripts.Data;
 using _Root.Scripts.Network;
+using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
 namespace _Root.Scripts.Enemy
 {
@@ -185,8 +186,10 @@ namespace _Root.Scripts.Enemy
             for (int i = 0; i < eliteCount && _elitePrefabs.Count > 0; i++)
             {
                 var elitePrefab = _elitePrefabs[Random.Range(0, _elitePrefabs.Count)];
-                var spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-                SpawnEnemy(elitePrefab, spawnPoint.position, spawnPoint.rotation);
+                if (!TryGetSpawnPointNearPlayers(out Vector3 spawnPosition, out Quaternion spawnRotation))
+                    continue;
+
+                SpawnEnemy(elitePrefab, spawnPosition, spawnRotation);
             }
             
             // Kalan slotları normal enemy'lerle doldur
@@ -194,8 +197,10 @@ namespace _Root.Scripts.Enemy
             for (int i = 0; i < normalEnemiesToSpawn && _normalPrefabs.Count > 0; i++)
             {
                 var normalPrefab = _normalPrefabs[Random.Range(0, _normalPrefabs.Count)];
-                var spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-                SpawnEnemy(normalPrefab, spawnPoint.position, spawnPoint.rotation);
+                if (!TryGetSpawnPointNearPlayers(out Vector3 spawnPosition, out Quaternion spawnRotation))
+                    continue;
+
+                SpawnEnemy(normalPrefab, spawnPosition, spawnRotation);
             }
             
             // Eğer normal veya elite prefab yoksa, normal spawn sistemini kullan (fallback)
@@ -233,11 +238,85 @@ namespace _Root.Scripts.Enemy
                 return;
             }
             
-            // Rastgele prefab ve spawn noktası seç
+            // Rastgele prefab, oyunculara en yakın spawn noktalarından biri
             var prefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-            var spawnPoint = spawnPoints[Random.Range(0, spawnPoints.Length)];
-            
-            SpawnEnemy(prefab, spawnPoint.position, spawnPoint.rotation);
+            if (!TryGetSpawnPointNearPlayers(out Vector3 spawnPosition, out Quaternion spawnRotation))
+                return;
+
+            SpawnEnemy(prefab, spawnPosition, spawnRotation);
+        }
+
+        private bool TryGetSpawnPointNearPlayers(out Vector3 position, out Quaternion rotation)
+        {
+            position = default;
+            rotation = Quaternion.identity;
+
+            Transform spawnPoint = SelectSpawnPointNearPlayers();
+            if (spawnPoint == null)
+                return false;
+
+            position = spawnPoint.position;
+            rotation = spawnPoint.rotation;
+            return true;
+        }
+
+        private Transform SelectSpawnPointNearPlayers()
+        {
+            if (spawnPoints == null || spawnPoints.Length == 0)
+                return null;
+
+            var rankedPoints = new List<(Transform point, float distance)>();
+            for (int i = 0; i < spawnPoints.Length; i++)
+            {
+                Transform point = spawnPoints[i];
+                if (point == null)
+                    continue;
+
+                rankedPoints.Add((point, GetNearestPlayerDistance(point.position)));
+            }
+
+            if (rankedPoints.Count == 0)
+                return null;
+
+            rankedPoints.Sort((a, b) => a.distance.CompareTo(b.distance));
+
+            if (rankedPoints[0].distance >= float.MaxValue)
+                return rankedPoints[Random.Range(0, rankedPoints.Count)].point;
+
+            int closestPoolSize = Mathf.Max(1, Mathf.Min(3, rankedPoints.Count));
+            return rankedPoints[Random.Range(0, closestPoolSize)].point;
+        }
+
+        private float GetNearestPlayerDistance(Vector3 position)
+        {
+            if (Runner == null)
+                return float.MaxValue;
+
+            float nearestSqrDistance = float.MaxValue;
+            bool foundPlayer = false;
+
+            foreach (PlayerRef playerRef in Runner.ActivePlayers)
+            {
+                NetworkObject playerObject = Runner.GetPlayerObject(playerRef);
+                if (playerObject == null || !playerObject.IsValid)
+                    continue;
+
+                var networkPlayer = playerObject.GetComponent<NetworkPlayer>();
+                if (networkPlayer != null && !networkPlayer.IsAlive)
+                    continue;
+
+                Vector3 playerPosition = playerObject.transform.position;
+                float dx = playerPosition.x - position.x;
+                float dz = playerPosition.z - position.z;
+                float sqrDistance = dx * dx + dz * dz;
+                if (sqrDistance >= nearestSqrDistance)
+                    continue;
+
+                nearestSqrDistance = sqrDistance;
+                foundPlayer = true;
+            }
+
+            return foundPlayer ? Mathf.Sqrt(nearestSqrDistance) : float.MaxValue;
         }
         
         public void SpawnEnemy(NetworkEnemy prefab, Vector3 position, Quaternion rotation)

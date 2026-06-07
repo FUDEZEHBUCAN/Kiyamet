@@ -72,9 +72,6 @@ namespace _Root.Scripts.Controllers
             {
                 if (isAlive && GetInput(out NetworkInputData localInput))
                 {
-                    if (_animController != null)
-                        _animController.SetRunning(localInput.IsRunning);
-
                     bool canAttack = _networkPlayer != null && _networkPlayer.CanAttack;
                     bool roleMelee = roleRules == null || roleRules.CanMelee(_networkPlayer);
                     bool roleRanged = roleRules == null || roleRules.CanUseRangedWeapon(_networkPlayer);
@@ -289,9 +286,7 @@ namespace _Root.Scripts.Controllers
             {
                 if (_networkPlayer != null && !_networkPlayer.IsAlive)
                 {
-                    _animController.SetSpeedImmediate(0f);
-                    _animController.SetMoveDirection(Vector3.zero, transform);
-                    _animController.SetRunning(false);
+                    _animController.UpdateLocomotionAnimation(Vector3.zero, transform, _cc.WalkMovementSpeed, _cc.RunMovementSpeed);
                     _animController.SetPushing(false);
                     _animController.SetBlocking(false);
                     return;
@@ -299,9 +294,10 @@ namespace _Root.Scripts.Controllers
 
                 if (_cc.BlocksMovementFromDodge)
                 {
-                    _animController.SetSpeedImmediate(0f);
-                    _animController.SetMoveDirection(Vector3.zero, transform);
-                    _animController.SetRunning(false);
+                    _animController.UpdateLocomotionAnimation(Vector3.zero, transform, _cc.WalkMovementSpeed, _cc.RunMovementSpeed);
+                    _animController.SetGrounded(_cc.Grounded);
+                    _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
+                    return;
                 }
 
                 if (_networkPlayer != null)
@@ -310,27 +306,15 @@ namespace _Root.Scripts.Controllers
                     _animController.SetBlocking(_networkPlayer.IsBlocking);
                 }
 
-                // Proxy'lerde transform her Render'da aynı NetworkPosition'a snap edildiği için
-                // pozisyon farkından hız hesaplamak her zaman ~0 verir; replicate olan Velocity kullan.
                 Vector3 velocity = _cc.Velocity;
                 Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
-                float speed = _cc.BlocksMovementFromDodge ? 0f : horizontalVelocity.magnitude;
-                
-                if (speed < 0.1f)
-                    speed = 0f;
-                
-                if (_cc.BlocksMovementFromDodge)
-                    horizontalVelocity = Vector3.zero;
 
-                _animController.SetMoveDirection(horizontalVelocity, transform);
-                _animController.SetSpeedImmediate(speed);
+                _animController.UpdateLocomotionAnimation(
+                    horizontalVelocity,
+                    transform,
+                    _cc.WalkMovementSpeed,
+                    _cc.RunMovementSpeed);
                 
-                bool isRunningForAnim = Object.HasInputAuthority && _inputController != null
-                    ? _inputController.IsRunHeld
-                    : NetworkedIsRunning;
-                _animController.SetRunning(isRunningForAnim);
-                
-                // Yerde mi (server'dan gelen değeri kullan)
                 _animController.SetGrounded(_cc.Grounded);
                 _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
             }

@@ -605,12 +605,6 @@ namespace _Root.Scripts.Enemy
                         animController.TriggerLeapJump();
                 }
 
-                if (CurrentState == EnemyState.LeapRecover && _lastState == EnemyState.LeapJump)
-                {
-                    if (animController != null)
-                        animController.EndLeapAnimation();
-                }
-
                 if (CurrentState == EnemyState.Dead && !_deathAnimTriggered)
                 {
                     if (animController != null)
@@ -626,7 +620,7 @@ namespace _Root.Scripts.Enemy
             {
                 if (animController != null)
                 {
-                    animController.SetSpeed(0f);
+                    animController.SetLocomotionSpeedImmediate(0f, GetLocomotionReferenceSpeed());
                     animController.SetPlaybackSpeed(GetTimeDistortionAnimPlaybackSpeed());
                 }
 
@@ -639,7 +633,7 @@ namespace _Root.Scripts.Enemy
             {
                 if (animController != null)
                 {
-                    animController.SetSpeed(0f);
+                    animController.SetLocomotionSpeedImmediate(0f, GetLocomotionReferenceSpeed());
                 }
                 return;
             }
@@ -676,8 +670,19 @@ namespace _Root.Scripts.Enemy
                     _lastAppliedAnimPlaybackSpeed = playbackSpeed;
                 }
 
-                animController.SetSpeed(speed);
+                animController.SetLocomotionSpeed(speed, GetLocomotionReferenceSpeed());
             }
+        }
+
+        private float GetLocomotionReferenceSpeed()
+        {
+            if (agent != null && agent.enabled && agent.speed > 0.01f)
+                return agent.speed;
+
+            if (enemyData != null)
+                return enemyData.LocomotionSpeedForAnim;
+
+            return 5f;
         }
 
         private float GetTimeDistortionAnimPlaybackSpeed()
@@ -894,6 +899,9 @@ namespace _Root.Scripts.Enemy
 
             if (!LeapPhaseTimer.ExpiredOrNotRunning(Runner))
                 return;
+
+            if (animController != null)
+                animController.EndLeapAnimation();
 
             LeapPhaseTimer = TickTimer.None;
             EnableAgentForNavigation();

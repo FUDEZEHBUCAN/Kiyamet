@@ -78,6 +78,9 @@ namespace _Root.Scripts.Controllers {
         return dashCooldown;
       }
     }
+
+    public float WalkMovementSpeed => BaseMaxSpeed;
+    public float RunMovementSpeed => RunningMaxSpeed;
     
     // İttirme sırasında hız azaltma çarpanı
     [Header("Push Settings")]

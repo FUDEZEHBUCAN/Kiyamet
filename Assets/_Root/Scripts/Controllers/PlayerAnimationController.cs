@@ -17,7 +17,10 @@ namespace _Root.Scripts.Controllers
         [Header("Animation Settings")]
         [SerializeField] private float locomotionSmoothTime = 0.1f;
         [SerializeField] private float directionalMaxSpeed = 6f;
+        [SerializeField] private float minLocomotionPlaybackMult = 0.85f;
+        [SerializeField] private float maxLocomotionPlaybackMult = 2.25f;
         
+        public const string LocomotionPlaybackMultParam = "LocomotionPlaybackMult";
         private static readonly int ParamSpeed = Animator.StringToHash("Speed");
         private static readonly int ParamMoveX = Animator.StringToHash("MoveX");
         private static readonly int ParamMoveY = Animator.StringToHash("MoveY");
@@ -28,6 +31,7 @@ namespace _Root.Scripts.Controllers
         private static readonly int ParamIsBlocking = Animator.StringToHash("IsBlocking");
         private static readonly int ParamIsPushing = Animator.StringToHash("IsPushing");
         private static readonly int ParamIsRunning = Animator.StringToHash("IsRunning");
+        private static readonly int ParamLocomotionPlaybackMult = Animator.StringToHash(LocomotionPlaybackMultParam);
         private static readonly int ParamJump = Animator.StringToHash("Jump");
         private static readonly int ParamShoot = Animator.StringToHash("Shoot");
         private static readonly int ParamMeleeAttack = Animator.StringToHash("MeleeAttack");
@@ -57,12 +61,31 @@ namespace _Root.Scripts.Controllers
         
         private float _currentSpeed;
         private float _speedVelocity;
-        private float _playbackSpeedMultiplier = 1f;
+        private float _skillPlaybackMultiplier = 1f;
+        private float _locomotionPlaybackMult = 1f;
+        private bool _usesLocomotionPlaybackParameter;
+        private bool _locomotionPlaybackParameterResolved;
         
         private void Awake()
         {
             if (animator == null)
                 animator = GetComponent<Animator>();
+        }
+
+        private void ResolveLocomotionPlaybackParameter()
+        {
+            if (_locomotionPlaybackParameterResolved || animator == null)
+                return;
+
+            _locomotionPlaybackParameterResolved = true;
+            foreach (AnimatorControllerParameter param in animator.parameters)
+            {
+                if (param.nameHash != ParamLocomotionPlaybackMult)
+                    continue;
+
+                _usesLocomotionPlaybackParameter = param.type == AnimatorControllerParameterType.Float;
+                break;
+            }
         }
 
         private void LateUpdate()
@@ -90,18 +113,53 @@ namespace _Root.Scripts.Controllers
         
         public void SetMoveDirection(Vector3 worldVelocity, Transform referenceTransform)
         {
+            SetMoveDirection(worldVelocity, referenceTransform, directionalMaxSpeed);
+        }
+
+        public void SetMoveDirection(Vector3 worldVelocity, Transform referenceTransform, float referenceMaxSpeed)
+        {
             if (animator == null || referenceTransform == null)
                 return;
             
             Vector3 localVelocity = referenceTransform.InverseTransformDirection(worldVelocity);
-            float maxSpeed = Mathf.Max(0.01f, directionalMaxSpeed);
+            float maxSpeed = Mathf.Max(0.01f, referenceMaxSpeed);
             float moveX = Mathf.Clamp(localVelocity.x / maxSpeed, -1f, 1f);
             float moveY = Mathf.Clamp(localVelocity.z / maxSpeed, -1f, 1f);
             
             animator.SetFloat(ParamMoveX, moveX, locomotionSmoothTime, Time.deltaTime);
             animator.SetFloat(ParamMoveY, moveY, locomotionSmoothTime, Time.deltaTime);
         }
-        
+
+        public void UpdateLocomotionAnimation(
+            Vector3 horizontalVelocity,
+            Transform referenceTransform,
+            float walkSpeed,
+            float runSpeed)
+        {
+            walkSpeed = Mathf.Max(0.01f, walkSpeed);
+            runSpeed = Mathf.Max(walkSpeed, runSpeed);
+
+            float worldSpeed = horizontalVelocity.magnitude;
+            if (worldSpeed < 0.1f)
+                worldSpeed = 0f;
+
+            float blendSpeed = Mathf.Min(worldSpeed, walkSpeed);
+            SetSpeedImmediate(blendSpeed);
+            SetMoveDirection(horizontalVelocity, referenceTransform, walkSpeed);
+            SetRunning(false);
+
+            float playbackMult = 1f;
+            if (worldSpeed > 0.1f)
+                playbackMult = Mathf.Clamp(worldSpeed / walkSpeed, minLocomotionPlaybackMult, runSpeed / walkSpeed);
+
+            SetLocomotionPlaybackMultiplier(playbackMult);
+        }
+
+        public void SetLocomotionPlaybackMultiplier(float multiplier)
+        {
+            _locomotionPlaybackMult = Mathf.Clamp(multiplier, minLocomotionPlaybackMult, maxLocomotionPlaybackMult);
+            ApplyCombinedPlayback();
+        }
         public void SetSpeedImmediate(float speed)
         {
             _currentSpeed = speed;
@@ -273,9 +331,7 @@ namespace _Root.Scripts.Controllers
         public void SetRunning(bool isRunning)
         {
             if (animator != null)
-            {
-                animator.SetBool(ParamIsRunning, isRunning);
-            }
+                animator.SetBool(ParamIsRunning, false);
         }
         
         public void TriggerHit()
@@ -384,20 +440,31 @@ namespace _Root.Scripts.Controllers
 
         public void SetPlaybackSpeedMultiplier(float multiplier)
         {
-            _playbackSpeedMultiplier = Mathf.Max(0.05f, multiplier);
-            ApplyPlaybackSpeed();
+            _skillPlaybackMultiplier = Mathf.Max(0.05f, multiplier);
+            ApplyCombinedPlayback();
         }
 
         public void ResetPlaybackSpeed()
         {
-            _playbackSpeedMultiplier = 1f;
-            ApplyPlaybackSpeed();
+            _skillPlaybackMultiplier = 1f;
+            _locomotionPlaybackMult = 1f;
+            ApplyCombinedPlayback();
         }
 
-        private void ApplyPlaybackSpeed()
+        private void ApplyCombinedPlayback()
         {
-            if (animator != null)
-                animator.speed = _playbackSpeedMultiplier;
+            if (animator == null)
+                return;
+
+            ResolveLocomotionPlaybackParameter();
+            if (_usesLocomotionPlaybackParameter)
+            {
+                animator.speed = _skillPlaybackMultiplier;
+                animator.SetFloat(ParamLocomotionPlaybackMult, _locomotionPlaybackMult);
+                return;
+            }
+
+            animator.speed = _skillPlaybackMultiplier * _locomotionPlaybackMult;
         }
         
         #endregion

@@ -436,17 +436,20 @@ MonoBehaviour:
   mirageStepMoveSounds: []
   globalAudioSource: {fileID: 0}
   meleeQueueWindowOpen:
-    clips: []
-    volume: 1
-    pitchVariation: 0.12
+    clips:
+    - {fileID: 8300000, guid: 4f05ab6c103624ed99f345a20ce8bfcd, type: 3}
+    volume: 0.1
+    pitchVariation: 0
   meleeQueueAccepted:
-    clips: []
-    volume: 1
-    pitchVariation: 0.22
+    clips:
+    - {fileID: 8300000, guid: 1aac3aa8cc3a244ae8238bab81718c7e, type: 3}
+    volume: 0.1
+    pitchVariation: 0
   meleeQueueChainStart:
-    clips: []
-    volume: 1
-    pitchVariation: 0.16
+    clips:
+    - {fileID: 8300000, guid: 80be0bf219a1f44dca2aa1c42805b83e, type: 3}
+    volume: 0.1
+    pitchVariation: 0
   meleeQueueUseGlobalAudio: 1
   pitchVariation: 0.22
   minTimeBetweenSounds: 0.05
