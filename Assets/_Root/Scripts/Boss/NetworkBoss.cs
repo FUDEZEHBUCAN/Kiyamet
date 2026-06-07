@@ -68,6 +68,8 @@ namespace _Root.Scripts.Boss
         [SerializeField] private GameObject wakeEffectPrefab;
         [SerializeField] private Transform wakeEffectOrigin;
         [SerializeField] private float wakeEffectLifetime = 4f;
+        [Tooltip("Uyanışta yok edilecek, boss'a yapışık uyku duvarı/kafes objesi.")]
+        [SerializeField] private GameObject attachedSleepWall;
 
         [Header("Debug")]
         [SerializeField] private bool startWithPlayerDetectionEnabled = true;
@@ -104,6 +106,8 @@ namespace _Root.Scripts.Boss
         [Networked] private TickTimer LaserDamageTickTimer { get; set; }
         [Networked] public NetworkBool IsPetrified { get; private set; }
         [Networked] public NetworkBool IsSleeping { get; private set; }
+        [Networked] public NetworkBool ArenaBarriersActive { get; private set; }
+        [Networked] private NetworkBool AttachedSleepWallDestroyed { get; set; }
         [Networked] private float WakeLightExposure { get; set; }
         [Networked] private float PetrifyLightExposure { get; set; }
         [Networked] private TickTimer WakePetrifyAnimTimer { get; set; }
@@ -149,6 +153,7 @@ namespace _Root.Scripts.Boss
         private int _lastSyncedAudioSequence;
         private int _lastSyncedCameraShakeSequence;
         private bool _hadTargetLastFrame;
+        private bool _attachedSleepWallDestroyApplied;
 
         private const float TargetUpdateInterval = 0.12f;
 
@@ -256,6 +261,8 @@ namespace _Root.Scripts.Boss
 
             if (Object.HasStateAuthority)
             {
+                ArenaBarriersActive = !startAsleep && startWithPlayerDetectionEnabled;
+                AttachedSleepWallDestroyed = !startAsleep;
                 agent.enabled = false;
                 if (TrySampleNavMeshPosition(transform.position, out var spawnPos))
                 {
@@ -386,6 +393,7 @@ namespace _Root.Scripts.Boss
             SyncAttackVfx();
             SyncJumpLandingVfx();
             SyncWakeVfx();
+            SyncAttachedSleepWallDestroy();
             SyncEyeLaserVisual();
             SyncHitFeedback();
             SyncDeathState();
@@ -584,6 +592,8 @@ namespace _Root.Scripts.Boss
             IsSleeping = false;
             WakeLightExposure = 0f;
             PlayerDetectionEnabled = false;
+            ArenaBarriersActive = true;
+            AttachedSleepWallDestroyed = true;
             IsWakePetrifyPlaying = true;
 
             float wakeAnimDuration = Mathf.Max(0.1f, wakePetrifyAnimDuration);
@@ -626,6 +636,24 @@ namespace _Root.Scripts.Boss
             var effect = Instantiate(wakeEffectPrefab, position, Quaternion.identity);
             PlayParticleSystems(effect);
             Destroy(effect, wakeEffectLifetime);
+        }
+
+        private void SyncAttachedSleepWallDestroy()
+        {
+            if (!AttachedSleepWallDestroyed || _attachedSleepWallDestroyApplied)
+                return;
+
+            DestroyAttachedSleepWall();
+            _attachedSleepWallDestroyApplied = true;
+        }
+
+        private void DestroyAttachedSleepWall()
+        {
+            if (attachedSleepWall == null)
+                return;
+
+            Destroy(attachedSleepWall);
+            attachedSleepWall = null;
         }
 
         private void TryCompleteWakeSequence()
@@ -2016,6 +2044,7 @@ namespace _Root.Scripts.Boss
         private void Die()
         {
             CurrentState = BossState.Dead;
+            ArenaBarriersActive = false;
             PendingDamage = false;
             StopAgent();
             animController?.TriggerDeath();
