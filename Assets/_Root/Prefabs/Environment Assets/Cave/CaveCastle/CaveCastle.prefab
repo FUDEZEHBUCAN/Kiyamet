@@ -453,6 +453,7 @@ Transform:
   - {fileID: 6075894046228613328}
   - {fileID: 8802820888449331570}
   - {fileID: 383511325333220181}
+  - {fileID: 1875239261474637993}
   - {fileID: 4582807197678986674}
   - {fileID: 5501479187005834279}
   - {fileID: 3786423817116586648}
@@ -1030,6 +1031,68 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 3085993945755816980, guid: ac771d4c4acfeed4682e7ef4eb7e4952, type: 3}
   m_PrefabInstance: {fileID: 783039087004766581}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2129227705893433154
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6889435750561245781}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d914a39af681ed94593f98294139669d, type: 3}
+      propertyPath: m_Name
+      value: CaveBridgeRailings
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: d914a39af681ed94593f98294139669d, type: 3}
+--- !u!4 &1875239261474637993 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d914a39af681ed94593f98294139669d, type: 3}
+  m_PrefabInstance: {fileID: 2129227705893433154}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &2963883620116741162
 PrefabInstance:
