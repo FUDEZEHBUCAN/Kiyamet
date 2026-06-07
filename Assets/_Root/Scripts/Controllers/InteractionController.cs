@@ -118,14 +118,15 @@ namespace _Root.Scripts.Controllers
             Vector3 rayOrigin = transform.position + Vector3.up * 1f;
             Vector3 rayDirection = GetInteractionLookDirection();
 
-            if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer))
+            if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer,
+                    QueryTriggerInteraction.Collide))
                 return false;
 
             var reflector = hit.collider.GetComponentInParent<ReflectorInteractable>();
             if (reflector == null || !IsEligibleForInteraction(reflector, requireCanInteract))
                 return false;
 
-            if (!IsWithinInteractionDistance(reflector.transform))
+            if (!IsWithinInteractionDistance(reflector.transform, reflector))
                 return false;
 
             interactable = reflector;
@@ -149,11 +150,20 @@ namespace _Root.Scripts.Controllers
             Vector3 rayOrigin = transform.position + Vector3.up * 1f;
             Vector3 rayDirection = GetInteractionLookDirection();
 
-            if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer))
+            if (!Physics.Raycast(rayOrigin, rayDirection, out RaycastHit hit, interactionRange, interactableLayer,
+                    QueryTriggerInteraction.Collide))
                 return false;
 
             interactable = hit.collider.GetComponentInParent<IInteractable>();
-            return interactable != null && IsEligibleForInteraction(interactable, requireCanInteract);
+            if (interactable == null || !IsEligibleForInteraction(interactable, requireCanInteract))
+                return false;
+
+            var interactableTransform = (interactable as MonoBehaviour)?.transform;
+            if (interactableTransform == null
+                || !IsWithinInteractionDistance(interactableTransform, interactable))
+                return false;
+
+            return true;
         }
 
         private bool TryFindNearestInteractableInRange(out IInteractable interactable, bool requireCanInteract)
@@ -170,21 +180,24 @@ namespace _Root.Scripts.Controllers
                     continue;
 
                 var candidate = col.GetComponentInParent<IInteractable>();
-                if (candidate == null || !IsEligibleForInteraction(candidate, requireCanInteract))
+                if (candidate == null || candidate is IInteractableRaycastOnly)
+                    continue;
+
+                if (!IsEligibleForInteraction(candidate, requireCanInteract))
                     continue;
 
                 var candidateTransform = (candidate as MonoBehaviour)?.transform;
                 if (candidateTransform == null)
                     continue;
 
-                if (!IsWithinInteractionDistance(candidateTransform))
+                if (!IsWithinInteractionDistance(candidateTransform, candidate))
                     continue;
 
                 bool isReflector = candidate is ReflectorInteractable;
-                if (!isReflector && !IsFacingInteractable(candidateTransform))
+                if (!isReflector && !IsFacingInteractable(candidateTransform, candidate))
                     continue;
 
-                float sqrDistance = GetInteractionSqrDistance(candidateTransform);
+                float sqrDistance = GetInteractionSqrDistance(candidateTransform, candidate);
                 if (sqrDistance >= bestSqrDistance)
                     continue;
 
@@ -201,32 +214,57 @@ namespace _Root.Scripts.Controllers
                 return candidate.CanInteract(transform);
 
             if (candidate.CanInteract(transform))
-                return true;
+            {
+                if (candidate is IInteractablePrompt promptProvider
+                    && string.IsNullOrWhiteSpace(promptProvider.GetInteractionPrompt()))
+                    return false;
 
-            if (candidate is not IInteractablePrompt promptProvider)
+                return true;
+            }
+
+            if (candidate is not IInteractablePrompt promptProviderFallback)
                 return false;
 
-            return !string.IsNullOrWhiteSpace(promptProvider.GetInteractionPrompt());
+            return !string.IsNullOrWhiteSpace(promptProviderFallback.GetInteractionPrompt());
         }
 
-        private bool IsWithinInteractionDistance(Transform target)
+        private bool IsWithinInteractionDistance(Transform target, IInteractable interactable)
         {
-            return GetInteractionSqrDistance(target) <= interactionRange * interactionRange;
+            float range = GetEffectiveInteractionRange(interactable);
+            return GetInteractionSqrDistance(target, interactable) <= range * range;
         }
 
-        private bool IsFacingInteractable(Transform target)
+        private float GetEffectiveInteractionRange(IInteractable interactable)
         {
-            Vector3 samplePoint = GetInteractionSamplePoint(target);
+            if (interactable is IInteractableRangeOverride rangeOverride)
+                return Mathf.Max(0.5f, rangeOverride.GetInteractionRange(transform));
+
+            return interactionRange;
+        }
+
+        private bool IsFacingInteractable(Transform target, IInteractable candidate)
+        {
+            Vector3 samplePoint = GetInteractionSamplePoint(target, candidate);
             Vector3 toTarget = samplePoint - transform.position;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude < 0.0001f)
                 return true;
 
-            return Vector3.Dot(transform.forward, toTarget.normalized) >= interactFacingThreshold;
+            Vector3 lookDirection = candidate is IInstantInteractable
+                ? GetInteractionLookDirection()
+                : transform.forward;
+            lookDirection.y = 0f;
+            if (lookDirection.sqrMagnitude < 0.0001f)
+                return true;
+
+            return Vector3.Dot(lookDirection.normalized, toTarget.normalized) >= interactFacingThreshold;
         }
 
-        private Vector3 GetInteractionSamplePoint(Transform target)
+        private Vector3 GetInteractionSamplePoint(Transform target, IInteractable interactable)
         {
+            if (interactable is IInteractableProximityTarget proximityTarget)
+                return proximityTarget.GetProximitySamplePoint(transform);
+
             var col = target.GetComponentInChildren<Collider>();
             if (col == null)
                 return target.position;
@@ -235,9 +273,9 @@ namespace _Root.Scripts.Controllers
             return col.ClosestPoint(probeOrigin);
         }
 
-        private float GetInteractionSqrDistance(Transform target)
+        private float GetInteractionSqrDistance(Transform target, IInteractable interactable)
         {
-            Vector3 delta = GetInteractionSamplePoint(target) - transform.position;
+            Vector3 delta = GetInteractionSamplePoint(target, interactable) - transform.position;
             delta.y = 0f;
             return delta.sqrMagnitude;
         }

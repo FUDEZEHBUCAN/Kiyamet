@@ -74,7 +74,7 @@ namespace _Root.Scripts.UI
             if (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive)
                 return;
 
-            if (GameplayPauseMenu.IsOpen || UIElementController.IsAnyPanelOpen)
+            if (GameplayPauseMenu.IsOpen || UIElementController.IsAnyPanelOpen || GameplayUiVisibility.IsSuppressedForFinale)
                 return;
 
             DrawNotification();

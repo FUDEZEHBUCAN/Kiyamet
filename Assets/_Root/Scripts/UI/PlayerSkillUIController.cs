@@ -49,6 +49,11 @@ namespace _Root.Scripts.UI
         [SerializeField] private Sprite supportSignatureIcon;
         [SerializeField] private Sprite supportBasicIcon;
 
+        [Header("Role icons — Duelist")]
+        [SerializeField] private Sprite duelistUltimateIcon;
+        [SerializeField] private Sprite duelistSignatureIcon;
+        [SerializeField] private Sprite duelistBasicIcon;
+
         public Image BasicSkillIcon => basic.iconImage;
 
         private NetworkPlayer _player;
@@ -176,10 +181,25 @@ namespace _Root.Scripts.UI
                 return;
 
             _appliedIconRole = role;
-            var useSupportIcons = role == PlayerRoleType.Support;
-            ApplySlotIcon(ultimate, useSupportIcons ? supportUltimateIcon : tankUltimateIcon);
-            ApplySlotIcon(signature, useSupportIcons ? supportSignatureIcon : tankSignatureIcon);
-            ApplySlotIcon(basic, useSupportIcons ? supportBasicIcon : tankBasicIcon);
+
+            switch (role)
+            {
+                case PlayerRoleType.Support:
+                    ApplySlotIcon(ultimate, supportUltimateIcon);
+                    ApplySlotIcon(signature, supportSignatureIcon);
+                    ApplySlotIcon(basic, supportBasicIcon);
+                    break;
+                case PlayerRoleType.Duelist:
+                    ApplySlotIcon(ultimate, duelistUltimateIcon);
+                    ApplySlotIcon(signature, duelistSignatureIcon);
+                    ApplySlotIcon(basic, duelistBasicIcon);
+                    break;
+                default:
+                    ApplySlotIcon(ultimate, tankUltimateIcon);
+                    ApplySlotIcon(signature, tankSignatureIcon);
+                    ApplySlotIcon(basic, tankBasicIcon);
+                    break;
+            }
         }
 
         private static void ApplySlotIcon(SkillSlotUI slot, Sprite sprite)

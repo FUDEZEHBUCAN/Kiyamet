@@ -1,8 +1,10 @@
 using System;
 using _Root.Scripts.Boss;
 using _Root.Scripts.Enums;
+using _Root.Scripts.Finale;
 using _Root.Scripts.Interactable;
 using _Root.Scripts.Network.Lobby;
+using _Root.Scripts.UI;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -171,6 +173,18 @@ namespace _Root.Scripts.Controllers
         private Vector3 _boulderCrushSmoothedCameraPos;
         private Vector3 _boulderCrushCameraPosVelocity;
         private bool _boulderCrushCinematicInitialized;
+        private bool _finaleGateCameraActive;
+        private bool _finaleGateCameraBlendingOut;
+        private float _finaleGateBlendOutElapsed;
+        private Vector3 _finaleSmoothedCameraPos;
+        private Vector3 _finaleCameraPosVelocity;
+        private bool _finaleCinematicInitialized;
+        private float _finaleBlendInElapsed;
+        private bool _finaleBlendInComplete;
+        private float _finaleSavedPitch;
+        private float _finaleSavedYaw;
+        private Vector3 _finaleBlendStartPos;
+        private Quaternion _finaleBlendStartRot;
         private Camera _gameplayCamera;
         private static readonly RaycastHit[] CollisionHitBuffer = new RaycastHit[24];
         private static readonly Collider[] CameraOverlapBuffer = new Collider[12];
@@ -183,6 +197,7 @@ namespace _Root.Scripts.Controllers
         public bool IsReflectorAimActive => _reflectorAimActive || _reflectorAimBlendingOut;
 
         public bool IsKnockbackCameraActive => _knockbackCameraActive || _knockbackCameraBlendingOut;
+        public bool IsFinaleGateCameraActive => _finaleGateCameraActive || _finaleGateCameraBlendingOut;
 
         public bool IsBoulderCrushDeathCameraActive =>
             _boulderCrushDeathCameraActive || _boulderCrushDeathCameraBlendingOut;
@@ -1064,6 +1079,19 @@ namespace _Root.Scripts.Controllers
                 return;
             }
 
+            UpdateFinaleGateCameraLifecycle();
+
+            if (_finaleGateCameraActive || _finaleGateCameraBlendingOut)
+            {
+                if (_finaleGateCameraBlendingOut)
+                    ApplyFinaleGateBlendOutCamera();
+                else
+                    ApplyFinaleGateCinematicCamera();
+
+                ApplyGameplayCursorLock();
+                return;
+            }
+
             if (_reflectorAimActive || _reflectorAimBlendingOut)
             {
                 ApplyReflectorAimCamera();
@@ -1252,7 +1280,7 @@ namespace _Root.Scripts.Controllers
         private void RestoreDefaultCameraFov()
         {
             EnsureGameplayCameraReference();
-            if (_gameplayCamera == null || IsReflectorAimActive || IsKnockbackCameraActive || IsBoulderCrushDeathCameraActive)
+            if (_gameplayCamera == null || IsReflectorAimActive || IsKnockbackCameraActive || IsBoulderCrushDeathCameraActive || IsFinaleGateCameraActive)
                 return;
 
             _gameplayCamera.fieldOfView = reflectorDefaultFov;
@@ -1798,6 +1826,192 @@ namespace _Root.Scripts.Controllers
                 return true;
 
             return false;
+        }
+
+        private void UpdateFinaleGateCameraLifecycle()
+        {
+            var room = FinaleRoomController.ActiveInstance;
+            bool cinematicActive = room != null && room.IsFinaleCinematicActive;
+
+            if (cinematicActive && !_finaleGateCameraActive && !_finaleGateCameraBlendingOut)
+                BeginFinaleGateCamera();
+            else if (!cinematicActive && _finaleGateCameraActive && !_finaleGateCameraBlendingOut)
+                EndFinaleGateCamera();
+        }
+
+        private void BeginFinaleGateCamera()
+        {
+            if (target == null || _mirageStepObserveActive || IsBoulderCrushDeathCameraActive)
+                return;
+
+            _finaleSavedPitch = _pitch;
+            _finaleSavedYaw = GetGameplayCameraYaw(target);
+            _finaleSmoothedCameraPos = transform.position;
+            _finaleCameraPosVelocity = Vector3.zero;
+            _finaleCinematicInitialized = false;
+            _finaleBlendInElapsed = 0f;
+            _finaleBlendInComplete = false;
+            _finaleBlendStartPos = transform.position;
+            _finaleBlendStartRot = transform.rotation;
+            _finaleGateCameraActive = true;
+            _finaleGateCameraBlendingOut = false;
+            _finaleGateBlendOutElapsed = 0f;
+            StopCameraShake();
+            GameplayUiVisibility.SuppressForFinaleCinematic();
+        }
+
+        private void EndFinaleGateCamera()
+        {
+            if (_finaleGateCameraBlendingOut)
+                return;
+
+            _finaleGateCameraBlendingOut = true;
+            _finaleGateBlendOutElapsed = 0f;
+            _finaleCameraPosVelocity = Vector3.zero;
+            _armLengthVelocity = 0f;
+
+            if (target != null)
+            {
+                Vector3 pivot = target.position + Vector3.up * collisionOriginHeight;
+                _smoothedArmLength = Vector3.Distance(transform.position, pivot);
+            }
+        }
+
+        private void ApplyFinaleGateCinematicCamera()
+        {
+            if (target == null)
+                return;
+
+            var room = FinaleRoomController.ActiveInstance;
+            if (room == null)
+                return;
+
+            ComputeFinaleGateCinematicCameraState(out Vector3 cinematicPos, out Quaternion cinematicRot);
+
+            if (!_finaleBlendInComplete)
+            {
+                _finaleBlendInElapsed += Time.deltaTime;
+                float blendDuration = Mathf.Max(0.001f, room.CinematicBlendInDuration);
+                float t = Mathf.Clamp01(_finaleBlendInElapsed / blendDuration);
+                float eased = EaseOutCubic(t);
+                transform.position = Vector3.Lerp(_finaleBlendStartPos, cinematicPos, eased);
+                transform.rotation = Quaternion.Slerp(_finaleBlendStartRot, cinematicRot, eased);
+
+                if (t >= 1f)
+                    _finaleBlendInComplete = true;
+            }
+            else
+            {
+                transform.position = cinematicPos;
+                transform.rotation = cinematicRot;
+            }
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+                _gameplayCamera.fieldOfView = room.CinematicFov;
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+        }
+
+        private void ComputeFinaleGateCinematicCameraState(out Vector3 position, out Quaternion rotation)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+
+            if (target == null)
+                return;
+
+            var room = FinaleRoomController.ActiveInstance;
+            if (room == null || !room.TryGetCinematicGateLookPoint(out Vector3 gateLookPoint))
+                return;
+
+            gateLookPoint += Vector3.up * room.CinematicGateLookHeight;
+
+            Vector3 playerAnchor = target.position + Vector3.up * room.CinematicCameraEyeHeight;
+            Vector3 toGate = gateLookPoint - playerAnchor;
+            if (toGate.sqrMagnitude < 0.0001f)
+                toGate = target.forward;
+
+            float travelDistance = Mathf.Max(0f, toGate.magnitude - room.CinematicCameraStopDistance);
+            Vector3 approachEndPos = playerAnchor + toGate.normalized * travelDistance;
+            float approachT = room.GetCinematicCameraApproachT();
+            Vector3 desiredPos = Vector3.Lerp(playerAnchor, approachEndPos, approachT);
+
+            if (!_finaleCinematicInitialized)
+            {
+                _finaleSmoothedCameraPos = desiredPos;
+                _finaleCinematicInitialized = true;
+            }
+            else
+            {
+                _finaleSmoothedCameraPos = Vector3.SmoothDamp(
+                    _finaleSmoothedCameraPos,
+                    desiredPos,
+                    ref _finaleCameraPosVelocity,
+                    room.CinematicPositionSmooth);
+            }
+
+            Vector3 lookDir = gateLookPoint - _finaleSmoothedCameraPos;
+            if (lookDir.sqrMagnitude < 0.0001f)
+                lookDir = target.forward;
+
+            Quaternion desiredRot = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
+            position = _finaleSmoothedCameraPos;
+            rotation = Quaternion.Slerp(
+                transform.rotation,
+                desiredRot,
+                Time.deltaTime / Mathf.Max(0.001f, room.CinematicRotationSmooth));
+        }
+
+        private void ApplyFinaleGateBlendOutCamera()
+        {
+            if (target == null)
+            {
+                CompleteFinaleGateCameraBlendOut();
+                return;
+            }
+
+            var room = FinaleRoomController.ActiveInstance;
+            float blendOutDuration = room != null ? room.CinematicBlendOutDuration : 0.9f;
+
+            _finaleGateBlendOutElapsed += Time.deltaTime;
+            float t = blendOutDuration > 0.001f
+                ? Mathf.Clamp01(_finaleGateBlendOutElapsed / blendOutDuration)
+                : 1f;
+            float eased = EaseOutCubic(t);
+
+            ComputeFinaleGateCinematicCameraState(out Vector3 cinematicPos, out Quaternion cinematicRot);
+            float normalYaw = GetGameplayCameraYaw(target);
+            float blendPitch = Mathf.LerpAngle(_finaleSavedPitch, _pitch, eased);
+            ComputeNormalTpsCameraState(target, blendPitch, normalYaw, out Vector3 normalPos, out Quaternion normalRot);
+
+            transform.position = Vector3.Lerp(cinematicPos, normalPos, eased);
+            transform.rotation = Quaternion.Slerp(cinematicRot, normalRot, eased);
+
+            EnsureGameplayCameraReference();
+            if (_gameplayCamera != null)
+            {
+                float cinematicFov = room != null ? room.CinematicFov : reflectorDefaultFov;
+                _gameplayCamera.fieldOfView = Mathf.Lerp(cinematicFov, reflectorDefaultFov, eased);
+            }
+
+            if (_cameraTransform != null)
+                _cameraTransform.localRotation = Quaternion.identity;
+
+            if (t >= 1f)
+                CompleteFinaleGateCameraBlendOut();
+        }
+
+        private void CompleteFinaleGateCameraBlendOut()
+        {
+            _pitch = _finaleSavedPitch;
+            _yaw = GetGameplayCameraYaw(target);
+            _finaleGateCameraActive = false;
+            _finaleGateCameraBlendingOut = false;
+            _finaleBlendInComplete = false;
+            _finaleCinematicInitialized = false;
+            RestoreDefaultCameraFov();
         }
 
         private static void ApplyGameplayCursorLock()

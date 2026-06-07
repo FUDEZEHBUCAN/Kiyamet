@@ -121,7 +121,7 @@ namespace _Root.Scripts.UI
 
         private static bool IsGameplayWithLocalPlayer()
         {
-            if (GameplayPauseMenu.IsOpen)
+            if (GameplayPauseMenu.IsOpen || GameplayUiVisibility.IsSuppressedForFinale)
                 return false;
 
             if (PlaytestLobbyController.Instance != null && PlaytestLobbyController.Instance.IsLobbyActive)
