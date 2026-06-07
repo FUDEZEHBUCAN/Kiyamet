@@ -15,6 +15,7 @@ namespace _Root.Scripts.Interactable
 
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
+    [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(NetworkObject))]
     public class HiddenDoorTrigger : NetworkBehaviour
     {
@@ -53,6 +54,8 @@ namespace _Root.Scripts.Interactable
             var col = GetComponent<Collider>();
             if (col != null)
                 col.isTrigger = true;
+
+            EnsureTriggerRigidbody();
         }
 
         private void Awake()

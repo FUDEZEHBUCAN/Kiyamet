@@ -27,7 +27,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7762748850662906791}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.62654996, z: -0, w: 0.77938133}
+  m_LocalRotation: {x: 0, y: -0.62654936, z: 0, w: 0.77938175}
   m_LocalPosition: {x: -1.88, y: -21.98, z: 10.64}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -312,6 +312,7 @@ MonoBehaviour:
   splineIndex: 0
   boulder: {fileID: 9033333333333333332}
   blockedCover: {fileID: 9022222222222222221}
+  requireAllPlayersInActivationZone: 0
   triggerOnlyOnce: 1
   ignoreDeadPlayers: 1
   releaseDuration: 0.45
@@ -325,7 +326,7 @@ MonoBehaviour:
   shakeCameraOnRollStart: 1
   rollStartSounds:
   - {fileID: 8300000, guid: e9b517075c018469eba3cbbe66b16d29, type: 3}
-  rollingLoopClip: {fileID: 8300000, guid: 069fc9dba62a947e593f8df31e574492, type: 3}
+  rollingLoopClip: {fileID: 8300000, guid: ed777142ad98e1045a21018befa60114, type: 3}
   startAudioSource: {fileID: 0}
   rollingAudioSource: {fileID: 0}
   startSoundVolume: 0.6
@@ -335,6 +336,7 @@ MonoBehaviour:
   maxDistanceRadiusMultiplier: 1.15
   minDistanceClampMin: 1.2
   minDistanceClampMax: 6
+  damagesPlayers: 1
   crushDamage: 99999
   crushKnockbackForce: 3
   crushKnockbackDuration: 1.2
@@ -352,6 +354,7 @@ GameObject:
   m_Component:
   - component: {fileID: 9011111111111111112}
   - component: {fileID: 9011111111111111113}
+  - component: {fileID: 9011111111111111115}
   - component: {fileID: 9011111111111111114}
   m_Layer: 0
   m_Name: ActivationZone
@@ -368,13 +371,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9011111111111111111}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.3583069, y: 12.820003, z: 2.6116333}
+  m_LocalRotation: {x: -0, y: -0.36149466, z: -0, w: 0.9323742}
+  m_LocalPosition: {x: 1.81, y: 2.79, z: -6.66}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5409062027699272682}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -42.384, z: 0}
 --- !u!65 &9011111111111111113
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -396,6 +399,33 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 8, y: 8, z: 11.762611}
   m_Center: {x: -0.000000014748149, y: 0, z: 1.8813052}
+--- !u!54 &9011111111111111115
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9011111111111111111}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!114 &9011111111111111114
 MonoBehaviour:
   m_ObjectHideFlags: 0
