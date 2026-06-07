@@ -1170,8 +1170,16 @@ namespace _Root.Scripts.Enemy
             CurrentState = EnemyState.LeapRecover;
         }
 
+        private bool CanReadNetworkState()
+        {
+            return Runner != null && Object != null && Object.IsValid;
+        }
+
         private bool IsInLeapPhaseState()
         {
+            if (!CanReadNetworkState())
+                return false;
+
             return CurrentState == EnemyState.LeapWindup
                 || CurrentState == EnemyState.LeapJump
                 || CurrentState == EnemyState.LeapRecover;

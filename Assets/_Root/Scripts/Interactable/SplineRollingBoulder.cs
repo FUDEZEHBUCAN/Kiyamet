@@ -28,8 +28,12 @@ namespace _Root.Scripts.Interactable
         [SerializeField] private Transform boulder;
         [SerializeField] private GameObject blockedCover;
 
-        [Header("Trigger")]
+        [Header("Activation Zone")]
+        [Tooltip("Açıksa kaya, bağlı tüm canlı oyuncular zone'a en az bir kez girdikten sonra düşer.")]
+        [SerializeField] private bool requireAllPlayersInActivationZone;
+        [Tooltip("Kapalıysa zone'a giren ilk geçerli oyuncu kayayı başlatır.")]
         [SerializeField] private bool triggerOnlyOnce = true;
+        [Tooltip("Ölü oyuncular activation zone kaydı ve 'tüm oyuncular' sayımına dahil edilmez.")]
         [SerializeField] private bool ignoreDeadPlayers = true;
 
         [Header("Release")]
@@ -70,6 +74,7 @@ namespace _Root.Scripts.Interactable
         [SerializeField] private float minDistanceClampMax = 6f;
 
         [Header("Crush")]
+        [SerializeField] private bool damagesPlayers;
         [SerializeField] private float crushDamage = 99999f;
         [SerializeField] private float crushKnockbackForce = 14f;
         [SerializeField] private float crushKnockbackDuration = 1.2f;
@@ -88,6 +93,7 @@ namespace _Root.Scripts.Interactable
         private SplineBoulderState _lastRenderedState;
         private int _lastRenderedRollCycleIndex = -1;
         private bool _rollingLoopPlaying;
+        private readonly HashSet<NetworkId> _playersEnteredActivationZone = new();
         private readonly Dictionary<NetworkId, float> _crushCooldownUntil = new();
 
         private void Reset()
@@ -128,7 +134,8 @@ namespace _Root.Scripts.Interactable
                 case SplineBoulderState.Rolling:
                     AdvanceRollingAuthority(Runner.DeltaTime);
                     SyncBoulderTransformAuthority();
-                    DetectCrushOverlapsAuthority();
+                    if (damagesPlayers)
+                        DetectCrushOverlapsAuthority();
                     break;
             }
         }
@@ -146,23 +153,61 @@ namespace _Root.Scripts.Interactable
 
         private void OnTriggerEnter(Collider other)
         {
-            if (!CanAcceptTrigger(other))
+            if (requireAllPlayersInActivationZone)
                 return;
 
-            TryBeginReleaseSequence();
+            NotifyPlayerEnteredActivationZone(other);
         }
 
         public void NotifyPlayerEnteredActivationZone(Collider other)
         {
-            if (!CanAcceptTrigger(other))
+            if (!TryResolveActivationPlayer(other, out NetworkId playerId))
                 return;
+
+            if (Object == null || !Object.IsValid)
+                return;
+
+            if (Object.HasStateAuthority)
+                HandlePlayerEnteredActivationZone(playerId);
+            else
+                RpcNotifyPlayerEnteredActivationZone(playerId);
+        }
+
+        [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+        private void RpcNotifyPlayerEnteredActivationZone(NetworkId playerId)
+        {
+            HandlePlayerEnteredActivationZone(playerId);
+        }
+
+        private void HandlePlayerEnteredActivationZone(NetworkId playerId)
+        {
+            if (!IsValidActivationPlayerId(playerId))
+                return;
+
+            if (requireAllPlayersInActivationZone)
+            {
+                if (!_playersEnteredActivationZone.Add(playerId))
+                    return;
+
+                TryBeginReleaseWhenAllPlayersReady();
+                return;
+            }
 
             TryBeginReleaseSequence();
         }
 
+        private void SyncBoulderTransformAuthority()
+        {
+            if (boulder == null)
+                return;
+
+            float normalizedT = State == SplineBoulderState.Complete ? 1f : RollProgress;
+            ApplyRollingVisuals(normalizedT);
+        }
+
         private void TryCrushPlayer(Collider other)
         {
-            if (Object == null || !Object.IsValid || !Object.HasStateAuthority)
+            if (!damagesPlayers || Object == null || !Object.IsValid || !Object.HasStateAuthority)
                 return;
 
             if (State != SplineBoulderState.Rolling)
@@ -195,15 +240,6 @@ namespace _Root.Scripts.Interactable
                 TryCrushPlayer(hits[i]);
         }
 
-        private void SyncBoulderTransformAuthority()
-        {
-            if (boulder == null)
-                return;
-
-            float normalizedT = State == SplineBoulderState.Complete ? 1f : RollProgress;
-            ApplyRollingVisuals(normalizedT);
-        }
-
         private float GetCrushCheckRadius()
         {
             if (crushCheckRadius > 0.001f)
@@ -218,15 +254,39 @@ namespace _Root.Scripts.Interactable
             return 0f;
         }
 
-        private bool CanAcceptTrigger(Collider other)
+        private bool IsPlayerOnCrushCooldown(NetworkPlayer player)
         {
-            if (Object == null || !Object.IsValid || !Object.HasStateAuthority)
+            if (crushCooldownPerPlayer <= 0.001f)
                 return false;
 
-            if (State != SplineBoulderState.Idle)
+            if (!_crushCooldownUntil.TryGetValue(player.Object.Id, out float cooldownUntil))
                 return false;
 
-            if (boulder != null && other.transform.IsChildOf(boulder))
+            return Runner.SimulationTime < cooldownUntil;
+        }
+
+        private void ApplyCrushToPlayer(NetworkPlayer player)
+        {
+            _crushCooldownUntil[player.Object.Id] = Runner.SimulationTime + crushCooldownPerPlayer;
+
+            Vector3 damageOrigin = boulder != null ? boulder.position : transform.position;
+            player.TakeDamage(
+                crushDamage,
+                isHeavyAttack: true,
+                damageOrigin: damageOrigin,
+                knockbackForce: crushKnockbackForce,
+                knockbackDuration: crushKnockbackDuration,
+                knockbackUpward: crushKnockbackUpward,
+                inputBlockDuration: crushInputBlockDuration,
+                ignoreDirectionalBlock: true,
+                fromBoulderCrush: true);
+        }
+
+        private bool TryResolveActivationPlayer(Collider other, out NetworkId playerId)
+        {
+            playerId = default;
+
+            if (other == null || boulder != null && other.transform.IsChildOf(boulder))
                 return false;
 
             var player = other.GetComponentInParent<NetworkPlayer>();
@@ -236,7 +296,110 @@ namespace _Root.Scripts.Interactable
             if (ignoreDeadPlayers && !player.IsAlive)
                 return false;
 
+            playerId = player.Object.Id;
             return true;
+        }
+
+        private bool IsValidActivationPlayerId(NetworkId playerId)
+        {
+            if (!Object.HasStateAuthority || State != SplineBoulderState.Idle)
+                return false;
+
+            NetworkObject playerObject = Runner.FindObject(playerId);
+            if (playerObject == null || !playerObject.IsValid)
+                return false;
+
+            var player = playerObject.GetComponent<NetworkPlayer>();
+            if (player == null)
+                return false;
+
+            if (ignoreDeadPlayers && !player.IsAlive)
+                return false;
+
+            return true;
+        }
+
+        private void TryBeginReleaseWhenAllPlayersReady()
+        {
+            if (State != SplineBoulderState.Idle)
+                return;
+
+            if (!requireAllPlayersInActivationZone || !HaveAllActivePlayersEnteredActivationZone())
+                return;
+
+            TryBeginReleaseSequence();
+        }
+
+        private bool HaveAllActivePlayersEnteredActivationZone()
+        {
+            if (Runner == null)
+                return false;
+
+            if (TryHaveAllRequiredPlayersEntered(CollectRequiredPlayerIdsFromActivePlayers()))
+                return true;
+
+            // Solo / spawn gecikmesi: PlayerRef -> NetworkObject bağlantısı henüz yoksa sahnedeki oyuncuları say.
+            return TryHaveAllRequiredPlayersEntered(CollectRequiredPlayerIdsFromScene());
+        }
+
+        private bool TryHaveAllRequiredPlayersEntered(List<NetworkId> requiredPlayerIds)
+        {
+            if (requiredPlayerIds == null || requiredPlayerIds.Count == 0)
+                return false;
+
+            for (int i = 0; i < requiredPlayerIds.Count; i++)
+            {
+                if (!_playersEnteredActivationZone.Contains(requiredPlayerIds[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private List<NetworkId> CollectRequiredPlayerIdsFromActivePlayers()
+        {
+            var requiredPlayerIds = new List<NetworkId>();
+
+            foreach (PlayerRef playerRef in Runner.ActivePlayers)
+            {
+                NetworkObject playerObject = Runner.GetPlayerObject(playerRef);
+                if (playerObject == null || !playerObject.IsValid)
+                    continue;
+
+                TryAddRequiredPlayerId(requiredPlayerIds, playerObject);
+            }
+
+            return requiredPlayerIds;
+        }
+
+        private List<NetworkId> CollectRequiredPlayerIdsFromScene()
+        {
+            var requiredPlayerIds = new List<NetworkId>();
+            NetworkPlayer[] players = FindObjectsByType<NetworkPlayer>(FindObjectsSortMode.None);
+
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (players[i]?.Object == null || !players[i].Object.IsValid)
+                    continue;
+
+                TryAddRequiredPlayerId(requiredPlayerIds, players[i].Object);
+            }
+
+            return requiredPlayerIds;
+        }
+
+        private void TryAddRequiredPlayerId(List<NetworkId> requiredPlayerIds, NetworkObject playerObject)
+        {
+            var player = playerObject.GetComponent<NetworkPlayer>();
+            if (player == null)
+                return;
+
+            if (ignoreDeadPlayers && !player.IsAlive)
+                return;
+
+            NetworkId playerId = playerObject.Id;
+            if (!requiredPlayerIds.Contains(playerId))
+                requiredPlayerIds.Add(playerId);
         }
 
         private void TryBeginReleaseSequence()
@@ -432,34 +595,6 @@ namespace _Root.Scripts.Interactable
             _splineLength = math.max(0.001f, splineContainer.CalculateLength(index));
         }
 
-        private bool IsPlayerOnCrushCooldown(NetworkPlayer player)
-        {
-            if (crushCooldownPerPlayer <= 0.001f)
-                return false;
-
-            if (!_crushCooldownUntil.TryGetValue(player.Object.Id, out float cooldownUntil))
-                return false;
-
-            return Runner.SimulationTime < cooldownUntil;
-        }
-
-        private void ApplyCrushToPlayer(NetworkPlayer player)
-        {
-            _crushCooldownUntil[player.Object.Id] = Runner.SimulationTime + crushCooldownPerPlayer;
-
-            Vector3 damageOrigin = boulder != null ? boulder.position : transform.position;
-            player.TakeDamage(
-                crushDamage,
-                isHeavyAttack: true,
-                damageOrigin: damageOrigin,
-                knockbackForce: crushKnockbackForce,
-                knockbackDuration: crushKnockbackDuration,
-                knockbackUpward: crushKnockbackUpward,
-                inputBlockDuration: crushInputBlockDuration,
-                ignoreDirectionalBlock: true,
-                fromBoulderCrush: true);
-        }
-
         private void PlayRollStartEffectsClient()
         {
             if (shakeCameraOnRollStart && TpsCameraController.Instance != null)
@@ -590,7 +725,7 @@ namespace _Root.Scripts.Interactable
                 previous = center;
             }
 
-            if (boulder != null)
+            if (damagesPlayers && boulder != null)
             {
                 float radius = GetCrushCheckRadius();
                 if (radius > 0.001f)
