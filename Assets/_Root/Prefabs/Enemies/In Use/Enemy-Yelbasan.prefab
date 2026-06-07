@@ -320,6 +320,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2536770753365934057, guid: 35756500b855b4a1a88d9c3ef7d85bf0, type: 3}
+      propertyPath: m_DynamicOccludee
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6439871877164509300, guid: 35756500b855b4a1a88d9c3ef7d85bf0, type: 3}
       propertyPath: m_Name
       value: Yelbasan_New
@@ -361,5 +365,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 3054772479420157293}
   locomotionSmoothTime: 0.1
+  maxLocomotionAnimSpeed: 1.35
   deathPlaybackSpeedMin: 1
   deathPlaybackSpeedMax: 2
