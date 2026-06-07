@@ -154,11 +154,16 @@ namespace _Root.Scripts.Network.Lobby
             duelistRoleButton?.SetSelected(false);
         }
 
-        public void SetRolePickable(PlayerRoleType role, bool pickable)
+        public void SetRolePickable(PlayerRoleType role, bool interactable, bool keepBrightVisual = false)
         {
             var roleButton = GetRoleButton(role);
-            if (roleButton != null && roleButton.Button != null)
-                roleButton.Button.interactable = pickable;
+            if (roleButton == null)
+                return;
+
+            if (roleButton.Button != null)
+                roleButton.Button.interactable = interactable;
+
+            roleButton.SetPickable(interactable || keepBrightVisual);
         }
 
         public void SetRolePickingEnabled(bool enabled)

@@ -357,14 +357,40 @@ namespace _Root.Scripts.Editor
             go.transform.SetParent(parent, false);
             SetCenterRect(go.GetComponent<RectTransform>(), anchoredPosition, size);
 
-            var bg = go.GetComponent<Image>();
-            bg.color = new Color(0.2f, 0.24f, 0.32f, 1f);
+            var hitArea = go.GetComponent<Image>();
+            hitArea.color = new Color(1f, 1f, 1f, 0f);
+
+            var frameSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Root/UI/NewAssets/Kartlık.png");
+            var roleIcon = LoadRoleIcon(role);
+
+            var frameGo = new GameObject("Frame", typeof(RectTransform), typeof(Image));
+            frameGo.transform.SetParent(go.transform, false);
+            StretchRect(frameGo.GetComponent<RectTransform>());
+            var frame = frameGo.GetComponent<Image>();
+            frame.sprite = frameSprite;
+            frame.raycastTarget = false;
+
+            var iconGo = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconGo.transform.SetParent(go.transform, false);
+            var iconRect = iconGo.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.08f, 0.16f);
+            iconRect.anchorMax = new Vector2(0.92f, 0.88f);
+            iconRect.offsetMin = Vector2.zero;
+            iconRect.offsetMax = Vector2.zero;
+            var icon = iconGo.GetComponent<Image>();
+            icon.sprite = roleIcon;
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
 
             var highlightGo = new GameObject("Highlight", typeof(RectTransform), typeof(Image));
             highlightGo.transform.SetParent(go.transform, false);
-            StretchRect(highlightGo.GetComponent<RectTransform>());
+            var highlightRect = highlightGo.GetComponent<RectTransform>();
+            StretchRect(highlightRect);
+            highlightRect.offsetMin = new Vector2(-10f, -10f);
+            highlightRect.offsetMax = new Vector2(10f, 10f);
             var highlight = highlightGo.GetComponent<Image>();
-            highlight.color = new Color(0.35f, 0.55f, 0.85f, 0.95f);
+            highlight.sprite = frameSprite;
+            highlight.color = new Color(1f, 0.84f, 0.35f, 1f);
             highlight.raycastTarget = false;
             highlight.enabled = false;
 
@@ -383,7 +409,8 @@ namespace _Root.Scripts.Editor
             text.raycastTarget = false;
 
             var button = go.GetComponent<Button>();
-            button.targetGraphic = bg;
+            button.targetGraphic = hitArea;
+            button.transition = Selectable.Transition.None;
 
             var roleButton = go.AddComponent<PlaytestLobbyRoleButton>();
             var roleSo = new SerializedObject(roleButton);
@@ -391,6 +418,18 @@ namespace _Root.Scripts.Editor
             roleSo.FindProperty("highlight").objectReferenceValue = highlight;
             roleSo.ApplyModifiedPropertiesWithoutUndo();
             return roleButton;
+        }
+
+        private static Sprite LoadRoleIcon(PlayerRoleType role)
+        {
+            var path = role switch
+            {
+                PlayerRoleType.Support => "Assets/_Root/Prefabs/UI/Shaman_Image.png",
+                PlayerRoleType.Duelist => "Assets/_Root/Prefabs/UI/Archer_Image.png",
+                _ => "Assets/_Root/Prefabs/UI/Tank_Image.png"
+            };
+
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         private static Button AddSecondaryButton(

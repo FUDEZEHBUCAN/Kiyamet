@@ -297,9 +297,18 @@ namespace _Root.Scripts.Network.Lobby
             var supportTaken = IsRoleLockedByOther(PlayerRoleType.Support);
             var duelistTaken = IsRoleLockedByOther(PlayerRoleType.Duelist);
             var canPick = !_localRoleLocked;
-            _view.SetRolePickable(PlayerRoleType.Tank, canPick && !tankTaken);
-            _view.SetRolePickable(PlayerRoleType.Support, canPick && !supportTaken);
-            _view.SetRolePickable(PlayerRoleType.Duelist, canPick && !duelistTaken);
+            _view.SetRolePickable(
+                PlayerRoleType.Tank,
+                canPick && !tankTaken,
+                _localRoleLocked && _localPendingRole == PlayerRoleType.Tank);
+            _view.SetRolePickable(
+                PlayerRoleType.Support,
+                canPick && !supportTaken,
+                _localRoleLocked && _localPendingRole == PlayerRoleType.Support);
+            _view.SetRolePickable(
+                PlayerRoleType.Duelist,
+                canPick && !duelistTaken,
+                _localRoleLocked && _localPendingRole == PlayerRoleType.Duelist);
 
             if (_localRoleLocked)
             {

@@ -1,4 +1,5 @@
 using _Root.Scripts.Enums;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,10 +9,18 @@ namespace _Root.Scripts.Network.Lobby
     [RequireComponent(typeof(Button))]
     public class PlaytestLobbyRoleButton : MonoBehaviour
     {
+        private static readonly Color DisabledVisualColor = new(0.78431374f, 0.78431374f, 0.78431374f, 0.5019608f);
+
         [SerializeField] private PlayerRoleType role;
         [SerializeField] private Image highlight;
+        [SerializeField] private Image frame;
+        [SerializeField] private Image icon;
+        [SerializeField] private TMP_Text label;
 
         private Button _button;
+        private Color _iconNormalColor = Color.white;
+        private Color _labelNormalColor = Color.white;
+        private bool _visualReferencesResolved;
 
         public PlayerRoleType Role => role;
 
@@ -37,7 +46,8 @@ namespace _Root.Scripts.Network.Lobby
         private void Awake()
         {
             _ = Button;
-            EnsureHighlightReference();
+            ResolveVisualReferences();
+            UseTransparentHitTargetForButton();
         }
 
         public void SetSelected(bool selected)
@@ -45,6 +55,30 @@ namespace _Root.Scripts.Network.Lobby
             var highlightImage = Highlight;
             if (highlightImage != null)
                 highlightImage.enabled = selected;
+        }
+
+        public void SetPickable(bool pickable)
+        {
+            ResolveVisualReferences();
+
+            if (icon != null)
+                icon.color = pickable ? _iconNormalColor : DisabledVisualColor;
+
+            if (label != null)
+                label.color = pickable ? _labelNormalColor : DisabledVisualColor;
+
+            if (frame != null)
+                frame.color = pickable ? Color.white : DisabledVisualColor;
+        }
+
+        private void UseTransparentHitTargetForButton()
+        {
+            var rootImage = GetComponent<Image>();
+            if (rootImage == null || Button == null)
+                return;
+
+            Button.targetGraphic = rootImage;
+            Button.transition = Selectable.Transition.None;
         }
 
         private void EnsureHighlightReference()
@@ -55,6 +89,30 @@ namespace _Root.Scripts.Network.Lobby
             var highlightTransform = transform.Find("Highlight");
             if (highlightTransform != null)
                 highlight = highlightTransform.GetComponent<Image>();
+        }
+
+        private void ResolveVisualReferences()
+        {
+            if (_visualReferencesResolved)
+                return;
+
+            _visualReferencesResolved = true;
+            EnsureHighlightReference();
+
+            if (frame == null)
+                frame = transform.Find("Frame")?.GetComponent<Image>();
+
+            if (icon == null)
+                icon = transform.Find("Icon")?.GetComponent<Image>();
+
+            if (label == null)
+                label = transform.Find("Label")?.GetComponent<TMP_Text>();
+
+            if (icon != null)
+                _iconNormalColor = icon.color;
+
+            if (label != null)
+                _labelNormalColor = label.color;
         }
     }
 }
