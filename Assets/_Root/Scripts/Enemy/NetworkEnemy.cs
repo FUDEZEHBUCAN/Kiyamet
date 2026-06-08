@@ -71,6 +71,7 @@ namespace _Root.Scripts.Enemy
         [Networked] private TickTimer KnockbackTimer { get; set; }
         [Networked] private float TimeDistortionSpeedMultiplier { get; set; }
         [Networked] public NetworkBool PlayerDetectionEnabled { get; private set; }
+        [Networked] public NetworkBool AggroZoneDormant { get; private set; }
         [Networked] private Vector3 LeapStartPosition { get; set; }
         [Networked] private Vector3 LeapLockedPosition { get; set; }
         [Networked] private TickTimer LeapPhaseTimer { get; set; }
@@ -92,6 +93,12 @@ namespace _Root.Scripts.Enemy
         private float _aggroReadyTime;
         private float _leapAttemptChance = 1f;
         private float _attackRangeChaseTolerance = 1.2f;
+        private bool _aggroZoneDormantApplied;
+        private bool _dormantComponentsCached;
+        private Renderer[] _cachedRenderers;
+        private Animator[] _cachedAnimators;
+        private Collider[] _cachedColliders;
+        private AudioSource[] _cachedAudioSources;
         private static readonly Collider[] SeparationOverlapBuffer = new Collider[20];
         private int _lastVisualAttackAnimTick;
         private int _lastVisualAttackEffectTick;
@@ -133,6 +140,152 @@ namespace _Root.Scripts.Enemy
                 ReturnToGuardAndIdle();
             else if (IsAlive && CurrentState == EnemyState.Idle)
                 FindAndChaseTarget();
+        }
+
+        /// <summary>
+        /// Aggro trigger alanı tarafından düşmanı uyutur/uyandırır (renderer, animator, agent, collider).
+        /// NetworkObject aktif kalır; Fusion/animator senkronu bozulmaz.
+        /// </summary>
+        public void SetAggroZoneDormant(bool dormant)
+        {
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (AggroZoneDormant == dormant)
+            {
+                ApplyAggroZoneDormantLocal(dormant);
+                return;
+            }
+
+            AggroZoneDormant = dormant;
+
+            if (dormant)
+            {
+                PlayerDetectionEnabled = false;
+                ReturnToGuardAndIdle();
+            }
+
+            ApplyAggroZoneDormantLocal(dormant);
+
+            if (!dormant)
+                PrepareAggroZoneWake();
+
+            Rpc_SetAggroZoneDormant(dormant);
+        }
+
+        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+        private void Rpc_SetAggroZoneDormant(bool dormant, RpcInfo info = default)
+        {
+            ApplyAggroZoneDormantLocal(dormant);
+
+            if (!dormant)
+                PrepareAggroZoneWake();
+        }
+
+        private void CacheDormantComponents()
+        {
+            if (_dormantComponentsCached)
+                return;
+
+            _cachedRenderers = GetComponentsInChildren<Renderer>(true);
+            _cachedAnimators = GetComponentsInChildren<Animator>(true);
+            _cachedColliders = GetComponentsInChildren<Collider>(true);
+            _cachedAudioSources = GetComponentsInChildren<AudioSource>(true);
+            _dormantComponentsCached = true;
+        }
+
+        private void ApplyAggroZoneDormantLocal(bool dormant)
+        {
+            if (_aggroZoneDormantApplied == dormant)
+                return;
+
+            _aggroZoneDormantApplied = dormant;
+            CacheDormantComponents();
+
+            bool active = !dormant;
+
+            if (_cachedRenderers != null)
+            {
+                for (int i = 0; i < _cachedRenderers.Length; i++)
+                {
+                    if (_cachedRenderers[i] != null)
+                        _cachedRenderers[i].enabled = active;
+                }
+            }
+
+            if (_cachedAnimators != null)
+            {
+                for (int i = 0; i < _cachedAnimators.Length; i++)
+                {
+                    if (_cachedAnimators[i] != null)
+                        _cachedAnimators[i].enabled = active;
+                }
+            }
+
+            if (_cachedColliders != null)
+            {
+                for (int i = 0; i < _cachedColliders.Length; i++)
+                {
+                    if (_cachedColliders[i] != null)
+                        _cachedColliders[i].enabled = active;
+                }
+            }
+
+            if (_cachedAudioSources != null)
+            {
+                for (int i = 0; i < _cachedAudioSources.Length; i++)
+                {
+                    if (_cachedAudioSources[i] != null)
+                        _cachedAudioSources[i].enabled = active;
+                }
+            }
+
+            if (agent == null)
+                return;
+
+            if (!Object.HasStateAuthority)
+                return;
+
+            if (dormant)
+            {
+                agent.ResetPath();
+                agent.velocity = Vector3.zero;
+                agent.enabled = false;
+                return;
+            }
+
+            agent.enabled = true;
+        }
+
+        private void PrepareAggroZoneWake()
+        {
+            _lastPosition = transform.position;
+            _lastAppliedAnimPlaybackSpeed = -1f;
+            _lastState = CurrentState;
+
+            if (animController != null)
+                animController.ResetAnimator();
+
+            if (!Object.HasStateAuthority || agent == null)
+                return;
+
+            Vector3 wakePosition = _guardPosition != Vector3.zero ? _guardPosition : transform.position;
+            if (NavMesh.SamplePosition(wakePosition, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+                wakePosition = hit.position;
+
+            transform.position = wakePosition;
+
+            if (!agent.enabled)
+                agent.enabled = true;
+
+            if (!agent.isOnNavMesh)
+                agent.Warp(wakePosition);
+            else
+                agent.Warp(wakePosition);
+
+            agent.ResetPath();
+            agent.isStopped = false;
+            agent.velocity = Vector3.zero;
         }
 
         public void SetTimeDistortionSlow(float speedMultiplier)
@@ -279,6 +432,8 @@ namespace _Root.Scripts.Enemy
             {
                 agent.enabled = false;
             }
+
+            ApplyAggroZoneDormantLocal(AggroZoneDormant);
         }
 
         private void InitializeBehaviorVariance()
@@ -345,6 +500,9 @@ namespace _Root.Scripts.Enemy
             {
                 return;
             }
+
+            if (AggroZoneDormant)
+                return;
             
             // Agent pozisyon senkronu (Network). Off-mesh link sırasında agent kendi hareketini yönetir.
             if (agent != null && agent.enabled && agent.isOnNavMesh && !agent.isOnOffMeshLink
@@ -548,6 +706,9 @@ namespace _Root.Scripts.Enemy
         
         public override void Render()
         {
+            if (AggroZoneDormant)
+                return;
+
             // Remote client için animasyon ve efekt senkronizasyonu (Render'da - her frame kontrol)
             if (!Object.HasStateAuthority)
             {

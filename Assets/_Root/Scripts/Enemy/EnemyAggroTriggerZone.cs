@@ -5,8 +5,8 @@ using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 namespace _Root.Scripts.Enemy
 {
     /// <summary>
-    /// İlk kez bir oyuncu trigger'a girdiğinde seçili düşmanların oyuncu taraması kalıcı olarak açılır.
-    /// Oyuncular alandan çıksa bile tarama kapanmaz.
+    /// İlk kez bir oyuncu trigger'a girdiğinde bağlı düşmanları aktifleştirir ve oyuncu taramasını kalıcı açar.
+    /// Başlangıçta düşman objeleri kapalı tutulur (FPS optimizasyonu).
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -17,11 +17,15 @@ namespace _Root.Scripts.Enemy
         [SerializeField] private NetworkEnemy[] controlledEnemies;
 
         [Header("Options")]
+        [Tooltip("Başlangıçta düşman renderer/animator/agent/collider'ını kapatır; trigger ile açılır.")]
+        [SerializeField] private bool disableEnemiesOnStart = true;
+        [Tooltip("Başlangıçta oyuncu taramasını kapatır (düşmanlar kapalıyken zaten devre dışı).")]
         [SerializeField] private bool disableDetectionOnStart = true;
         [Tooltip("Ölü oyuncular trigger sayılmaz.")]
         [SerializeField] private bool ignoreDeadPlayers = true;
 
         private bool _aggroActivated;
+        private bool _initialDormancyApplied;
 
         private void Reset()
         {
@@ -37,13 +41,9 @@ namespace _Root.Scripts.Enemy
                 Debug.LogWarning($"[EnemyAggroTriggerZone] '{name}' collider should be Is Trigger.", this);
         }
 
-        private void Start()
+        private void Update()
         {
-            if (!TryResolveServerRunner(out _))
-                return;
-
-            if (disableDetectionOnStart)
-                ApplyDetectionToEnemies(false);
+            TryApplyInitialDormancy();
         }
 
         private void OnTriggerEnter(Collider other)
@@ -58,7 +58,55 @@ namespace _Root.Scripts.Enemy
                 return;
 
             _aggroActivated = true;
+            SetEnemiesActive(true);
             ApplyDetectionToEnemies(true);
+        }
+
+        private void TryApplyInitialDormancy()
+        {
+            if (_initialDormancyApplied || _aggroActivated)
+                return;
+
+            if (!disableEnemiesOnStart && !disableDetectionOnStart)
+            {
+                _initialDormancyApplied = true;
+                return;
+            }
+
+            if (!TryResolveServerRunner(out _))
+                return;
+
+            if (!AreControlledEnemiesReady())
+                return;
+
+            if (disableEnemiesOnStart)
+                SetEnemiesActive(false);
+
+            if (disableDetectionOnStart)
+                ApplyDetectionToEnemies(false);
+
+            _initialDormancyApplied = true;
+        }
+
+        private bool AreControlledEnemiesReady()
+        {
+            if (controlledEnemies == null)
+                return false;
+
+            bool foundAny = false;
+            for (int i = 0; i < controlledEnemies.Length; i++)
+            {
+                NetworkEnemy enemy = controlledEnemies[i];
+                if (enemy == null)
+                    continue;
+
+                if (enemy.Object == null || !enemy.Object.IsValid)
+                    return false;
+
+                foundAny = true;
+            }
+
+            return foundAny;
         }
 
         private bool TryGetPlayerObject(Collider other, out NetworkObject playerObject)
@@ -75,6 +123,24 @@ namespace _Root.Scripts.Enemy
             return true;
         }
 
+        private void SetEnemiesActive(bool active)
+        {
+            if (controlledEnemies == null)
+                return;
+
+            for (int i = 0; i < controlledEnemies.Length; i++)
+            {
+                NetworkEnemy enemy = controlledEnemies[i];
+                if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
+                    continue;
+
+                if (!enemy.Object.HasStateAuthority)
+                    continue;
+
+                enemy.SetAggroZoneDormant(!active);
+            }
+        }
+
         private void ApplyDetectionToEnemies(bool enabled)
         {
             if (controlledEnemies == null)
@@ -82,7 +148,7 @@ namespace _Root.Scripts.Enemy
 
             for (int i = 0; i < controlledEnemies.Length; i++)
             {
-                var enemy = controlledEnemies[i];
+                NetworkEnemy enemy = controlledEnemies[i];
                 if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
                     continue;
 
@@ -101,7 +167,7 @@ namespace _Root.Scripts.Enemy
             {
                 for (int i = 0; i < controlledEnemies.Length; i++)
                 {
-                    var enemy = controlledEnemies[i];
+                    NetworkEnemy enemy = controlledEnemies[i];
                     if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
                         continue;
 
@@ -111,7 +177,7 @@ namespace _Root.Scripts.Enemy
                 }
             }
 
-            foreach (var activeRunner in NetworkRunner.Instances)
+            foreach (NetworkRunner activeRunner in NetworkRunner.Instances)
             {
                 if (activeRunner == null || !activeRunner.IsRunning || !activeRunner.IsServer)
                     continue;
