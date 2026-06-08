@@ -46,7 +46,9 @@ namespace _Root.Scripts.UI
         private static bool ShouldKeepCanvasVisible(Canvas canvas)
         {
             return canvas.GetComponent<FinaleScreenFadeOverlay>() != null
-                || canvas.GetComponentInParent<FinaleScreenFadeOverlay>(true) != null;
+                || canvas.GetComponentInParent<FinaleScreenFadeOverlay>(true) != null
+                || canvas.GetComponent<FinaleCreditsOverlay>() != null
+                || canvas.GetComponentInParent<FinaleCreditsOverlay>(true) != null;
         }
     }
 }

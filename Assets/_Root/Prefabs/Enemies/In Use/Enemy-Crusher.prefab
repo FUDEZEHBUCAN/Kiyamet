@@ -166,6 +166,8 @@ MonoBehaviour:
   _CurrentHealth: 0
   _PlayerDetectionEnabled:
     _value: 0
+  _AggroZoneDormant:
+    _value: 0
 --- !u!136 &5424480101873713277
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -334,7 +336,7 @@ Animator:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 532527056247523085}
   m_Enabled: 1
-  m_Avatar: {fileID: 9000000, guid: 5e22286fb3797d745b84a2012f35295b, type: 3}
+  m_Avatar: {fileID: 9000000, guid: ef1546d76cc130d42b3bd6291bbd01ec, type: 3}
   m_Controller: {fileID: 9100000, guid: 816f0c7a6c485674583c4656b8336ef6, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
@@ -360,6 +362,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 4740430443879074900}
   locomotionSmoothTime: 0.1
+  maxLocomotionAnimSpeed: 1.35
   deathPlaybackSpeedMin: 1
   deathPlaybackSpeedMax: 2
 --- !u!4 &2876567804753598298 stripped

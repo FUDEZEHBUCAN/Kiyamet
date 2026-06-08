@@ -63,6 +63,42 @@ namespace _Root.Scripts.Finale
         [SerializeField] private float toBeContinuedAnimDuration = 1.6f;
         [SerializeField] private float toBeContinuedFontSize = 72f;
 
+        [Header("Credits")]
+        [Tooltip("Boş satırlar jenerikte boşluk bırakır. # ile başlayan satırlar bölüm başlığı olur.")]
+        [SerializeField] private string[] creditsLines =
+        {
+            "KIYAMET",
+            "",
+            "A School Project",
+            "",
+            "#Development",
+            "Team Member",
+            "",
+            "#Level / World Design",
+            "Team Member",
+            "",
+            "#Art & Design",
+            "Team Member",
+            "",
+            "#UI Design",
+            "Team Member",
+            "",
+            "#Music & Sound",
+            "Team Member",
+            "",
+            "#Special Thanks",
+            "To our instructors and everyone who playtested",
+            "",
+            "Thank you for playing!"
+        };
+        [SerializeField] private float creditsDelayAfterContinued = 2.5f;
+        [SerializeField] private float continuedFadeOutBeforeCredits = 0.85f;
+        [SerializeField] private float creditsScrollSpeed = 38f;
+        [SerializeField] private AudioClip creditsMusicClip;
+        [SerializeField] [Range(0f, 1f)] private float creditsMusicVolume = 0.45f;
+        [SerializeField] private float creditsMusicFadeInDuration = 2f;
+        [SerializeField] private float creditsMusicFadeOutDuration = 1.5f;
+
         [Header("Finale Cinematic Camera")]
         [Tooltip("Kamera sekans başında oyuncunun bu yüksekliğinden başlar.")]
         [SerializeField] private float cinematicCameraEyeHeight = 1.55f;
@@ -264,6 +300,10 @@ namespace _Root.Scripts.Finale
                 + fadeDuration
                 + toBeContinuedDelayAfterFade
                 + toBeContinuedAnimDuration
+                + creditsDelayAfterContinued
+                + continuedFadeOutBeforeCredits
+                + EstimateCreditsDuration()
+                + creditsMusicFadeOutDuration
                 + cinematicBlendOutDuration
                 + 1.5f;
         }
@@ -718,7 +758,24 @@ namespace _Root.Scripts.Finale
                 toBeContinuedText,
                 toBeContinuedDelayAfterFade,
                 toBeContinuedAnimDuration,
-                toBeContinuedFontSize);
+                toBeContinuedFontSize,
+                creditsLines,
+                creditsDelayAfterContinued,
+                continuedFadeOutBeforeCredits,
+                creditsScrollSpeed,
+                creditsMusicClip,
+                creditsMusicVolume,
+                creditsMusicFadeInDuration,
+                creditsMusicFadeOutDuration);
+        }
+
+        private float EstimateCreditsDuration()
+        {
+            int lineCount = creditsLines != null ? creditsLines.Length : 0;
+            if (lineCount <= 0)
+                return 0f;
+
+            return Mathf.Clamp(lineCount * 1.35f + 10f, 14f, 75f);
         }
 
         private void RefreshPresenceState()

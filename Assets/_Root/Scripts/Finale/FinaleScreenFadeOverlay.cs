@@ -26,6 +26,15 @@ namespace _Root.Scripts.Finale
         private float _fadeStartTime;
         private float _fadeDuration;
         private Sequence _continuedSequence;
+        private Sequence _creditsHandoffSequence;
+        private string[] _creditsLines;
+        private float _creditsDelayAfterContinued;
+        private float _continuedFadeOutDuration;
+        private float _creditsScrollSpeed;
+        private AudioClip _creditsMusicClip;
+        private float _creditsMusicVolume = 0.45f;
+        private float _creditsMusicFadeInDuration = 2f;
+        private float _creditsMusicFadeOutDuration = 1.5f;
 
         public static void PlayFade(
             AudioClip[] laughClips,
@@ -34,7 +43,15 @@ namespace _Root.Scripts.Finale
             string continuedText,
             float continuedDelayAfterFade,
             float continuedAnimDuration,
-            float continuedFontSize)
+            float continuedFontSize,
+            string[] creditsLines = null,
+            float creditsDelayAfterContinued = 2.5f,
+            float continuedFadeOutDuration = 0.85f,
+            float creditsScrollSpeed = 38f,
+            AudioClip creditsMusicClip = null,
+            float creditsMusicVolume = 0.45f,
+            float creditsMusicFadeInDuration = 2f,
+            float creditsMusicFadeOutDuration = 1.5f)
         {
             EnsureInstance();
             _instance.BeginFade(
@@ -44,7 +61,15 @@ namespace _Root.Scripts.Finale
                 continuedText,
                 continuedDelayAfterFade,
                 continuedAnimDuration,
-                continuedFontSize);
+                continuedFontSize,
+                creditsLines,
+                creditsDelayAfterContinued,
+                continuedFadeOutDuration,
+                creditsScrollSpeed,
+                creditsMusicClip,
+                creditsMusicVolume,
+                creditsMusicFadeInDuration,
+                creditsMusicFadeOutDuration);
         }
 
         private static void EnsureInstance()
@@ -56,6 +81,17 @@ namespace _Root.Scripts.Finale
             DontDestroyOnLoad(go);
             _instance = go.AddComponent<FinaleScreenFadeOverlay>();
             _instance.BuildUi();
+        }
+
+        public static void DestroyInstance()
+        {
+            if (_instance == null)
+                return;
+
+            var go = _instance.gameObject;
+            _instance = null;
+            if (go != null)
+                Destroy(go);
         }
 
         private void Awake()
@@ -74,6 +110,7 @@ namespace _Root.Scripts.Finale
         private void OnDestroy()
         {
             _continuedSequence?.Kill();
+            _creditsHandoffSequence?.Kill();
             if (_instance == this)
                 _instance = null;
         }
@@ -103,10 +140,28 @@ namespace _Root.Scripts.Finale
             string continuedText,
             float continuedDelayAfterFade,
             float continuedAnimDuration,
-            float continuedFontSize)
+            float continuedFontSize,
+            string[] creditsLines,
+            float creditsDelayAfterContinued,
+            float continuedFadeOutDuration,
+            float creditsScrollSpeed,
+            AudioClip creditsMusicClip,
+            float creditsMusicVolume,
+            float creditsMusicFadeInDuration,
+            float creditsMusicFadeOutDuration)
         {
             _continuedSequence?.Kill();
+            _creditsHandoffSequence?.Kill();
             ResetContinuedText();
+
+            _creditsLines = creditsLines;
+            _creditsDelayAfterContinued = Mathf.Max(0f, creditsDelayAfterContinued);
+            _continuedFadeOutDuration = Mathf.Max(0.1f, continuedFadeOutDuration);
+            _creditsScrollSpeed = Mathf.Max(18f, creditsScrollSpeed);
+            _creditsMusicClip = creditsMusicClip;
+            _creditsMusicVolume = Mathf.Clamp01(creditsMusicVolume);
+            _creditsMusicFadeInDuration = Mathf.Max(0.05f, creditsMusicFadeInDuration);
+            _creditsMusicFadeOutDuration = Mathf.Max(0.05f, creditsMusicFadeOutDuration);
 
             _fadeDuration = Mathf.Max(0.05f, duration);
             _fadeStartTime = Time.unscaledTime;
@@ -163,6 +218,37 @@ namespace _Root.Scripts.Finale
             _continuedSequence.Append(_continuedText.DOFade(1f, duration * 0.55f).SetEase(Ease.OutCubic));
             _continuedSequence.Join(rect.DOScale(1f, duration).SetEase(Ease.OutBack, 1.12f));
             _continuedSequence.Append(rect.DOScale(1.04f, 0.45f).SetEase(Ease.InOutSine).SetLoops(2, LoopType.Yoyo));
+            _continuedSequence.OnComplete(BeginCreditsHandoff);
+        }
+
+        private void BeginCreditsHandoff()
+        {
+            if (_creditsLines == null || _creditsLines.Length == 0)
+                return;
+
+            _creditsHandoffSequence?.Kill();
+            _creditsHandoffSequence = DOTween.Sequence().SetUpdate(true);
+            _creditsHandoffSequence.AppendInterval(_creditsDelayAfterContinued);
+
+            if (_continuedText != null)
+            {
+                _creditsHandoffSequence.Append(
+                    _continuedText.DOFade(0f, _continuedFadeOutDuration).SetEase(Ease.InQuad));
+                _creditsHandoffSequence.Join(
+                    _continuedText.rectTransform.DOScale(0.94f, _continuedFadeOutDuration).SetEase(Ease.InQuad));
+            }
+
+            _creditsHandoffSequence.OnComplete(() =>
+            {
+                ResetContinuedText();
+                FinaleCreditsOverlay.Play(
+                    _creditsLines,
+                    _creditsScrollSpeed,
+                    musicClip: _creditsMusicClip,
+                    musicVolume: _creditsMusicVolume,
+                    musicFadeInDuration: _creditsMusicFadeInDuration,
+                    musicFadeOutDuration: _creditsMusicFadeOutDuration);
+            });
         }
 
         private void ResetContinuedText()
