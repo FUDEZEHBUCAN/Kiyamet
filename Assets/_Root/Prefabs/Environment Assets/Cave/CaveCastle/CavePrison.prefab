@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1613972637805152535}
   - component: {fileID: 9190442966595884791}
   - component: {fileID: 6444536792119077146}
+  - component: {fileID: 5572501606869794820}
   m_Layer: 0
   m_Name: CavePrison_Entrance
   m_TagString: Untagged
@@ -83,6 +84,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &5572501606869794820
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5333844692925935896}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -4168051473547829082, guid: 5eaff401768190244844202659c8568a, type: 3}
 --- !u!1 &5382482921001532270
 GameObject:
   m_ObjectHideFlags: 0
@@ -213,6 +236,7 @@ GameObject:
   - component: {fileID: 1947437250583909204}
   - component: {fileID: 23138229864052044}
   - component: {fileID: 6706172826068489250}
+  - component: {fileID: 7780041237354907494}
   m_Layer: 0
   m_Name: CavePrison_Room
   m_TagString: Untagged
@@ -285,6 +309,28 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &7780041237354907494
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7150731499738480553}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4670405791715712843, guid: 5eaff401768190244844202659c8568a, type: 3}
 --- !u!1 &8864363661469590193
 GameObject:
   m_ObjectHideFlags: 0
@@ -296,6 +342,7 @@ GameObject:
   - component: {fileID: 4957338975927978418}
   - component: {fileID: 5541480182115777242}
   - component: {fileID: 4324625588039862628}
+  - component: {fileID: 2535710773277884815}
   m_Layer: 0
   m_Name: CavePrison_Floor
   m_TagString: Untagged
@@ -368,6 +415,27 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &2535710773277884815
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8864363661469590193}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 16, y: 0.5, z: 20}
+  m_Center: {x: 0, y: -0.25, z: -10}
 --- !u!1 &8938889784824872386
 GameObject:
   m_ObjectHideFlags: 0
@@ -379,6 +447,7 @@ GameObject:
   - component: {fileID: 1687767350297643220}
   - component: {fileID: 1685105393499716078}
   - component: {fileID: 1334461437309855735}
+  - component: {fileID: 4133702428496919978}
   m_Layer: 0
   m_Name: CavePrison_Roof
   m_TagString: Untagged
@@ -451,3 +520,25 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!64 &4133702428496919978
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8938889784824872386}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 5967409204467736386, guid: 5eaff401768190244844202659c8568a, type: 3}
