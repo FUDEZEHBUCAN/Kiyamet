@@ -284,6 +284,11 @@ MonoBehaviour:
   wakeEffectPrefab: {fileID: 136094, guid: cbf6e26bfae3a4f48acb9bb79ce1e5da, type: 3}
   wakeEffectOrigin: {fileID: 4514908106906813368}
   wakeEffectLifetime: 6
+  attachedSleepWall: {fileID: 0}
+  sleepWallDestroySmokePrefab: {fileID: 160184, guid: d5ab44061c0d4c0eaf5ae38e47efd824, type: 3}
+  sleepWallDestroySmokeOrigin: {fileID: 0}
+  sleepWallDestroySmokeScale: 5
+  sleepWallDestroySmokeLifetime: 14
   startWithPlayerDetectionEnabled: 0
   showCombatGizmosInEditor: 1
   _CurrentHealth: 0
@@ -292,6 +297,8 @@ MonoBehaviour:
   _IsPetrified:
     _value: 0
   _IsSleeping:
+    _value: 0
+  _ArenaBarriersActive:
     _value: 0
 --- !u!114 &2134591271846439777
 MonoBehaviour:
@@ -460,6 +467,11 @@ MonoBehaviour:
   beamRaycastStartOffset: 0.2
   burnFollowSmoothTime: 0.14
   burnRotationSmoothTime: 0.12
+  idleBreathingEnabled: 1
+  idleBreathingEmissionColor: {r: 0.38039216, g: 1, b: 1, a: 1}
+  idleBreathingMinIntensity: 0.3
+  idleBreathingMaxIntensity: 1
+  idleBreathingCyclesPerSecond: 0.2
   wakeLightEmissionColor: {r: 1, g: 0.82, b: 0.35, a: 1}
   maxWakeLightEmission: 12.21
   wakeLightEmissionCurve:
