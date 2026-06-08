@@ -1,4 +1,5 @@
 using DG.Tweening;
+using _Root.Scripts.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -232,8 +233,7 @@ namespace _Root.Scripts.Finale
             _continuedText.raycastTarget = false;
             _continuedText.enableWordWrapping = false;
 
-            if (TMP_Settings.defaultFontAsset != null)
-                _continuedText.font = TMP_Settings.defaultFontAsset;
+            GameplayUiFonts.ApplyTo(_continuedText);
 
             textGo.SetActive(false);
         }

@@ -249,7 +249,7 @@ namespace _Root.Scripts.UI
             _lastHintUiScale = scale;
             _hintStyle = new GUIStyle(GUI.skin.label)
             {
-                font = GetFont(),
+                font = GameplayUiFonts.LegacyGui,
                 fontSize = Mathf.RoundToInt(comboCalloutFontSize * scale),
                 alignment = TextAnchor.MiddleCenter,
                 fontStyle = FontStyle.Bold,
@@ -260,15 +260,6 @@ namespace _Root.Scripts.UI
         private static float GetUiScale()
         {
             return Mathf.Clamp(Screen.height / 1080f, 1f, 1.85f);
-        }
-
-        private static Font GetFont()
-        {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font != null)
-                return font;
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            return font != null ? font : Font.CreateDynamicFontFromOSFont("Arial", 16);
         }
     }
 }

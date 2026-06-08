@@ -21,7 +21,7 @@ namespace _Root.Scripts.Editor
         private const string TankPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Tank.prefab";
         private const string SupportPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Shaman.prefab";
         private const string DuelistPlayerPrefabPath = "Assets/_Root/Prefabs/Player/Player_Duelist.prefab";
-        private const string DefaultTmpFontPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF.asset";
+        private const string DefaultTmpFontPath = "Assets/_Root/UI/Font/Norse-KaWl SDF.asset";
 
         [InitializeOnLoadMethod]
         private static void EnsurePrefabsExistOnLoad()

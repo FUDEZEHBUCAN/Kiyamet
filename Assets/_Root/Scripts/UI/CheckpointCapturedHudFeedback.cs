@@ -19,14 +19,13 @@ namespace _Root.Scripts.UI
         [SerializeField] private float fadeInDuration = 0.22f;
         [SerializeField] private float fadeOutDuration = 0.45f;
         [SerializeField] private float bottomMargin = 200f;
-        [SerializeField] private float rightMargin = 28f;
-        [SerializeField] private float labelWidth = 240f;
-        [SerializeField] private float labelHeight = 36f;
-        [SerializeField] private int fontSize = 22;
+        [SerializeField] private float rightMargin = 12f;
+        [SerializeField] private float labelHeight = 72f;
+        [SerializeField] private int fontSize = 48;
         [SerializeField] private float spinSpeedDegrees = 220f;
         [SerializeField] private float orbitSpeedDegrees = -140f;
-        [SerializeField] private float iconSize = 44f;
-        [SerializeField] private float iconTextGap = 10f;
+        [SerializeField] private float iconSize = 72f;
+        [SerializeField] private float iconTextGap = 16f;
 
         private int _lastNotifySequence = -1;
         private float _displayTimeLeft;
@@ -84,33 +83,34 @@ namespace _Root.Scripts.UI
             var uiScale = GetUiScale();
             var iconPx = iconSize * uiScale;
             var gap = iconTextGap * uiScale;
-            var textW = labelWidth * uiScale;
             var textH = labelHeight * uiScale;
-            var totalW = iconPx + gap + textW;
-            var totalH = Mathf.Max(iconPx, textH);
-            var x = Screen.width - totalW - rightMargin * uiScale;
-            var y = Screen.height - totalH - bottomMargin * uiScale;
-
             var alpha = GetCurrentAlpha();
             var popScale = GetPopScale();
 
+            var textStyle = new GUIStyle(_labelStyle)
+            {
+                alignment = TextAnchor.MiddleRight,
+                normal = { textColor = new Color(0.75f, 1f, 0.82f, alpha) }
+            };
+
+            var textContent = new GUIContent(CheckpointText);
+            var measuredText = textStyle.CalcSize(textContent);
+            var textW = Mathf.Max(measuredText.x + 8f * uiScale, 80f * uiScale);
+            var totalH = Mathf.Max(iconPx, textH, measuredText.y);
+            var rightEdge = Screen.width - rightMargin * uiScale;
+            var y = Screen.height - totalH - bottomMargin * uiScale;
             var centerY = y + totalH * 0.5f;
-            var iconCenter = new Vector2(x + iconPx * 0.5f, centerY);
-            var textRect = new Rect(x + iconPx + gap, centerY - textH * 0.5f, textW, textH);
+
+            var textRect = new Rect(rightEdge - textW, centerY - textH * 0.5f, textW, textH);
+            var iconCenter = new Vector2(rightEdge - textW - gap - iconPx * 0.5f, centerY);
 
             var prevMatrix = GUI.matrix;
-            var popPivot = new Vector2(x + totalW, centerY);
+            var popPivot = new Vector2(rightEdge, centerY);
             GUI.matrix = Matrix4x4.TRS(popPivot, Quaternion.identity, Vector3.one * popScale)
                 * Matrix4x4.TRS(-popPivot, Quaternion.identity, Vector3.one);
 
             DrawSpinningOrbit(iconCenter, iconPx, alpha);
             DrawSpinningCenter(iconCenter, iconPx, alpha);
-
-            var textStyle = new GUIStyle(_labelStyle)
-            {
-                alignment = TextAnchor.MiddleLeft,
-                normal = { textColor = new Color(0.75f, 1f, 0.82f, alpha) }
-            };
             GUI.Label(textRect, CheckpointText, textStyle);
 
             GUI.matrix = prevMatrix;
@@ -192,7 +192,7 @@ namespace _Root.Scripts.UI
                 return;
 
             _lastUiScale = scale;
-            var font = GetFont();
+            var font = GameplayUiFonts.LegacyGui;
             var scaledFont = Mathf.RoundToInt(fontSize * scale);
 
             _labelStyle = new GUIStyle(GUI.skin.label)
@@ -200,7 +200,8 @@ namespace _Root.Scripts.UI
                 font = font,
                 fontSize = scaledFont,
                 fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleLeft
+                alignment = TextAnchor.MiddleLeft,
+                clipping = TextClipping.Overflow
             };
 
             _iconStyle = new GUIStyle(GUI.skin.label)
@@ -222,15 +223,6 @@ namespace _Root.Scripts.UI
         private static float GetUiScale()
         {
             return Mathf.Clamp(Screen.height / 1080f, 1f, 1.85f);
-        }
-
-        private static Font GetFont()
-        {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font != null)
-                return font;
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            return font != null ? font : Font.CreateDynamicFontFromOSFont("Arial", 16);
         }
     }
 }

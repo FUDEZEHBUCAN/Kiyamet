@@ -154,8 +154,7 @@ namespace _Root.Scripts.UI
                 return;
 
             _lastUiScale = scale;
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
+            var font = GameplayUiFonts.LegacyGui;
 
             _labelStyle = new GUIStyle(GUI.skin.label)
             {

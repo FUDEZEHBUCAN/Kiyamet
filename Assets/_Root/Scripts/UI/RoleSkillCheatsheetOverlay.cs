@@ -156,7 +156,7 @@ namespace _Root.Scripts.UI
                 return;
 
             _lastUiScale = scale;
-            var font = GetFont();
+            var font = GameplayUiFonts.LegacyGui;
 
             _boxStyle = new GUIStyle(GUI.skin.box)
             {
@@ -241,16 +241,6 @@ namespace _Root.Scripts.UI
                 clipping = TextClipping.Overflow,
                 normal = { textColor = new Color(0.82f, 0.86f, 0.9f, 0.72f) }
             };
-        }
-
-        private static Font GetFont()
-        {
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (font != null)
-                return font;
-
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-            return font != null ? font : Font.CreateDynamicFontFromOSFont("Arial", 16);
         }
 
         private static Texture2D MakeTintedTexture(Color color)

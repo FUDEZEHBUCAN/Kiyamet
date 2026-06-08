@@ -1,4 +1,5 @@
 using Fusion;
+using _Root.Scripts.UI;
 using UnityEngine;
 
 namespace _Root.Scripts.Network
@@ -29,6 +30,7 @@ namespace _Root.Scripts.Network
             {
                 _style = new GUIStyle(GUI.skin.label)
                 {
+                    font = GameplayUiFonts.LegacyGui,
                     fontSize = 20,
                     fontStyle = FontStyle.Bold
                 };

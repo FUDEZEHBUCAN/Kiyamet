@@ -86,12 +86,9 @@ namespace _Root.Scripts.UI
                 return;
 
             _lastUiScale = scale;
-            var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf")
-                ?? Resources.GetBuiltinResource<Font>("Arial.ttf");
-
             _interactStyle = new GUIStyle(GUI.skin.label)
             {
-                font = font,
+                font = GameplayUiFonts.LegacyGui,
                 fontSize = Mathf.RoundToInt(20f * scale),
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter,
