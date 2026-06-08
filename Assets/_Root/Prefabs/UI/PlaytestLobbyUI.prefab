@@ -3648,6 +3648,15 @@ MonoBehaviour:
   leaveLobbyButton: {fileID: 2576659389351928040}
   hostSection: {fileID: 6861438256540702712}
   clientWaitSection: {fileID: 7626116443307526082}
+  buttonClickClips:
+  - {fileID: 8300000, guid: ffb159a21c8a04135a5616979c828fab, type: 3}
+  buttonClickVolume: 0.85
+  lockRoleClickClips:
+  - {fileID: 8300000, guid: 80e397195ea2940b69ee7bdbded856a5, type: 3}
+  lockRoleClickVolume: 0.9
+  startGameClickClips:
+  - {fileID: 8300000, guid: 52320e590bf774734a288886eba557ba, type: 3}
+  startGameClickVolume: 1
 --- !u!223 &2983265564500952146
 Canvas:
   m_ObjectHideFlags: 0

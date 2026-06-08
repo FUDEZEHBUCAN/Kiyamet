@@ -29,9 +29,11 @@ namespace _Root.Scripts.UI
 
         public static IReadOnlyList<RoleSkillCheatsheetEntry> Get(PlayerRoleType role)
         {
-            var list = new List<RoleSkillCheatsheetEntry>(6)
+            var list = new List<RoleSkillCheatsheetEntry>(7)
             {
                 new("Melee", "LMB", "Close-range swing; damages enemies in front of you."),
+                new("Dodge", "Alt",
+                    "Quick roll in your movement direction (or backward if standing still) to evade attacks."),
             };
 
             if (role == PlayerRoleType.Support)
@@ -45,8 +47,6 @@ namespace _Root.Scripts.UI
             }
             else if (role == PlayerRoleType.Duelist)
             {
-                list.Add(new("Block", "RMB",
-                    "Hold to block and absorb the incoming damage."));
                 list.Add(new("Shadow Dash", "E",
                     "Quick dash that slices enemies in your path for medium damage; 25% critical hit chance."));
                 list.Add(new("Ultimate — Mirage Step", "X",

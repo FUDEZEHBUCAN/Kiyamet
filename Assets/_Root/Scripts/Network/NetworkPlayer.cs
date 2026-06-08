@@ -63,7 +63,9 @@ namespace _Root.Scripts.Network
         [Networked] private float SupportUltimateInvulnTotalSeconds { get; set; }
         [Networked] public float SupportUltimateFloatOffset { get; private set; }
         [Networked] private float SupportUltimateAnchorY { get; set; }
+        [Networked] private float UltimateStartTime { get; set; }
         [Networked] private float UltimateEndTime { get; set; }
+        [Networked] private float UltimateActiveDuration { get; set; }
         [Networked] private NetworkBool IsDead { get; set; }
         [Networked] public NetworkBool IsUltimateActive { get; set; }
         [Networked] public int UltimateKillCount { get; set; }
@@ -302,12 +304,25 @@ namespace _Root.Scripts.Network
 
         public float GetUltimateActiveRemainingNormalized()
         {
-            if (!IsUltimateActive)
+            if (!IsUltimateActive || Runner == null)
                 return 0f;
 
-            float duration = UltimateDurationSeconds;
-            float remaining = Mathf.Max(0f, UltimateEndTime - Runner.SimulationTime);
-            return duration > 0.0001f ? Mathf.Clamp01(remaining / duration) : 0f;
+            if (UltimateTimer.ExpiredOrNotRunning(Runner))
+                return 0f;
+
+            float remaining = UltimateTimer.RemainingTime(Runner) ?? 0f;
+            if (remaining <= 0.001f)
+                return 0f;
+
+            float total = UltimateActiveDuration;
+            if (total <= 0.001f)
+            {
+                total = UltimateEndTime - UltimateStartTime;
+                if (total <= 0.001f)
+                    return 0f;
+            }
+
+            return Mathf.Clamp01(remaining / total);
         }
         
         public override void Render()
@@ -808,6 +823,8 @@ namespace _Root.Scripts.Network
 
             IsUltimateActive = true;
             UltimateKillCount = 0;
+            UltimateStartTime = Runner.SimulationTime;
+            UltimateActiveDuration = duration;
             UltimateTimer = TickTimer.CreateFromSeconds(Runner, duration);
             UltimateEndTime = Runner.SimulationTime + duration;
         }
@@ -845,6 +862,8 @@ namespace _Root.Scripts.Network
 
             IsUltimateActive = true;
             UltimateKillCount = 0;
+            UltimateStartTime = Runner.SimulationTime;
+            UltimateActiveDuration = duration;
             UltimateTimer = TickTimer.CreateFromSeconds(Runner, duration);
             UltimateEndTime = Runner.SimulationTime + duration;
 
@@ -875,6 +894,8 @@ namespace _Root.Scripts.Network
         {
             IsUltimateActive = true;
             UltimateKillCount = 0;
+            UltimateStartTime = Runner.SimulationTime;
+            UltimateActiveDuration = ultimateDuration;
             UltimateTimer = TickTimer.CreateFromSeconds(Runner, ultimateDuration);
             UltimateEndTime = Runner.SimulationTime + ultimateDuration;
             return true;
@@ -892,7 +913,9 @@ namespace _Root.Scripts.Network
         {
             IsUltimateActive = false;
             UltimateTimer = TickTimer.None;
+            UltimateStartTime = 0f;
             UltimateEndTime = 0f;
+            UltimateActiveDuration = 0f;
             SupportUltimateInvulnTimer = TickTimer.None;
             SupportUltimateInvulnTotalSeconds = 0f;
         }

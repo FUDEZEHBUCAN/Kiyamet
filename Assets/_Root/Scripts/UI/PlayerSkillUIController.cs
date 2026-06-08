@@ -75,6 +75,8 @@ namespace _Root.Scripts.UI
             ApplySafeDefaults(signature);
             ApplySafeDefaults(basic);
 
+            DisableLegacyCooldownListeners();
+
             ApplyBarDefaults(healthBarImage);
             ApplyBarDefaults(manaBarImage);
 
@@ -94,9 +96,9 @@ namespace _Root.Scripts.UI
                 _meleeController = null;
                 _inputController = null;
                 StopUltimatePulse();
-                SetFill(ultimate, 1f);
-                SetFill(signature, 1f);
-                SetFill(basic, 1f);
+                ForceUltimateOverlayEmpty();
+                ApplyCooldownOverlayFill(signature, 0f);
+                ApplyCooldownOverlayFill(basic, 0f);
                 return;
             }
 
@@ -106,10 +108,19 @@ namespace _Root.Scripts.UI
             }
 
             TryApplyRoleIcons();
-            UpdateUltimateUI(_player);
-            RefreshDashAndMeleeCooldownFills();
-
             UpdateHealthManaBars(_player);
+        }
+
+        private void LateUpdate()
+        {
+            if (_player == null)
+                return;
+
+            if (onlyForLocalPlayer && !(_player.Object != null && _player.Object.HasInputAuthority))
+                return;
+
+            RefreshUltimateOverlay(_player);
+            RefreshDashAndMeleeCooldownFills();
         }
 
         private void OnDestroy()
@@ -216,60 +227,113 @@ namespace _Root.Scripts.UI
         {
             if (_player == null || _player.Object == null || !_player.Object.IsValid || _player.Object.Runner == null)
             {
-                SetFill(signature, 0f);
-                SetFill(basic, 0f);
+                ApplyCooldownOverlayFill(signature, 0f);
+                ApplyCooldownOverlayFill(basic, 0f);
                 return;
             }
 
             float dashCd = _characterController != null ? _characterController.GetDashCooldownNormalized() : 0f;
             float meleeCd = _meleeController != null ? _meleeController.GetMeleeCooldownNormalized() : 0f;
 
-            SetFill(signature, Mathf.Clamp01(dashCd));
-            
+            ApplyCooldownOverlayFill(signature, Mathf.Clamp01(dashCd));
+
             bool isBlockingNow = (_player != null && _player.IsBlocking)
                 || (_player != null && _player.Object != null && _player.Object.HasInputAuthority && _inputController != null && _inputController.IsBlockHeld);
-            
+
             if (isBlockingNow)
-            {
-                SetFillRaw(basic, 0f);
-            }
+                ApplyCooldownOverlayFill(basic, 0f, respectInvertFill: false);
             else
-            {
-                SetFill(basic, Mathf.Clamp01(meleeCd));
-            }
+                ApplyCooldownOverlayFill(basic, Mathf.Clamp01(meleeCd));
         }
 
-        private void UpdateUltimateUI(NetworkPlayer player)
+        public void RefreshUltimateOverlay(NetworkPlayer player)
         {
-            // Ultimate UI kuralı:
-            // - Aktifken: remainingNormalized (1 -> 0) göster (cooldown gibi akar)
-            // - Hazır değilken: chargeNormalized (0 -> 1) birikimini cooldown mask'i olarak göster (mask terslenebilir)
-            // - Hazırken: 0 (mask kapalı)
-            float fill;
-
-            if (player.IsUltimateActive)
+            if (player == null)
             {
-                fill = player.GetUltimateActiveRemainingNormalized();
-            }
-            else if (!player.IsUltimateReady)
-            {
-                // Charge ilerledikçe mask azalsın istiyorsak invertFill'i açın.
-                fill = 1f - player.GetUltimateChargeNormalized();
-            }
-            else
-            {
-                fill = 0f;
+                ForceUltimateOverlayEmpty();
+                StopUltimatePulse();
+                return;
             }
 
-            SetFill(ultimate, fill);
+            _player = player;
+            CachePlayerControllersIfNeeded();
+
             UpdateUltimatePulse(player);
+            ApplyUltimateChargeOverlay(player);
+        }
+
+        /// <summary>
+        /// Kill charge: overlay clockwise kapalı; fill 1→0 (kill arttıkça boşalır, cooldown ile aynı mantık).
+        /// Hazır veya aktifken overlay kapalı kalır.
+        /// </summary>
+        private void ApplyUltimateChargeOverlay(NetworkPlayer player)
+        {
+            if (player == null || player.IsUltimateActive || player.IsUltimateReady)
+            {
+                ForceUltimateOverlayEmpty();
+                return;
+            }
+
+            if (ultimate.cooldownFillImage != null)
+                ultimate.cooldownFillImage.fillClockwise = false;
+
+            ApplyCooldownOverlayFill(ultimate, 1f - player.GetUltimateChargeNormalized());
+        }
+
+        private void ForceUltimateOverlayEmpty()
+        {
+            if (ultimate.cooldownFillImage == null)
+                return;
+
+            ultimate.cooldownFillImage.fillAmount = 0f;
+            ultimate.cooldownFillImage.enabled = false;
+        }
+
+        private static void ApplyCooldownOverlayFill(SkillSlotUI slot, float value01, bool respectInvertFill = true)
+        {
+            if (slot.cooldownFillImage == null)
+                return;
+
+            float v = Mathf.Clamp01(value01);
+            if (respectInvertFill && slot.invertFill)
+                v = 1f - v;
+
+            slot.cooldownFillImage.fillAmount = v;
+            slot.cooldownFillImage.enabled = v > 0.001f;
+        }
+
+        private void DisableLegacyCooldownListeners()
+        {
+            DisableLegacyCooldownListener(ultimate.cooldownFillImage);
+            DisableLegacyCooldownListener(signature.cooldownFillImage);
+            DisableLegacyCooldownListener(basic.cooldownFillImage);
+        }
+
+        private static void DisableLegacyCooldownListener(Image overlayImage)
+        {
+            if (overlayImage == null)
+                return;
+
+            var listener = overlayImage.GetComponent<cd_status_listener>();
+            if (listener != null)
+                listener.enabled = false;
         }
 
         private static void ApplySafeDefaults(SkillSlotUI slot)
         {
+            if (slot.iconImage != null)
+            {
+                slot.iconImage.color = Color.white;
+            }
+
             if (slot.cooldownFillImage != null)
             {
                 slot.cooldownFillImage.type = Image.Type.Filled;
+                slot.cooldownFillImage.fillMethod = Image.FillMethod.Radial360;
+                slot.cooldownFillImage.fillOrigin = (int)Image.Origin360.Top;
+                slot.cooldownFillImage.fillClockwise = false;
+                slot.cooldownFillImage.fillAmount = 0f;
+                slot.cooldownFillImage.enabled = false;
             }
         }
 
@@ -359,28 +423,6 @@ namespace _Root.Scripts.UI
                 .SetEase(Ease.OutQuad);
         }
 
-        private static void SetFill(SkillSlotUI slot, float value01)
-        {
-            if (slot.cooldownFillImage == null)
-                return;
-
-            float v = Mathf.Clamp01(value01);
-            if (slot.invertFill)
-            {
-                v = 1f - v;
-            }
-
-            slot.cooldownFillImage.fillAmount = v;
-        }
-        
-        private static void SetFillRaw(SkillSlotUI slot, float value01)
-        {
-            if (slot.cooldownFillImage == null)
-                return;
-            
-            slot.cooldownFillImage.fillAmount = Mathf.Clamp01(value01);
-        }
-        
         private void UpdateUltimatePulse(NetworkPlayer player)
         {
             bool shouldPulse = player != null && player.IsUltimateReady && !player.IsUltimateActive;

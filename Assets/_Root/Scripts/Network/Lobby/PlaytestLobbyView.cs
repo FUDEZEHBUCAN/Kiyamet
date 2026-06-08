@@ -42,7 +42,16 @@ namespace _Root.Scripts.Network.Lobby
         [SerializeField] private GameObject hostSection;
         [SerializeField] private GameObject clientWaitSection;
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip[] buttonClickClips;
+        [SerializeField] [Range(0f, 1f)] private float buttonClickVolume = 0.85f;
+        [SerializeField] private AudioClip[] lockRoleClickClips;
+        [SerializeField] [Range(0f, 1f)] private float lockRoleClickVolume = 0.9f;
+        [SerializeField] private AudioClip[] startGameClickClips;
+        [SerializeField] [Range(0f, 1f)] private float startGameClickVolume = 1f;
+
         private bool _initialized;
+        private AudioSource _uiAudioSource;
 
         public string SessionName => sessionField != null ? sessionField.text : string.Empty;
 
@@ -64,13 +73,13 @@ namespace _Root.Scripts.Network.Lobby
 
             WireButton(connectButton, () => ConnectClicked?.Invoke());
             WireButton(quitGameButton, () => QuitGameClicked?.Invoke());
-            WireButton(lockRoleButton, () => LockRoleClicked?.Invoke());
+            WireButton(lockRoleButton, () => LockRoleClicked?.Invoke(), lockRoleClickClips, lockRoleClickVolume);
             WireButton(leaveLobbyButton, () => LeaveLobbyClicked?.Invoke());
 
             if (hostSection != null)
             {
                 var startButton = hostSection.GetComponentInChildren<Button>(true);
-                WireButton(startButton, () => StartGameClicked?.Invoke());
+                WireButton(startButton, () => StartGameClicked?.Invoke(), startGameClickClips, startGameClickVolume);
             }
 
             WireRoleButton(tankRoleButton);
@@ -83,13 +92,17 @@ namespace _Root.Scripts.Network.Lobby
             Initialize();
         }
 
-        private static void WireButton(Button button, Action onClick)
+        private void WireButton(Button button, Action onClick, AudioClip[] clips = null, float volume = -1f)
         {
             if (button == null || onClick == null)
                 return;
 
             button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => onClick());
+            button.onClick.AddListener(() =>
+            {
+                PlayUiSound(clips ?? buttonClickClips, volume >= 0f ? volume : buttonClickVolume);
+                onClick();
+            });
         }
 
         private void WireRoleButton(PlaytestLobbyRoleButton roleButton)
@@ -105,9 +118,40 @@ namespace _Root.Scripts.Network.Lobby
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
             {
+                PlayUiSound(buttonClickClips, buttonClickVolume);
                 SetSelectedRole(capturedRole);
                 RoleSelected?.Invoke(capturedRole);
             });
+        }
+
+        private void EnsureUiAudioSource()
+        {
+            if (_uiAudioSource != null)
+                return;
+
+            _uiAudioSource = GetComponent<AudioSource>();
+            if (_uiAudioSource == null)
+                _uiAudioSource = gameObject.AddComponent<AudioSource>();
+
+            _uiAudioSource.playOnAwake = false;
+            _uiAudioSource.spatialBlend = 0f;
+        }
+
+        private void PlayUiSound(AudioClip[] clips, float volume)
+        {
+            if (clips == null || clips.Length == 0)
+                return;
+
+            EnsureUiAudioSource();
+
+            AudioClip clip = null;
+            for (int i = 0; i < 4 && clip == null; i++)
+                clip = clips[UnityEngine.Random.Range(0, clips.Length)];
+
+            if (clip == null)
+                return;
+
+            _uiAudioSource.PlayOneShot(clip, volume);
         }
 
         public void SetVisible(bool visible)
