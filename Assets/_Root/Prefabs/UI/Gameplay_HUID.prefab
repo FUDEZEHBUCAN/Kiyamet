@@ -3214,25 +3214,6 @@ MonoBehaviour:
   duelistUltimateIcon: {fileID: 21300000, guid: b0b9cf843bfa27a4f832a83566fe1ff5, type: 3}
   duelistSignatureIcon: {fileID: 21300000, guid: 172874a1f8b8cd54e96323994aeb4bf0, type: 3}
   duelistBasicIcon: {fileID: 21300000, guid: 083c8d98b8e86b44db9e3d3f020992c8, type: 3}
---- !u!114 &8745123698745123698
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6449105282416596975}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b7e4c2a19f3d4e8ab6d1059274c8e1fd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  itemSlotIcons:
-  - {fileID: 6611954366980294461}
-  - {fileID: 1151557489594525935}
-  - {fileID: 6038427671120267868}
-  - {fileID: 8779145768085321623}
-  keySprite: {fileID: 21300000, guid: d246886a9ae0d475dafdb15a54e221e6, type: 3}
-  onlyForLocalPlayer: 1
 --- !u!114 &8085542975210628646
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3270,6 +3251,25 @@ MonoBehaviour:
   comboCalloutFadeOutDuration: 0.4
   comboCalloutPopFromScale: 0.45
   comboCalloutHoldPulseScale: 1.5
+--- !u!114 &8745123698745123698
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6449105282416596975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e4c2a19f3d4e8ab6d1059274c8e1fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemSlotIcons:
+  - {fileID: 6611954366980294461}
+  - {fileID: 1151557489594525935}
+  - {fileID: 6038427671120267868}
+  - {fileID: 8779145768085321623}
+  keySprite: {fileID: 21300000, guid: d246886a9ae0d475dafdb15a54e221e6, type: 3}
+  onlyForLocalPlayer: 1
 --- !u!1 &6499205459904761647
 GameObject:
   m_ObjectHideFlags: 0

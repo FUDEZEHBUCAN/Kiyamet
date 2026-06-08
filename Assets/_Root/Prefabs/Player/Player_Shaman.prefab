@@ -1054,6 +1054,8 @@ MonoBehaviour:
   animator: {fileID: 3689131585055156661}
   locomotionSmoothTime: 0.1
   directionalMaxSpeed: 7
+  minLocomotionPlaybackMult: 0.85
+  maxLocomotionPlaybackMult: 2.25
 --- !u!95 &3689131585055156661 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 6049409323968187293, guid: 88ab7b350e6166b44b369060b5039817, type: 3}
