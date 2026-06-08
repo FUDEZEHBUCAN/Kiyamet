@@ -70,6 +70,10 @@ namespace _Root.Scripts.Boss
         [SerializeField] private float wakeEffectLifetime = 4f;
         [Tooltip("Uyanışta yok edilecek, boss'a yapışık uyku duvarı/kafes objesi.")]
         [SerializeField] private GameObject attachedSleepWall;
+        [SerializeField] private GameObject sleepWallDestroySmokePrefab;
+        [SerializeField] private Transform sleepWallDestroySmokeOrigin;
+        [SerializeField] private float sleepWallDestroySmokeScale = 5f;
+        [SerializeField] private float sleepWallDestroySmokeLifetime = 14f;
 
         [Header("Debug")]
         [SerializeField] private bool startWithPlayerDetectionEnabled = true;
@@ -652,8 +656,55 @@ namespace _Root.Scripts.Boss
             if (attachedSleepWall == null)
                 return;
 
+            SpawnSleepWallDestroySmoke();
             Destroy(attachedSleepWall);
             attachedSleepWall = null;
+        }
+
+        private void SpawnSleepWallDestroySmoke()
+        {
+            if (sleepWallDestroySmokePrefab == null)
+                return;
+
+            var position = ResolveSleepWallDestroySmokePosition();
+            var rotation = ResolveSleepWallDestroySmokeRotation();
+            var effect = Instantiate(sleepWallDestroySmokePrefab, position, rotation);
+
+            if (!Mathf.Approximately(sleepWallDestroySmokeScale, 1f))
+                effect.transform.localScale = Vector3.one * sleepWallDestroySmokeScale;
+
+            PlayParticleSystems(effect, true);
+            Destroy(effect, sleepWallDestroySmokeLifetime);
+        }
+
+        private Vector3 ResolveSleepWallDestroySmokePosition()
+        {
+            if (sleepWallDestroySmokeOrigin != null)
+                return sleepWallDestroySmokeOrigin.position;
+
+            if (attachedSleepWall == null)
+                return transform.position;
+
+            var renderers = attachedSleepWall.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+                return attachedSleepWall.transform.position;
+
+            var bounds = renderers[0].bounds;
+            for (var i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+
+            return bounds.center;
+        }
+
+        private Quaternion ResolveSleepWallDestroySmokeRotation()
+        {
+            if (sleepWallDestroySmokeOrigin != null)
+                return sleepWallDestroySmokeOrigin.rotation;
+
+            if (attachedSleepWall != null)
+                return attachedSleepWall.transform.rotation;
+
+            return Quaternion.identity;
         }
 
         private void TryCompleteWakeSequence()
@@ -1899,15 +1950,21 @@ namespace _Root.Scripts.Boss
             Destroy(effect, jumpLandingEffectLifetime);
         }
 
-        private static void PlayParticleSystems(GameObject effectRoot)
+        private static void PlayParticleSystems(GameObject effectRoot, bool forceRestart = false)
         {
             if (effectRoot == null)
                 return;
 
             foreach (var ps in effectRoot.GetComponentsInChildren<ParticleSystem>(true))
             {
-                if (ps != null && !ps.isPlaying)
-                    ps.Play();
+                if (ps == null)
+                    continue;
+
+                if (forceRestart)
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+                if (!ps.isPlaying)
+                    ps.Play(true);
             }
         }
 

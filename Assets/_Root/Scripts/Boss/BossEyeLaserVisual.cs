@@ -45,6 +45,13 @@ namespace _Root.Scripts.Boss
         [SerializeField] private float burnFollowSmoothTime = 0.14f;
         [SerializeField] private float burnRotationSmoothTime = 0.12f;
 
+        [Header("Idle Breathing Emission")]
+        [SerializeField] private bool idleBreathingEnabled = true;
+        [SerializeField] private Color idleBreathingEmissionColor = new Color(1f, 0.42f, 0.1f, 1f);
+        [SerializeField] private float idleBreathingMinIntensity = 0.3f;
+        [SerializeField] private float idleBreathingMaxIntensity = 1f;
+        [SerializeField] private float idleBreathingCyclesPerSecond = 0.38f;
+
         [Header("Wake Light")]
         [SerializeField] private Color wakeLightEmissionColor = new Color(1f, 0.82f, 0.35f, 1f);
         [SerializeField] private float maxWakeLightEmission = 6f;
@@ -53,6 +60,8 @@ namespace _Root.Scripts.Boss
         private MaterialPropertyBlock _propertyBlock;
         private MaterialPropertyBlock _beamPropertyBlock;
         private Material _beamMaterialInstance;
+        private float _wakeLightNormalized;
+        private float _breathingPhaseOffset;
         private BossEyeLaserPhase _phase;
         private float _chargeDuration = 1f;
         private float _beamLength = 14f;
@@ -106,7 +115,13 @@ namespace _Root.Scripts.Boss
             EnsureBeamLineRenderer();
             _propertyBlock = new MaterialPropertyBlock();
             _beamPropertyBlock = new MaterialPropertyBlock();
+            _breathingPhaseOffset = Random.Range(0f, Mathf.PI * 2f);
             StopAll();
+        }
+
+        private void LateUpdate()
+        {
+            RefreshIdleLaserPointEmission();
         }
 
         private void OnDestroy()
@@ -493,20 +508,35 @@ namespace _Root.Scripts.Boss
             if (_phase != BossEyeLaserPhase.None)
                 return;
 
-            normalizedExposure = Mathf.Clamp01(normalizedExposure);
-            if (normalizedExposure <= 0.0001f)
+            _wakeLightNormalized = Mathf.Clamp01(normalizedExposure);
+        }
+
+        private void RefreshIdleLaserPointEmission()
+        {
+            if (_phase != BossEyeLaserPhase.None)
+                return;
+
+            if (_wakeLightNormalized > 0.0001f)
             {
-                SetChargeEmission(0f);
+                float curve = wakeLightEmissionCurve != null
+                    ? wakeLightEmissionCurve.Evaluate(_wakeLightNormalized)
+                    : _wakeLightNormalized;
+                ApplyLaserPointEmission(wakeLightEmissionColor, maxWakeLightEmission * curve);
                 return;
             }
 
-            float curve = wakeLightEmissionCurve != null
-                ? wakeLightEmissionCurve.Evaluate(normalizedExposure)
-                : normalizedExposure;
-            SetWakeLightEmission(maxWakeLightEmission * curve);
+            if (!idleBreathingEnabled)
+            {
+                ApplyLaserPointEmission(chargeEmissionColor, 0f);
+                return;
+            }
+
+            float breathT = Mathf.Sin((Time.time + _breathingPhaseOffset) * idleBreathingCyclesPerSecond * Mathf.PI * 2f) * 0.5f + 0.5f;
+            float intensity = Mathf.Lerp(idleBreathingMinIntensity, idleBreathingMaxIntensity, breathT);
+            ApplyLaserPointEmission(idleBreathingEmissionColor, intensity);
         }
 
-        private void SetWakeLightEmission(float intensity)
+        private void ApplyLaserPointEmission(Color color, float intensity)
         {
             if (warningRenderer == null)
                 return;
@@ -514,19 +544,18 @@ namespace _Root.Scripts.Boss
             warningRenderer.GetPropertyBlock(_propertyBlock);
             _propertyBlock.SetColor(
                 EmissionColorId,
-                intensity > 0.001f ? wakeLightEmissionColor * intensity : Color.black);
+                intensity > 0.001f ? color * intensity : Color.black);
             warningRenderer.SetPropertyBlock(_propertyBlock);
+        }
+
+        private void SetWakeLightEmission(float intensity)
+        {
+            ApplyLaserPointEmission(wakeLightEmissionColor, intensity);
         }
 
         private void SetChargeEmission(float intensity)
         {
-            if (warningRenderer == null)
-                return;
-
-            warningRenderer.GetPropertyBlock(_propertyBlock);
-            _propertyBlock.SetColor(EmissionColorId,
-                intensity > 0.001f ? chargeEmissionColor * intensity : Color.black);
-            warningRenderer.SetPropertyBlock(_propertyBlock);
+            ApplyLaserPointEmission(chargeEmissionColor, intensity);
         }
 
         private void SetBeamLineEmission(float intensity)
