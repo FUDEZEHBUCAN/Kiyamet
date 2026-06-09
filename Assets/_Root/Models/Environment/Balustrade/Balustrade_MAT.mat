@@ -7,16 +7,17 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: CastleWall_MAT
-  m_Shader: {fileID: 4800000, guid: 80412fe88398cd147be3aacebe2c3fe3, type: 3}
+  m_Name: Balustrade_MAT
+  m_Shader: {fileID: 46, guid: 0000000000000000f000000000000000, type: 0}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _GLOSSYREFLECTIONS_OFF
+  - _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+  - _SPECULARHIGHLIGHTS_OFF
+  m_InvalidKeywords:
   - TCP2_DISABLE_WRAPPED_LIGHT
-  - TCP2_STYLIZED_FRESNEL
   - TCP2_UV_NORMALS_FULL
-  - _NORMALMAP
-  m_InvalidKeywords: []
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -28,7 +29,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 5ca99570e04d21a47968d67d25241db6, type: 3}
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -48,7 +49,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 9be8dc3ed2ec7824b83b2034066da54e, type: 3}
+        m_Texture: {fileID: 2800000, guid: 80798f66d9d854447b9c03251da4e242, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -69,50 +70,58 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BumpScale: 4
-    - _Cutoff: 0.5
+    - _BumpScale: 1
+    - _Cutoff: 0.542
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
-    - _EnableOutline: 1
-    - _GlossMapScale: 1
+    - _DstBlendOutline: 2
+    - _EnableConstSizeOutline: 0
+    - _EnableOutline: 0
+    - _EnableTexturedOutline: 0
+    - _EnableZSmooth: 0
+    - _GlossMapScale: 0.486
     - _Glossiness: 0.5
-    - _GlossyReflections: 1
+    - _GlossyReflections: 0
     - _Metallic: 0
     - _Mode: 0
     - _NormalsSource: 0
     - _NormalsUVType: 0
     - _OcclusionStrength: 1
-    - _Offset1: 0
+    - _Offset1: 6.9
     - _Offset2: 0
     - _Outline: 1
     - _Parallax: 0.02
     - _RampSmooth: 0.2
-    - _RampSmoothAdd: 0.279
-    - _RampThreshold: 0.123
+    - _RampSmoothAdd: 0.75
+    - _RampThreshold: 0.5
     - _RimMax: 0.85
-    - _RimMin: 0.752
-    - _RimStrength: 0.09
-    - _SmoothnessTextureChannel: 0
+    - _RimMin: 0.6
+    - _RimStrength: 0.5
+    - _SmoothnessTextureChannel: 1
     - _SpecBlend: 1
     - _SpecSmooth: 1
-    - _SpecularHighlights: 1
+    - _SpecularHighlights: 0
     - _SrcBlend: 1
+    - _SrcBlendOutline: 10
+    - _StencilRef: 1
     - _TCP2_DISABLE_WRAPPED_LIGHT: 1
     - _TCP2_OUTLINE_CONST_SIZE: 0
     - _TCP2_OUTLINE_TEXTURED: 0
     - _TCP2_RAMPTEXT: 0
     - _TCP2_SPEC_TOON: 0
-    - _TCP2_STYLIZED_FRESNEL: 1
+    - _TCP2_STYLIZED_FRESNEL: 0
     - _TCP2_ZSMOOTH_ON: 0
     - _TexLod: 5
     - _UVSec: 0
-    - _ZSmooth: -0.5
+    - _ZSmooth: -0.17
     - _ZWrite: 1
+    - __dummy__: 0
+    - __outline_gui_dummy__: 0
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 0}
-    - _HColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HColor: {r: 0.785, g: 0.785, b: 0.785, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _RimColor: {r: 0.8, g: 0.8, b: 0.8, a: 0.6}
-    - _SColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SColor: {r: 0.19499996, g: 0.19499996, b: 0.19499996, a: 1}
   m_BuildTextureStacks: []
