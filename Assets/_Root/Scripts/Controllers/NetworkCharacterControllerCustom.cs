@@ -259,7 +259,10 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = _frozenDeathRotation;
     }
 
-    /// <summary>Boss vb. dış kaynaklı yatay savurma (state authority).</summary>
+    private const float MaxKnockbackUpwardVelocity = 3.5f;
+    private const float MaxKnockbackLift = 0.18f;
+
+    /// <summary>Boss vb. dış kaynaklı savurma (state authority). upwardForce yoksa yalnızca yatay.</summary>
     public void ApplyKnockback(Vector3 worldDirection, float force, float knockbackDuration, float upwardForce,
         float inputBlockDuration = 0f)
     {
@@ -275,9 +278,11 @@ namespace _Root.Scripts.Controllers {
       else
         worldDirection.Normalize();
 
-      float up = Mathf.Max(0f, upwardForce);
+      bool useVerticalPop = upwardForce > 0.001f;
+      float verticalVelocity = useVerticalPop ? ResolveKnockbackVerticalVelocity(upwardForce) : 0f;
+
       Vector3 knockbackVel = worldDirection * force;
-      knockbackVel.y = up;
+      knockbackVel.y = verticalVelocity;
 
       IsDashing = false;
       DashTimer = TickTimer.None;
@@ -293,14 +298,18 @@ namespace _Root.Scripts.Controllers {
       KnockbackTimer = TickTimer.CreateFromSeconds(Runner, Mathf.Max(0.05f, knockbackDuration));
       Velocity = knockbackVel;
 
-      // CharacterController yerdeyken dikey Move uygulanmaz — yerden kopar.
-      if (up > 0.001f)
+      if (useVerticalPop && verticalVelocity > 0.001f)
       {
         Grounded = false;
-        float lift = Mathf.Clamp(up * 0.06f, 0.1f, 1.5f);
-        _controller.Move(Vector3.up * lift);
+        _controller.Move(Vector3.up * ResolveKnockbackLift(verticalVelocity));
       }
     }
+
+    private static float ResolveKnockbackVerticalVelocity(float upwardForce) =>
+        Mathf.Clamp(Mathf.Max(0f, upwardForce) * 0.45f, 0f, MaxKnockbackUpwardVelocity);
+
+    private static float ResolveKnockbackLift(float verticalVelocity) =>
+        Mathf.Clamp(verticalVelocity * 0.03f, 0.03f, MaxKnockbackLift);
 
     public void ApplyInputBlock(float duration)
     {
@@ -833,21 +842,28 @@ namespace _Root.Scripts.Controllers {
       }
 
       var vel = KnockbackVelocity;
-      vel.y += gravity * Runner.DeltaTime;
+      bool horizontalOnly = Mathf.Abs(vel.y) <= 0.001f;
 
-      Vector3 delta = vel * Runner.DeltaTime;
-      _controller.Move(new Vector3(delta.x, 0f, delta.z));
-
-      bool applyVertical = delta.y > 0f || !_controller.isGrounded;
-      if (applyVertical)
-        _controller.Move(Vector3.up * delta.y);
-
-      if (_controller.isGrounded && vel.y < 0f)
+      if (horizontalOnly)
+      {
+        Vector3 delta = new Vector3(vel.x, 0f, vel.z) * Runner.DeltaTime;
+        _controller.Move(delta);
         vel.y = 0f;
+      }
+      else
+      {
+        vel.y += gravity * Runner.DeltaTime;
 
-      // Yükselirken ground snap yukarı kuvveti sıfırlar.
-      if (vel.y <= 0.05f)
-        ApplyGroundSnapToTransform();
+        Vector3 delta = vel * Runner.DeltaTime;
+        _controller.Move(new Vector3(delta.x, 0f, delta.z));
+
+        bool applyVertical = delta.y > 0f || !_controller.isGrounded;
+        if (applyVertical)
+          _controller.Move(Vector3.up * delta.y);
+
+        if (_controller.isGrounded && vel.y < 0f)
+          vel.y = 0f;
+      }
 
       KnockbackVelocity = vel;
       NetworkPosition = transform.position;
@@ -925,8 +941,29 @@ namespace _Root.Scripts.Controllers {
       Velocity = vel;
       KnockbackVelocity = Vector3.zero;
 
+      SnapDownToGroundAfterKnockback();
+
       if (_networkPlayer != null)
         _networkPlayer.OnKnockbackEndedWhileDead();
+    }
+
+    /// <summary>
+    /// Knockback sırasında penetration-resolve yukarı fırlatır; yalnızca inişte hafif aşağı snap.
+    /// </summary>
+    private void SnapDownToGroundAfterKnockback()
+    {
+      if (!TrySampleGroundHeight(transform.position, out float groundY))
+        return;
+
+      if (transform.position.y <= groundY + groundSnapSkin)
+        return;
+
+      _controller.enabled = false;
+      var snapped = transform.position;
+      snapped.y = groundY;
+      transform.position = snapped;
+      _controller.enabled = true;
+      NetworkPosition = snapped;
     }
 
     private void TickMirageReturnDodge()

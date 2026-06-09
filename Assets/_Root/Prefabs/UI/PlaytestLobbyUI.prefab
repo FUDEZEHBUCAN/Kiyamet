@@ -1710,6 +1710,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 1
   highlight: {fileID: 3842795290164300395}
+  background: {fileID: 0}
   frame: {fileID: 0}
   icon: {fileID: 0}
   label: {fileID: 0}
@@ -3259,6 +3260,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 2
   highlight: {fileID: 8900633782337407828}
+  background: {fileID: 0}
   frame: {fileID: 0}
   icon: {fileID: 0}
   label: {fileID: 0}
@@ -3650,13 +3652,13 @@ MonoBehaviour:
   clientWaitSection: {fileID: 7626116443307526082}
   buttonClickClips:
   - {fileID: 8300000, guid: ffb159a21c8a04135a5616979c828fab, type: 3}
-  buttonClickVolume: 0.85
+  buttonClickVolume: 0.2
   lockRoleClickClips:
   - {fileID: 8300000, guid: 80e397195ea2940b69ee7bdbded856a5, type: 3}
-  lockRoleClickVolume: 0.9
+  lockRoleClickVolume: 0.4
   startGameClickClips:
-  - {fileID: 8300000, guid: 52320e590bf774734a288886eba557ba, type: 3}
-  startGameClickVolume: 1
+  - {fileID: 8300000, guid: ffb159a21c8a04135a5616979c828fab, type: 3}
+  startGameClickVolume: 0.3
 --- !u!223 &2983265564500952146
 Canvas:
   m_ObjectHideFlags: 0
@@ -4585,6 +4587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 4
   highlight: {fileID: 2916078059538524247}
+  background: {fileID: 0}
   frame: {fileID: 0}
   icon: {fileID: 0}
   label: {fileID: 0}
@@ -4838,6 +4841,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 0
   highlight: {fileID: 257664799300437374}
+  background: {fileID: 0}
   frame: {fileID: 0}
   icon: {fileID: 0}
   label: {fileID: 0}

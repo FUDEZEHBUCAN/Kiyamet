@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using _Root.Scripts.DevTools;
 using _Root.Scripts.Network.Lobby;
 using UnityEngine;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
@@ -15,11 +16,13 @@ namespace _Root.Scripts.UI
         public static bool IsOpen { get; private set; }
 
         private PlaytestLobbyController _lobby;
+        private DemoBossKillCheat _demoBossKillCheat;
         private bool _menuOpen;
         private bool _isLeaving;
         private GUIStyle _titleStyle;
         private GUIStyle _buttonStyle;
         private GUIStyle _leaveButtonStyle;
+        private GUIStyle _demoButtonStyle;
         private float _lastUiScale = -1f;
 
         private void Awake()
@@ -28,6 +31,8 @@ namespace _Root.Scripts.UI
             _lobby = GetComponent<PlaytestLobbyController>();
             if (_lobby == null)
                 _lobby = FindObjectOfType<PlaytestLobbyController>();
+
+            _demoBossKillCheat = GetComponent<DemoBossKillCheat>();
         }
 
         private void OnDestroy()
@@ -82,8 +87,10 @@ namespace _Root.Scripts.UI
 
             DrawPauseDim();
 
+            var showDemoBossSkip = ShouldShowDemoBossSkipButton();
+
             const float panelWidth = 420f;
-            const float panelHeight = 352f;
+            float panelHeight = showDemoBossSkip ? 416f : 352f;
             var panelX = (Screen.width - panelWidth * scale) * 0.5f;
             var panelY = (Screen.height - panelHeight * scale) * 0.5f;
 
@@ -99,7 +106,15 @@ namespace _Root.Scripts.UI
             if (GUI.Button(new Rect(60f, 152f, panelWidth - 120f, 52f), "Options", _buttonStyle))
                 OpenOptionsPanel();
 
-            if (GUI.Button(new Rect(60f, 216f, panelWidth - 120f, 52f), "Leave Game", _leaveButtonStyle))
+            var leaveButtonY = showDemoBossSkip ? 280f : 216f;
+            if (showDemoBossSkip
+                && GUI.Button(new Rect(60f, 216f, panelWidth - 120f, 52f), "Demo: Boss'u Bitir", _demoButtonStyle))
+            {
+                if (_demoBossKillCheat != null && _demoBossKillCheat.TryRequestBossKill())
+                    SetMenuOpen(false);
+            }
+
+            if (GUI.Button(new Rect(60f, leaveButtonY, panelWidth - 120f, 52f), "Leave Game", _leaveButtonStyle))
                 _ = LeaveGameAsync();
 
             GUI.matrix = matrix;
@@ -153,6 +168,14 @@ namespace _Root.Scripts.UI
                 return false;
 
             return NetworkPlayer.Local != null;
+        }
+
+        private bool ShouldShowDemoBossSkipButton()
+        {
+            if (_demoBossKillCheat == null)
+                _demoBossKillCheat = FindFirstObjectByType<DemoBossKillCheat>();
+
+            return _demoBossKillCheat != null && _demoBossKillCheat.CanRequestKill();
         }
 
         private void SetMenuOpen(bool open)
@@ -217,6 +240,11 @@ namespace _Root.Scripts.UI
             _leaveButtonStyle = new GUIStyle(_buttonStyle)
             {
                 normal = { textColor = new Color(1f, 0.85f, 0.85f, 1f) }
+            };
+
+            _demoButtonStyle = new GUIStyle(_buttonStyle)
+            {
+                normal = { textColor = new Color(0.95f, 0.9f, 0.55f, 1f) }
             };
         }
     }

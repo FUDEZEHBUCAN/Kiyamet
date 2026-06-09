@@ -13,6 +13,7 @@ namespace _Root.Scripts.Interactable
         private const string BeamShaderName = "Kiyamet/ReflectorLightBeam";
 
         [Header("Beam")]
+        [SerializeField] private Shader beamShader;
         [SerializeField] private float startWidth = 0.22f;
         [SerializeField] private float endWidth = 0.08f;
         [SerializeField] private Color beamColor = new Color(1f, 0.95f, 0.72f, 1f);
@@ -188,9 +189,16 @@ namespace _Root.Scripts.Interactable
 
         private Material CreateBeamMaterial()
         {
-            Shader shader = Shader.Find(BeamShaderName);
+            Shader shader = beamShader;
             if (shader == null)
+                shader = Shader.Find(BeamShaderName);
+
+            if (shader == null)
+            {
+                Debug.LogWarning(
+                    $"[ReflectorLightBeamVisual] '{BeamShaderName}' build'de bulunamadı. Shader'ı Inspector'dan ata veya Always Included Shaders listesine ekle.");
                 shader = Shader.Find("Kiyamet/ShadowDashEmissiveTrail");
+            }
 
             var material = new Material(shader);
             material.SetColor(EmissionColorId, beamColor);

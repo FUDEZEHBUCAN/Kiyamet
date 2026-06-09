@@ -115,7 +115,8 @@ namespace _Root.Scripts.Data
         [SerializeField] private float playerKnockbackForcePerDamage = 0.14f;
         [SerializeField] private float playerKnockbackMinForce = 5f;
         [SerializeField] private float playerKnockbackMaxForce = 22f;
-        [SerializeField] private float playerKnockbackUpward = 2.2f;
+        [Tooltip("Kullanılmıyor — boss savurması yataydır (Fall anim ayrı). Boulder vb. için ileride.")]
+        [SerializeField] private float playerKnockbackUpward = 0f;
         [Tooltip("Fiziksel savurma süresi (saniye).")]
         [SerializeField] private float playerKnockbackDuration = 0.42f;
         [Tooltip("Savurma sonrası oyuncu girdisinin kilitli kalacağı süre (saniye); knockback'ten bağımsız.")]

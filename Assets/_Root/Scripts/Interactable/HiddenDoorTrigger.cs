@@ -1,6 +1,7 @@
 using Fusion;
 using UnityEngine;
 using _Root.Scripts.Controllers;
+using _Root.Scripts.Enemy;
 using _Root.Scripts.Enums;
 using NetworkPlayer = _Root.Scripts.Network.NetworkPlayer;
 
@@ -34,6 +35,12 @@ namespace _Root.Scripts.Interactable
         [Header("Door Destroy Events")]
         [SerializeField] private GameObject objectToActivateOnDoorMove;
 
+        [Header("Controlled Enemies")]
+        [Tooltip("Kapı kırılınca aktifleşecek düşmanlar. Başlangıçta EnemyAggroTriggerZone gibi kapalı tutulur.")]
+        [SerializeField] private NetworkEnemy[] controlledEnemies;
+        [SerializeField] private bool disableEnemiesOnStart = true;
+        [SerializeField] private bool disableDetectionOnStart = true;
+
         [Header("Camera Shake")]
         [SerializeField] private bool shakeCameraOnDoorDestroy = true;
 
@@ -48,6 +55,8 @@ namespace _Root.Scripts.Interactable
         [Networked] private TickTimer CountdownTimer { get; set; }
 
         private bool _doorDestroyApplied;
+        private bool _initialDormancyApplied;
+        private bool _enemiesActivatedOnDoorBreak;
 
         private void Reset()
         {
@@ -109,6 +118,14 @@ namespace _Root.Scripts.Interactable
 
             if (DoorState == HiddenDoorState.Countdown && CountdownTimer.Expired(Runner))
                 DoorState = HiddenDoorState.Complete;
+
+            if (DoorState == HiddenDoorState.Complete)
+                TryActivateControlledEnemiesOnDoorBreak();
+        }
+
+        private void Update()
+        {
+            TryApplyInitialEnemyDormancy();
         }
 
         public override void Render()
@@ -195,6 +212,144 @@ namespace _Root.Scripts.Interactable
 
             Destroy(hiddenDoor.gameObject);
             hiddenDoor = null;
+        }
+
+        private void TryApplyInitialEnemyDormancy()
+        {
+            if (_initialDormancyApplied || _enemiesActivatedOnDoorBreak)
+                return;
+
+            if (DoorState == HiddenDoorState.Complete)
+            {
+                _initialDormancyApplied = true;
+                return;
+            }
+
+            if (!disableEnemiesOnStart && !disableDetectionOnStart)
+            {
+                _initialDormancyApplied = true;
+                return;
+            }
+
+            if (!TryResolveServerRunner(out _))
+                return;
+
+            if (!AreControlledEnemiesReady())
+                return;
+
+            if (disableEnemiesOnStart)
+                SetEnemiesActive(false);
+
+            if (disableDetectionOnStart)
+                ApplyDetectionToEnemies(false);
+
+            _initialDormancyApplied = true;
+        }
+
+        private void TryActivateControlledEnemiesOnDoorBreak()
+        {
+            if (_enemiesActivatedOnDoorBreak || controlledEnemies == null || controlledEnemies.Length == 0)
+                return;
+
+            if (!TryResolveServerRunner(out _))
+                return;
+
+            SetEnemiesActive(true);
+            ApplyDetectionToEnemies(true);
+            _enemiesActivatedOnDoorBreak = true;
+        }
+
+        private bool AreControlledEnemiesReady()
+        {
+            if (controlledEnemies == null)
+                return false;
+
+            bool foundAny = false;
+            for (int i = 0; i < controlledEnemies.Length; i++)
+            {
+                NetworkEnemy enemy = controlledEnemies[i];
+                if (enemy == null)
+                    continue;
+
+                if (enemy.Object == null || !enemy.Object.IsValid)
+                    return false;
+
+                foundAny = true;
+            }
+
+            return foundAny;
+        }
+
+        private void SetEnemiesActive(bool active)
+        {
+            if (controlledEnemies == null)
+                return;
+
+            for (int i = 0; i < controlledEnemies.Length; i++)
+            {
+                NetworkEnemy enemy = controlledEnemies[i];
+                if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
+                    continue;
+
+                if (!enemy.Object.HasStateAuthority)
+                    continue;
+
+                enemy.SetAggroZoneDormant(!active);
+            }
+        }
+
+        private void ApplyDetectionToEnemies(bool enabled)
+        {
+            if (controlledEnemies == null)
+                return;
+
+            for (int i = 0; i < controlledEnemies.Length; i++)
+            {
+                NetworkEnemy enemy = controlledEnemies[i];
+                if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
+                    continue;
+
+                if (!enemy.Object.HasStateAuthority)
+                    continue;
+
+                enemy.SetPlayerDetectionEnabled(enabled);
+            }
+        }
+
+        private bool TryResolveServerRunner(out NetworkRunner runner)
+        {
+            runner = null;
+
+            if (controlledEnemies != null)
+            {
+                for (int i = 0; i < controlledEnemies.Length; i++)
+                {
+                    NetworkEnemy enemy = controlledEnemies[i];
+                    if (enemy == null || enemy.Object == null || !enemy.Object.IsValid)
+                        continue;
+
+                    runner = enemy.Runner;
+                    if (runner != null && runner.IsServer)
+                        return true;
+                }
+            }
+
+            if (Runner != null && Runner.IsRunning && Runner.IsServer)
+            {
+                runner = Runner;
+                return true;
+            }
+
+            foreach (NetworkRunner activeRunner in NetworkRunner.Instances)
+            {
+                if (activeRunner == null || !activeRunner.IsRunning || !activeRunner.IsServer)
+                    continue;
+
+                runner = activeRunner;
+                return true;
+            }
+
+            return false;
         }
 
         private void EnsureTriggerRigidbody()

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 using UnityEngine.AI;
@@ -148,6 +149,7 @@ namespace _Root.Scripts.Boss
         private int _lastLaserVisualSequence;
         private bool _lastVisualPetrified;
         private bool _lastVisualSleepStone;
+        private readonly HashSet<NetworkPlayer> _playerDamageScratch = new HashSet<NetworkPlayer>();
         private bool _lastIsSleeping;
         private bool _lastWakePetrifyPlaying;
         private bool _lastVisualSleepingAnim;
@@ -1292,12 +1294,9 @@ namespace _Root.Scripts.Boss
             Vector3 landing = LeapLockedPosition;
             bool hit = false;
 
-            foreach (var col in Physics.OverlapSphere(landing, bossData.JumpLandingRadius, playerLayer))
+            CollectPlayersFromOverlap(Physics.OverlapSphere(landing, bossData.JumpLandingRadius, playerLayer));
+            foreach (var player in _playerDamageScratch)
             {
-                var player = col.GetComponentInParent<NetworkPlayer>();
-                if (player == null || !player.IsAlive)
-                    continue;
-
                 DamagePlayerWithKnockback(player, bossData.JumpAttackDamage, landing);
                 hit = true;
             }
@@ -1534,12 +1533,9 @@ namespace _Root.Scripts.Boss
 
             if (!hit)
             {
-                foreach (var col in Physics.OverlapSphere(origin, bossData.RushHitRadius, playerLayer))
+                CollectPlayersFromOverlap(Physics.OverlapSphere(origin, bossData.RushHitRadius, playerLayer));
+                foreach (var player in _playerDamageScratch)
                 {
-                    var player = col.GetComponentInParent<NetworkPlayer>();
-                    if (player == null || !player.IsAlive)
-                        continue;
-
                     DamagePlayerWithKnockback(player, bossData.RushAttackDamage, origin);
                     hit = true;
                     break;
@@ -1712,12 +1708,9 @@ namespace _Root.Scripts.Boss
             var orientation = Quaternion.LookRotation(forward);
             bool hitPlayer = false;
 
-            foreach (var col in Physics.OverlapBox(center, halfExtents, orientation, playerLayer))
+            CollectPlayersFromOverlap(Physics.OverlapBox(center, halfExtents, orientation, playerLayer));
+            foreach (var player in _playerDamageScratch)
             {
-                var player = col.GetComponentInParent<NetworkPlayer>();
-                if (player == null || !player.IsAlive)
-                    continue;
-
                 player.TakeDamage(bossData.LaserAttackDamage, false, center);
                 hitPlayer = true;
             }
@@ -1876,12 +1869,9 @@ namespace _Root.Scripts.Boss
 
             var attackType = isHeavy ? BossAttackType.Heavy : BossAttackType.Normal;
             bool hit = false;
-            foreach (var col in Physics.OverlapSphere(origin, radius, playerLayer))
+            CollectPlayersFromOverlap(Physics.OverlapSphere(origin, radius, playerLayer));
+            foreach (var player in _playerDamageScratch)
             {
-                var player = col.GetComponentInParent<NetworkPlayer>();
-                if (player == null || !player.IsAlive)
-                    continue;
-
                 DamagePlayerWithKnockback(player, damage, origin, isHeavy);
                 player.NotifyBossMeleeHit(attackType);
                 hit = true;
@@ -1889,6 +1879,20 @@ namespace _Root.Scripts.Boss
 
             if (hit)
                 PublishAudioEvent(BossAudioEventType.AttackHit);
+        }
+
+        private void CollectPlayersFromOverlap(Collider[] colliders)
+        {
+            _playerDamageScratch.Clear();
+            if (colliders == null)
+                return;
+
+            for (var i = 0; i < colliders.Length; i++)
+            {
+                var player = colliders[i].GetComponentInParent<NetworkPlayer>();
+                if (player != null && player.IsAlive)
+                    _playerDamageScratch.Add(player);
+            }
         }
 
         /// <summary>Lazer hariç boss vuruşları: hasara göre savurma + oyuncu Fall animasyonu.</summary>
@@ -1904,7 +1908,7 @@ namespace _Root.Scripts.Boss
                 origin,
                 force,
                 bossData.PlayerKnockbackDuration,
-                bossData.PlayerKnockbackUpward,
+                knockbackUpward: 0f,
                 bossData.PlayerInputBlockDuration);
         }
 
@@ -2107,6 +2111,56 @@ namespace _Root.Scripts.Boss
             animController?.TriggerDeath();
             PublishAudioEvent(BossAudioEventType.Death);
             PublishCameraShake(BossCameraShakeType.Death, transform.position);
+        }
+
+        /// <summary>
+        /// Demo / playtest cheat — uyku, taşlaşma ve saldırı kilitlerini atlayarak boss'u anında öldürür.
+        /// Yalnızca state authority çağırmalıdır.
+        /// </summary>
+        public void ForceDemoKill()
+        {
+            if (!Object.HasStateAuthority || !IsAlive || CurrentState == BossState.Dead)
+                return;
+
+            ClearDemoKillBlockers();
+            StopAgent();
+            CurrentHealth = 0f;
+            Die();
+        }
+
+        private void ClearDemoKillBlockers()
+        {
+            IsSleeping = false;
+            IsPetrified = false;
+            PetrifyDispelledByLight = true;
+            IsWakePetrifyPlaying = false;
+            IsPetrifyReversalPlaying = false;
+            WakePetrifyAnimTimer = TickTimer.None;
+            PetrifyReversalAnimTimer = TickTimer.None;
+            PetrifyFearAnimTimer = TickTimer.None;
+            WakeLightExposure = 0f;
+            PetrifyLightExposure = 0f;
+            PendingDamage = false;
+            ActiveAttackType = BossAttackType.None;
+            LeapPhaseTimer = TickTimer.None;
+            StateTimer = TickTimer.None;
+            LaserPhase = BossEyeLaserPhase.None;
+            LaserDamageTickTimer = TickTimer.None;
+            PlayerDetectionEnabled = true;
+
+            if (!AttachedSleepWallDestroyed)
+            {
+                AttachedSleepWallDestroyed = true;
+                DestroyAttachedSleepWall();
+            }
+
+            if (CurrentState == BossState.EyeLaser)
+                CancelEyeLaser();
+            else if (CurrentState is BossState.RushAttackWindup or BossState.RushAttackCharge or BossState.RushAttackStrike)
+                CancelRushAttack();
+
+            animController?.InterruptAttacks();
+            animController?.ExitRushRun();
         }
 
         private void PublishCameraShake(BossCameraShakeType shakeType, Vector3 origin)

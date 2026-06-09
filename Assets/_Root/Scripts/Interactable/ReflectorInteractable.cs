@@ -305,6 +305,8 @@ namespace _Root.Scripts.Interactable
             if (!Object.HasStateAuthority)
                 return;
 
+            ApplyBarrelRotation();
+
             if (IsRayActivated)
             {
                 UpdateChainedLightTarget();
@@ -407,24 +409,10 @@ namespace _Root.Scripts.Interactable
 
         private ReflectorInteractable FindFirstReflectorHit()
         {
-            if (!TryGetRayCastPose(out Vector3 origin, out Vector3 direction))
+            if (!TryCollectRayHits(out RaycastHit[] hits))
                 return null;
 
-            origin += direction * rayCastOriginOffset;
-            float maxDistance = GetBeamMaxDistance();
-
-            RaycastHit[] hits = Physics.RaycastAll(
-                origin,
-                direction,
-                maxDistance,
-                rayHitLayers,
-                QueryTriggerInteraction.Ignore);
-
-            if (hits == null || hits.Length == 0)
-                return null;
-
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
+            Vector3 direction = GetRayCastDirection();
             foreach (RaycastHit hit in hits)
             {
                 if (IsSelfCollider(hit.collider))
@@ -443,24 +431,10 @@ namespace _Root.Scripts.Interactable
 
         private void TryNotifyBossWakeLight()
         {
-            if (!TryGetRayCastPose(out Vector3 origin, out Vector3 direction))
+            if (!TryCollectRayHits(out RaycastHit[] hits))
                 return;
 
-            origin += direction * rayCastOriginOffset;
-            float maxDistance = GetBeamMaxDistance();
-
-            RaycastHit[] hits = Physics.RaycastAll(
-                origin,
-                direction,
-                maxDistance,
-                rayHitLayers,
-                QueryTriggerInteraction.Ignore);
-
-            if (hits == null || hits.Length == 0)
-                return;
-
-            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
+            Vector3 direction = GetRayCastDirection();
             foreach (RaycastHit hit in hits)
             {
                 if (IsSelfCollider(hit.collider))
@@ -473,6 +447,38 @@ namespace _Root.Scripts.Interactable
                 wakeReceiver.NotifyLightExposure(Runner.DeltaTime);
                 return;
             }
+        }
+
+        private bool TryCollectRayHits(out RaycastHit[] sortedHits)
+        {
+            sortedHits = null;
+
+            if (!TryGetRayCastPose(out Vector3 origin, out Vector3 direction))
+                return false;
+
+            Vector3 castStart = origin + direction * rayCastOriginOffset;
+            RaycastHit[] hits = Physics.SphereCastAll(
+                castStart,
+                rayHitRadius,
+                direction,
+                GetBeamMaxDistance(),
+                rayHitLayers,
+                QueryTriggerInteraction.Ignore);
+
+            if (hits == null || hits.Length == 0)
+                return false;
+
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            sortedHits = hits;
+            return true;
+        }
+
+        private Vector3 GetRayCastDirection()
+        {
+            if (!TryGetRayCastPose(out _, out Vector3 direction))
+                return Vector3.forward;
+
+            return direction;
         }
 
         [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -566,7 +572,13 @@ namespace _Root.Scripts.Interactable
 
             incomingDirection.Normalize();
             float minFacing = Mathf.Cos(chainHitAcceptanceAngle * Mathf.Deg2Rad);
-            if (Vector3.Dot(hit.normal, -incomingDirection) < minFacing)
+            float facing = Vector3.Dot(hit.normal, -incomingDirection);
+
+            Transform aim = GetAimTransform();
+            if (aim != null)
+                facing = Mathf.Max(facing, Vector3.Dot(-aim.forward, -incomingDirection));
+
+            if (facing < minFacing)
                 return false;
 
             if (lightReceiverTransform == null)

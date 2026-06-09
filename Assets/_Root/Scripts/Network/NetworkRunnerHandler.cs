@@ -7,6 +7,7 @@ using System;
 using System.Linq;
 using _Root.Scripts.Network.Lobby;
 using _Root.Scripts.UI;
+using _Root.Scripts.DevTools;
 
 namespace _Root.Scripts.Network
 {
@@ -18,6 +19,12 @@ namespace _Root.Scripts.Network
         [SerializeField] private bool autoConnectOnStart = true;
 
         [SerializeField] private string autoConnectSessionName = "TestSession";
+
+        [Header("Demo Day")]
+        [Tooltip("Oturum başında DemoBossKillCheat bileşenini ekle.")]
+        [SerializeField] private bool ensureDemoBossKillCheatComponent = true;
+        [Tooltip("Demo günü: host pes ettiğinde boss'u manuel öldürebilir (F9 / pause menüsü).")]
+        [SerializeField] private bool enableDemoBossKillForSession;
 
         private NetworkRunner _networkRunner;
 
@@ -59,6 +66,8 @@ namespace _Root.Scripts.Network
 
             if (gameObject.GetComponent<GameplayPauseMenu>() == null)
                 gameObject.AddComponent<GameplayPauseMenu>();
+
+            EnsureDemoBossKillCheatComponent();
 
             var spawner = GetComponent<Spawner>() ?? FindObjectOfType<Spawner>();
             if (spawner != null)
@@ -156,6 +165,19 @@ namespace _Root.Scripts.Network
                 if (runner != null)
                     Destroy(runner.gameObject);
             }
+        }
+
+        private void EnsureDemoBossKillCheatComponent()
+        {
+            if (!ensureDemoBossKillCheatComponent)
+                return;
+
+            var cheat = GetComponent<DemoBossKillCheat>();
+            if (cheat == null)
+                cheat = gameObject.AddComponent<DemoBossKillCheat>();
+
+            if (enableDemoBossKillForSession)
+                cheat.ConfigureForDemoSession(enabled: true);
         }
     }
 }
