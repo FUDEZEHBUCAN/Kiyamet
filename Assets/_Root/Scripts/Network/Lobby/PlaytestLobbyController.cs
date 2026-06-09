@@ -8,6 +8,7 @@ using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 namespace _Root.Scripts.Network.Lobby
 {
@@ -173,11 +174,7 @@ namespace _Root.Scripts.Network.Lobby
 
         public static void QuitApplication()
         {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+            SceneManager.LoadScene(0);
         }
 
         /// <summary>Disconnect and return to the pre-join lobby screen.</summary>
