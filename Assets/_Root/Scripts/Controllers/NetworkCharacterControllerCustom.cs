@@ -54,6 +54,12 @@ namespace _Root.Scripts.Controllers {
     [SerializeField] private float environmentalFallMinHeight = 1.35f;
     [SerializeField] private float environmentalFallMinAirTime = 0.14f;
     [SerializeField] private float environmentalFallMinDownwardSpeed = 1.5f;
+
+    [Header("Remote Proxy Render")]
+    [SerializeField] private float remotePositionSmoothTime = 0.085f;
+    [SerializeField] private float remoteRotationSharpness = 16f;
+    [Tooltip("Ağ gecikmesini hafif telafi etmek için Velocity ile kısa extrapolation.")]
+    [SerializeField] private float remoteVelocityExtrapolation = 0.75f;
     
     private float BaseMaxSpeed => characterData != null ? characterData.movementSpeed : 6.0f;
     private float RunningMaxSpeed
@@ -171,15 +177,9 @@ namespace _Root.Scripts.Controllers {
     private float _environmentalAirTime;
     private Vector3 _predictedVelocity;
     private bool _predictedGrounded = true;
-    private Vector3 _remoteRenderVelocity;
-    private Vector3 _lastRemoteRenderPosition;
-    private Vector3 _interpFromPosition;
-    private Vector3 _interpToPosition;
-    private Quaternion _interpFromRotation;
-    private Quaternion _interpToRotation;
-    private bool _interpInitialized;
+    private Vector3 _remotePositionSmoothVelocity;
 
-    private bool IsRemoteProxy =>
+    public bool IsRemoteProxy =>
         Object != null && Object.IsValid && !Object.HasInputAuthority && !Object.HasStateAuthority;
 
     private bool IsPredictedLocalPlayer =>
@@ -193,8 +193,6 @@ namespace _Root.Scripts.Controllers {
           return Vector3.zero;
         if (IsPredictedLocalPlayer)
           return _predictedVelocity;
-        if (IsRemoteProxy)
-          return _remoteRenderVelocity;
         return Velocity;
       }
     }
@@ -263,11 +261,7 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = transform.rotation;
       _predictedVelocity = Velocity;
       _predictedGrounded = Grounded;
-      _interpFromPosition = _interpToPosition = NetworkPosition;
-      _interpFromRotation = _interpToRotation = NetworkRotation;
-      _lastRemoteRenderPosition = NetworkPosition;
-      _remoteRenderVelocity = Vector3.zero;
-      _interpInitialized = true;
+      _remotePositionSmoothVelocity = Vector3.zero;
       _wasGroundedForFall = true;
     }
 
@@ -1104,41 +1098,28 @@ namespace _Root.Scripts.Controllers {
 
     private void RenderRemoteProxyTransform(bool shadowDashing)
     {
-      UpdateRemoteInterpolationTargets();
-
-      float alpha = Runner != null ? Runner.LocalAlpha : 1f;
-      Vector3 renderPosition = Vector3.Lerp(_interpFromPosition, _interpToPosition, alpha);
-      Quaternion renderRotation = Quaternion.Slerp(_interpFromRotation, _interpToRotation, alpha);
-
-      _controller.enabled = false;
-      transform.SetPositionAndRotation(renderPosition, renderRotation);
-      if (!shadowDashing)
-        _controller.enabled = true;
-
-      if (Time.deltaTime > 0.0001f)
-        _remoteRenderVelocity = (renderPosition - _lastRemoteRenderPosition) / Time.deltaTime;
-      _lastRemoteRenderPosition = renderPosition;
-    }
-
-    private void UpdateRemoteInterpolationTargets()
-    {
-      if (!_interpInitialized)
+      Vector3 targetPosition = NetworkPosition;
+      if (remoteVelocityExtrapolation > 0.001f && Runner != null && !HasActiveKnockback && !IsDodging && !IsDashing)
       {
-        _interpFromPosition = _interpToPosition = NetworkPosition;
-        _interpFromRotation = _interpToRotation = NetworkRotation;
-        _lastRemoteRenderPosition = NetworkPosition;
-        _interpInitialized = true;
-        return;
+        float lead = Runner.DeltaTime * remoteVelocityExtrapolation;
+        targetPosition += Velocity * lead;
       }
 
-      if ((NetworkPosition - _interpToPosition).sqrMagnitude < 0.000001f
-          && Quaternion.Angle(NetworkRotation, _interpToRotation) < 0.01f)
-        return;
+      Vector3 smoothPosition = Vector3.SmoothDamp(
+        transform.position,
+        targetPosition,
+        ref _remotePositionSmoothVelocity,
+        remotePositionSmoothTime,
+        Mathf.Infinity,
+        Time.deltaTime);
 
-      _interpFromPosition = _interpToPosition;
-      _interpFromRotation = _interpToRotation;
-      _interpToPosition = NetworkPosition;
-      _interpToRotation = NetworkRotation;
+      float rotationBlend = 1f - Mathf.Exp(-remoteRotationSharpness * Time.deltaTime);
+      Quaternion smoothRotation = Quaternion.Slerp(transform.rotation, NetworkRotation, rotationBlend);
+
+      _controller.enabled = false;
+      transform.SetPositionAndRotation(smoothPosition, smoothRotation);
+      if (!shadowDashing)
+        _controller.enabled = true;
     }
   }
 }

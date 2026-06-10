@@ -27,6 +27,11 @@ namespace _Root.Scripts.Controllers
         [Networked] private float NetworkedYaw { get; set; }
         [Networked] public NetworkBool NetworkedIsRunning { get; set; }
 
+        [Header("Remote Animation")]
+        [SerializeField] private float remoteLocomotionVelocitySmoothing = 18f;
+
+        private Vector3 _smoothedRemoteLocomotionVelocity;
+
         private void Awake()
         {
             _cc = GetComponent<NetworkCharacterControllerCustom>();
@@ -42,6 +47,7 @@ namespace _Root.Scripts.Controllers
         public override void Spawned()
         {
             NetworkedYaw = transform.eulerAngles.y;
+            _smoothedRemoteLocomotionVelocity = Vector3.zero;
             
             if (Object.HasInputAuthority)
             {
@@ -307,8 +313,7 @@ namespace _Root.Scripts.Controllers
                     _animController.SetBlocking(_networkPlayer.IsBlocking);
                 }
 
-                Vector3 velocity = _cc.SimulationVelocity;
-                Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+                Vector3 horizontalVelocity = ResolveLocomotionVelocityForAnimation();
 
                 _animController.UpdateLocomotionAnimation(
                     horizontalVelocity,
@@ -316,7 +321,7 @@ namespace _Root.Scripts.Controllers
                     _cc.WalkMovementSpeed,
                     _cc.RunMovementSpeed);
 
-                if (!Object.HasInputAuthority)
+                if (_cc.IsRemoteProxy)
                     _animController.SetRunning(NetworkedIsRunning);
                 
                 _animController.SetGrounded(_cc.SimulationGrounded);
@@ -326,5 +331,19 @@ namespace _Root.Scripts.Controllers
 
         private bool ShouldSimulateMovement() =>
             Object.HasStateAuthority || (Object.HasInputAuthority && Runner.IsForward);
+
+        private Vector3 ResolveLocomotionVelocityForAnimation()
+        {
+            if (_cc.IsRemoteProxy)
+            {
+                Vector3 target = new Vector3(_cc.Velocity.x, 0f, _cc.Velocity.z);
+                float blend = 1f - Mathf.Exp(-remoteLocomotionVelocitySmoothing * Time.deltaTime);
+                _smoothedRemoteLocomotionVelocity = Vector3.Lerp(_smoothedRemoteLocomotionVelocity, target, blend);
+                return _smoothedRemoteLocomotionVelocity;
+            }
+
+            Vector3 velocity = _cc.SimulationVelocity;
+            return new Vector3(velocity.x, 0f, velocity.z);
+        }
     }
 }
