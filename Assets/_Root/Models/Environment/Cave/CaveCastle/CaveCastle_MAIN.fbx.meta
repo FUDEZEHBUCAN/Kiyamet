@@ -7,13 +7,33 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: CastleRoof_MAT
+    second: {fileID: 2100000, guid: b8b5c490a9ae9ec49a095043c5521274, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: CastleWall
     second: {fileID: 2100000, guid: b10deddc73266dc42b45f2887a260c40, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Concrete_Mat
+    second: {fileID: 2100000, guid: c3cf2d36325d46748b4ada1434a3e462, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: StoneFloor
     second: {fileID: 2100000, guid: d308cee9f7bd984429e8c9d262ae9679, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TrimMaterial
+    second: {fileID: 2100000, guid: a727854a2d99b034491e7bdb56a1e985, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WoodenPlanks
+    second: {fileID: 2100000, guid: 7e301769401571c4f8e8f86d0ae161db, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
