@@ -55,6 +55,16 @@ namespace _Root.Scripts.UI
             ReleaseIntroRenderTexture();
         }
 
+        private void Update()
+        {
+            // Adding "UnityEngine." tells the game explicitly to use Unity's input, 
+            // bypassing your project's custom Input namespace.
+            if (_introPlaying && (UnityEngine.Input.GetKeyDown(KeyCode.Escape) || UnityEngine.Input.GetKeyDown(KeyCode.Space)))
+            {
+                LoadLobbyScene();
+            }
+        }
+
         public void BeginNewGame()
         {
             if (_introPlaying)
