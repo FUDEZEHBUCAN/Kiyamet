@@ -194,6 +194,18 @@ namespace _Root.Scripts.Enemy
             _dormantComponentsCached = true;
         }
 
+        private void SyncAggroZoneDormantVisuals()
+        {
+            if (_aggroZoneDormantApplied == AggroZoneDormant)
+                return;
+
+            bool waking = _aggroZoneDormantApplied && !AggroZoneDormant;
+            ApplyAggroZoneDormantLocal(AggroZoneDormant);
+
+            if (waking)
+                PrepareAggroZoneWake();
+        }
+
         private void ApplyAggroZoneDormantLocal(bool dormant)
         {
             if (_aggroZoneDormantApplied == dormant)
@@ -433,7 +445,7 @@ namespace _Root.Scripts.Enemy
                 agent.enabled = false;
             }
 
-            ApplyAggroZoneDormantLocal(AggroZoneDormant);
+            SyncAggroZoneDormantVisuals();
         }
 
         private void InitializeBehaviorVariance()
@@ -706,6 +718,8 @@ namespace _Root.Scripts.Enemy
         
         public override void Render()
         {
+            SyncAggroZoneDormantVisuals();
+
             if (AggroZoneDormant)
                 return;
 
