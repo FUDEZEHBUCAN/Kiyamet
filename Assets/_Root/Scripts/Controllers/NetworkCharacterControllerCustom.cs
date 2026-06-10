@@ -12,6 +12,7 @@ namespace _Root.Scripts.Controllers {
 
   [DisallowMultipleComponent]
   [RequireComponent(typeof(CharacterController))]
+  [DefaultExecutionOrder(-100)]
   public class NetworkCharacterControllerCustom : NetworkBehaviour {
 
     [Header("Character Data")]
@@ -170,12 +171,36 @@ namespace _Root.Scripts.Controllers {
     private float _environmentalAirTime;
     private Vector3 _predictedVelocity;
     private bool _predictedGrounded = true;
+    private Vector3 _remoteRenderVelocity;
+    private Vector3 _lastRemoteRenderPosition;
+    private Vector3 _interpFromPosition;
+    private Vector3 _interpToPosition;
+    private Quaternion _interpFromRotation;
+    private Quaternion _interpToRotation;
+    private bool _interpInitialized;
 
-    public Vector3 SimulationVelocity =>
-        Object != null && Object.HasStateAuthority ? Velocity : _predictedVelocity;
+    private bool IsRemoteProxy =>
+        Object != null && Object.IsValid && !Object.HasInputAuthority && !Object.HasStateAuthority;
+
+    private bool IsPredictedLocalPlayer =>
+        Object != null && Object.IsValid && Object.HasInputAuthority && !Object.HasStateAuthority;
+
+    public Vector3 SimulationVelocity
+    {
+      get
+      {
+        if (Object == null)
+          return Vector3.zero;
+        if (IsPredictedLocalPlayer)
+          return _predictedVelocity;
+        if (IsRemoteProxy)
+          return _remoteRenderVelocity;
+        return Velocity;
+      }
+    }
 
     public bool SimulationGrounded =>
-        Object != null && Object.HasStateAuthority ? (bool)Grounded : _predictedGrounded;
+        Object != null && IsPredictedLocalPlayer ? _predictedGrounded : (bool)Grounded;
 
     private bool CanSimulateMovement() =>
         Object != null && Object.IsValid && Runner != null
@@ -238,6 +263,11 @@ namespace _Root.Scripts.Controllers {
       NetworkRotation = transform.rotation;
       _predictedVelocity = Velocity;
       _predictedGrounded = Grounded;
+      _interpFromPosition = _interpToPosition = NetworkPosition;
+      _interpFromRotation = _interpToRotation = NetworkRotation;
+      _lastRemoteRenderPosition = NetworkPosition;
+      _remoteRenderVelocity = Vector3.zero;
+      _interpInitialized = true;
       _wasGroundedForFall = true;
     }
 
@@ -1048,15 +1078,10 @@ namespace _Root.Scripts.Controllers {
     public override void Render() {
       bool shadowDashing = _duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing;
 
-      if (Object.HasInputAuthority && !Object.HasStateAuthority)
+      if (IsPredictedLocalPlayer)
         ReconcilePredictedPosition();
-      else if (!Object.HasInputAuthority)
-      {
-        _controller.enabled = false;
-        transform.SetPositionAndRotation(NetworkPosition, NetworkRotation);
-        if (!shadowDashing)
-          _controller.enabled = true;
-      }
+      else if (IsRemoteProxy)
+        RenderRemoteProxyTransform(shadowDashing);
 
       bool isDodging = IsDodging;
       if (isDodging && !_wasDodgingForAnim)
@@ -1075,6 +1100,45 @@ namespace _Root.Scripts.Controllers {
       _controller.enabled = true;
       _predictedVelocity = Velocity;
       _predictedGrounded = Grounded;
+    }
+
+    private void RenderRemoteProxyTransform(bool shadowDashing)
+    {
+      UpdateRemoteInterpolationTargets();
+
+      float alpha = Runner != null ? Runner.LocalAlpha : 1f;
+      Vector3 renderPosition = Vector3.Lerp(_interpFromPosition, _interpToPosition, alpha);
+      Quaternion renderRotation = Quaternion.Slerp(_interpFromRotation, _interpToRotation, alpha);
+
+      _controller.enabled = false;
+      transform.SetPositionAndRotation(renderPosition, renderRotation);
+      if (!shadowDashing)
+        _controller.enabled = true;
+
+      if (Time.deltaTime > 0.0001f)
+        _remoteRenderVelocity = (renderPosition - _lastRemoteRenderPosition) / Time.deltaTime;
+      _lastRemoteRenderPosition = renderPosition;
+    }
+
+    private void UpdateRemoteInterpolationTargets()
+    {
+      if (!_interpInitialized)
+      {
+        _interpFromPosition = _interpToPosition = NetworkPosition;
+        _interpFromRotation = _interpToRotation = NetworkRotation;
+        _lastRemoteRenderPosition = NetworkPosition;
+        _interpInitialized = true;
+        return;
+      }
+
+      if ((NetworkPosition - _interpToPosition).sqrMagnitude < 0.000001f
+          && Quaternion.Angle(NetworkRotation, _interpToRotation) < 0.01f)
+        return;
+
+      _interpFromPosition = _interpToPosition;
+      _interpFromRotation = _interpToRotation;
+      _interpToPosition = NetworkPosition;
+      _interpToRotation = NetworkRotation;
     }
   }
 }

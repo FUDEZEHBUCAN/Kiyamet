@@ -296,7 +296,7 @@ namespace _Root.Scripts.Controllers
                 if (_cc.BlocksMovementFromDodge)
                 {
                     _animController.UpdateLocomotionAnimation(Vector3.zero, transform, _cc.WalkMovementSpeed, _cc.RunMovementSpeed);
-                    _animController.SetGrounded(_cc.Grounded);
+                    _animController.SetGrounded(_cc.SimulationGrounded);
                     _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
                     return;
                 }
@@ -315,6 +315,9 @@ namespace _Root.Scripts.Controllers
                     transform,
                     _cc.WalkMovementSpeed,
                     _cc.RunMovementSpeed);
+
+                if (!Object.HasInputAuthority)
+                    _animController.SetRunning(NetworkedIsRunning);
                 
                 _animController.SetGrounded(_cc.SimulationGrounded);
                 _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
