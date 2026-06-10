@@ -168,6 +168,40 @@ namespace _Root.Scripts.Controllers {
     private bool _trackingEnvironmentalFall;
     private float _environmentalFallStartHeight;
     private float _environmentalAirTime;
+    private Vector3 _predictedVelocity;
+    private bool _predictedGrounded = true;
+
+    public Vector3 SimulationVelocity =>
+        Object != null && Object.HasStateAuthority ? Velocity : _predictedVelocity;
+
+    public bool SimulationGrounded =>
+        Object != null && Object.HasStateAuthority ? (bool)Grounded : _predictedGrounded;
+
+    private bool CanSimulateMovement() =>
+        Object != null && Object.IsValid && Runner != null
+        && (Object.HasStateAuthority || (Object.HasInputAuthority && Runner.IsForward));
+
+    private Vector3 GetSimulationVelocity() =>
+        Object.HasStateAuthority ? Velocity : _predictedVelocity;
+
+    private void SetSimulationVelocity(Vector3 value)
+    {
+        if (Object.HasStateAuthority)
+            Velocity = value;
+        else
+            _predictedVelocity = value;
+    }
+
+    private bool GetSimulationGrounded() =>
+        Object.HasStateAuthority ? (bool)Grounded : _predictedGrounded;
+
+    private void SetSimulationGrounded(bool value)
+    {
+        if (Object.HasStateAuthority)
+            Grounded = value;
+        else
+            _predictedGrounded = value;
+    }
     
     void Awake() {
       TryGetComponent(out _controller);
@@ -202,6 +236,8 @@ namespace _Root.Scripts.Controllers {
       
       NetworkPosition = transform.position;
       NetworkRotation = transform.rotation;
+      _predictedVelocity = Velocity;
+      _predictedGrounded = Grounded;
       _wasGroundedForFall = true;
     }
 
@@ -321,13 +357,13 @@ namespace _Root.Scripts.Controllers {
     }
 
     public void Jump(bool ignoreGrounded = false, float? overrideImpulse = null) {
-      if (HasActiveKnockback)
+      if (!CanSimulateMovement() || HasActiveKnockback)
         return;
 
-      if (Grounded || ignoreGrounded) {
-        var vel = Velocity;
+      if (GetSimulationGrounded() || ignoreGrounded) {
+        var vel = GetSimulationVelocity();
         vel.y += overrideImpulse ?? JumpImpulse;
-        Velocity = vel;
+        SetSimulationVelocity(vel);
       }
     }
     
@@ -585,12 +621,13 @@ namespace _Root.Scripts.Controllers {
     }
 
     public void Move(Vector3 direction, bool wantsRun = false) {
-      if (!Object.HasStateAuthority) {
-        Debug.LogWarning($"[NetworkCC] Move() called but HasStateAuthority = False! ObjectId: {Object.Id}");
+      if (!CanSimulateMovement())
         return;
-      }
 
       if (_networkPlayer != null && !_networkPlayer.IsAlive) {
+        if (!Object.HasStateAuthority)
+          return;
+
         if (HasActiveKnockback)
           return;
 
@@ -615,13 +652,13 @@ namespace _Root.Scripts.Controllers {
       if (Object.HasStateAuthority && _networkPlayer != null)
         _networkPlayer.TickSupportUltimateFloat(deltaTime);
 
-      var moveVelocity = Velocity;
+      var moveVelocity = GetSimulationVelocity();
 
       direction = direction.normalized;
 
       bool isSupportFloating = _networkPlayer != null && _networkPlayer.IsSupportUltimateFloating;
 
-      if (Grounded && moveVelocity.y < 0) {
+      if (GetSimulationGrounded() && moveVelocity.y < 0) {
         moveVelocity.y = 0f;
       }
 
@@ -641,17 +678,20 @@ namespace _Root.Scripts.Controllers {
 
       _controller.Move(moveVelocity * deltaTime);
 
-      NetworkPosition = transform.position;
-      NetworkRotation = transform.rotation;
-      Velocity = moveVelocity;
-      Grounded = _controller.isGrounded;
+      SetSimulationVelocity(moveVelocity);
+      SetSimulationGrounded(_controller.isGrounded);
 
       if (Object.HasStateAuthority)
+      {
+        NetworkPosition = transform.position;
+        NetworkRotation = transform.rotation;
         TickEnvironmentalFall(isSupportFloating);
+      }
     }
     
     public void SetNetworkRotation(Quaternion rotation) {
-      NetworkRotation = rotation;
+      if (Object.HasStateAuthority)
+        NetworkRotation = rotation;
     }
 
     public bool TrySampleGroundHeight(Vector3 worldPosition, out float groundY)
@@ -1008,18 +1048,33 @@ namespace _Root.Scripts.Controllers {
     public override void Render() {
       bool shadowDashing = _duelistSignatureSkill != null && _duelistSignatureSkill.IsShadowDashing;
 
-      _controller.enabled = false;
-
-      transform.position = NetworkPosition;
-      transform.rotation = NetworkRotation;
-      
-      if (!shadowDashing)
-        _controller.enabled = true;
+      if (Object.HasInputAuthority && !Object.HasStateAuthority)
+        ReconcilePredictedPosition();
+      else if (!Object.HasInputAuthority)
+      {
+        _controller.enabled = false;
+        transform.SetPositionAndRotation(NetworkPosition, NetworkRotation);
+        if (!shadowDashing)
+          _controller.enabled = true;
+      }
 
       bool isDodging = IsDodging;
       if (isDodging && !_wasDodgingForAnim)
         _animController?.TriggerDodge();
       _wasDodgingForAnim = isDodging;
+    }
+
+    private void ReconcilePredictedPosition()
+    {
+      Vector3 correction = NetworkPosition - transform.position;
+      if (correction.sqrMagnitude <= 2.25f)
+        return;
+
+      _controller.enabled = false;
+      transform.SetPositionAndRotation(NetworkPosition, NetworkRotation);
+      _controller.enabled = true;
+      _predictedVelocity = Velocity;
+      _predictedGrounded = Grounded;
     }
   }
 }

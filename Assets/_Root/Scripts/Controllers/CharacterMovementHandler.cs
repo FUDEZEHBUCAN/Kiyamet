@@ -91,10 +91,8 @@ namespace _Root.Scripts.Controllers
                 }
             }
             
-            if (!Object.HasStateAuthority)
-            {
+            if (!ShouldSimulateMovement())
                 return;
-            }
 
             if (!isAlive)
             {
@@ -213,6 +211,9 @@ namespace _Root.Scripts.Controllers
                     if (_animController != null)
                         _animController.TriggerJump();
                 }
+
+                if (!Object.HasStateAuthority)
+                    return;
                 
                 bool canTrySignatureMove = !isMovementLocked
                     && (_networkPlayer == null || !_networkPlayer.IsPushing);
@@ -306,7 +307,7 @@ namespace _Root.Scripts.Controllers
                     _animController.SetBlocking(_networkPlayer.IsBlocking);
                 }
 
-                Vector3 velocity = _cc.Velocity;
+                Vector3 velocity = _cc.SimulationVelocity;
                 Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
 
                 _animController.UpdateLocomotionAnimation(
@@ -315,9 +316,12 @@ namespace _Root.Scripts.Controllers
                     _cc.WalkMovementSpeed,
                     _cc.RunMovementSpeed);
                 
-                _animController.SetGrounded(_cc.Grounded);
+                _animController.SetGrounded(_cc.SimulationGrounded);
                 _animController.SetFalling(_cc.IsEnvironmentalFalling && !_cc.HasActiveKnockback);
             }
         }
+
+        private bool ShouldSimulateMovement() =>
+            Object.HasStateAuthority || (Object.HasInputAuthority && Runner.IsForward);
     }
 }
